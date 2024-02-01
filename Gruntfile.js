@@ -49,15 +49,16 @@ module.exports = function (grunt) {
     pkg: grunt.file.readJSON('package.json'),
     // SASS compilation
     sass: {
-      odoo: themeconfig('freppledb/common', 'odoo'),
-      grass: themeconfig('freppledb/common', 'grass'),
-      earth: themeconfig('freppledb/common', 'earth'),
-      lemon: themeconfig('freppledb/common', 'lemon'),
-      snow: themeconfig('freppledb/common', 'snow'),
-      strawberry: themeconfig('freppledb/common', 'strawberry'),
-      water: themeconfig('freppledb/common', 'water'),
-      orange: themeconfig('freppledb/common', 'orange'),
-      openbravo: themeconfig('freppledb/common', 'openbravo'),
+      insist: themeconfig('freppledb/common', 'insist'),
+    //  odoo: themeconfig('freppledb/common', 'odoo'),
+    //  grass: themeconfig('freppledb/common', 'grass'),
+    //  earth: themeconfig('freppledb/common', 'earth'),
+    //  lemon: themeconfig('freppledb/common', 'lemon'),
+    //  snow: themeconfig('freppledb/common', 'snow'),
+    //  strawberry: themeconfig('freppledb/common', 'strawberry'),
+    //  water: themeconfig('freppledb/common', 'water'),
+    //  orange: themeconfig('freppledb/common', 'orange'),
+    //  openbravo: themeconfig('freppledb/common', 'openbravo'),
     },
     // When any .scss file changes we automatically run the "sass"-task.
     watch: {

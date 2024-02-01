@@ -73,8 +73,15 @@
         border-right: none;
     }
 }
-
-
+.card-header, .card-header a {
+    color: white!important;
+}
+.nav-link {
+    color: white!important;
+}
+.breadcrumbrow a {
+    color: white!important;
+}
 #nav-menu-header {
     .navbar-brand img {
         height: $navbar-brand-height;
@@ -240,7 +247,9 @@ input[type=number]:not(.arrows) {
 }
 
 // Accordion - we want them to look like a series of panels, instead of a big continuous pile
-
+button.accordion-button, button.accordion-button::after {
+    color: white!important;
+}
 .accordion-item {
     border-radius: $accordion-border-radius !important;
     margin-bottom: ($spacer * .25) !important;
