@@ -304,6 +304,7 @@ README.md
 /home/codingbyday/Desktop/Work/frepple/freppledb/wizard/widget.py
 freppledb/__pycache__/__init__.cpython-310.pyc
 freppledb/__pycache__/admin.cpython-310.pyc
+freppledb/__pycache__/asgi.cpython-310.pyc
 freppledb/__pycache__/menu.cpython-310.pyc
 freppledb/__pycache__/settings.cpython-310.pyc
 freppledb/__pycache__/urls.cpython-310.pyc
@@ -381,6 +382,7 @@ freppledb/common/registration/views.py
 freppledb/common/registration/__pycache__/forms.cpython-310.pyc
 freppledb/common/registration/__pycache__/views.cpython-310.pyc
 freppledb/common/static/favicon.ico
+freppledb/common/static/icon.ico
 freppledb/common/static/manifest.json
 freppledb/common/static/robots.txt
 freppledb/common/static/admin/js/collapse.js
@@ -521,13 +523,16 @@ freppledb/common/static/fonts/opensans-semibolditalic.svg
 freppledb/common/static/fonts/opensans-semibolditalic.ttf
 freppledb/common/static/fonts/opensans-semibolditalic.woff
 freppledb/common/static/fonts/opensans-semibolditalic.woff2
+freppledb/common/static/img/brand.png
 freppledb/common/static/img/collaboration-thumbnail.png
 freppledb/common/static/img/forecast-editor-thumbnail.png
 freppledb/common/static/img/frepple-192.png
 freppledb/common/static/img/frepple-512.png
 freppledb/common/static/img/frepple.svg
+freppledb/common/static/img/icon.ico
 freppledb/common/static/img/inbox_and_following.png
 freppledb/common/static/img/loading.gif
+freppledb/common/static/img/logo.png
 freppledb/common/static/img/plan-editor-thumbnail.png
 freppledb/common/static/img/ui-anim_basic_16x16.gif
 freppledb/common/static/js/Sortable.min.js
@@ -706,6 +711,7 @@ freppledb/forecast/__pycache__/commands.cpython-310.pyc
 freppledb/forecast/__pycache__/menu.cpython-310.pyc
 freppledb/forecast/__pycache__/models.cpython-310.pyc
 freppledb/forecast/__pycache__/serializers.cpython-310.pyc
+freppledb/forecast/__pycache__/services.cpython-310.pyc
 freppledb/forecast/__pycache__/urls.cpython-310.pyc
 freppledb/forecast/__pycache__/views.cpython-310.pyc
 freppledb/forecast/__pycache__/widget.cpython-310.pyc
@@ -725,6 +731,7 @@ freppledb/forecast/migrations/__pycache__/0001_initial.cpython-310.pyc
 freppledb/forecast/migrations/__pycache__/0002_cluster.cpython-310.pyc
 freppledb/forecast/migrations/__pycache__/0003_demand_pattern.cpython-310.pyc
 freppledb/forecast/migrations/__pycache__/0004_operationplan.cpython-310.pyc
+freppledb/forecast/migrations/__pycache__/0005_batch.cpython-310.pyc
 freppledb/forecast/migrations/__pycache__/__init__.cpython-310.pyc
 freppledb/forecast/static/forecast/forecast.html
 freppledb/forecast/static/forecast/forecastgrid.html
@@ -747,6 +754,7 @@ freppledb/input/__pycache__/__init__.cpython-310.pyc
 freppledb/input/__pycache__/admin.cpython-310.pyc
 freppledb/input/__pycache__/menu.cpython-310.pyc
 freppledb/input/__pycache__/serializers.cpython-310.pyc
+freppledb/input/__pycache__/services.cpython-310.pyc
 freppledb/input/__pycache__/urls.cpython-310.pyc
 freppledb/input/commands/__pycache__/__init__.cpython-310.pyc
 freppledb/input/commands/__pycache__/export.cpython-310.pyc
@@ -1014,6 +1022,7 @@ freppledb/reportmanager/templates/reportmanager/schema.html
 freppledb/webservice/__pycache__/__init__.cpython-310.pyc
 freppledb/webservice/__pycache__/apps.cpython-310.pyc
 freppledb/webservice/__pycache__/commands.cpython-310.pyc
+freppledb/webservice/__pycache__/services.cpython-310.pyc
 freppledb/webservice/__pycache__/urls.cpython-310.pyc
 freppledb/webservice/__pycache__/utils.cpython-310.pyc
 freppledb/webservice/fixtures/parameters.json
