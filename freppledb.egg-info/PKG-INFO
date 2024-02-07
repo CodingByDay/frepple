@@ -1,0 +1,16 @@
+Metadata-Version: 2.1
+Name: freppledb
+Version: 8.5.0
+Summary: frePPLe - Open source Production PLanning
+Home-page: http://frepple.com
+Author: frepple.com
+Author-email: info@frepple.com
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Intended Audience :: Manufacturing
+Classifier: Framework :: Django
+License-File: COPYING
+License-File: AUTHORS
+
+FrePPLe stands for "Free Production Planning Library".
+It is a framework for modeling and solving production planning problems,
+targeted primarily at discrete manufacturing industries.

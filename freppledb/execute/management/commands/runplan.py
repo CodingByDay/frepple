@@ -334,7 +334,7 @@ class Command(BaseCommand):
                     )
                 else:
                     # Execute as background process on Linux
-                    subprocess.Popen(["frepple", cmd], preexec_fn=setlimits)
+                   subprocess.Popen(["frepple", cmd], preexec_fn=setlimits)
             else:
                 if os.name == "nt":
                     # Execute in foreground on Windows
