@@ -2,14 +2,14 @@
 {% load i18n %}
 
 {% block title %}{% if title %}{{title|capfirst}} - {% endif %}{% setting 'BRANDING' %}{% endblock %}
-{% block branding %}<img class="img-fluid" src="{{STATIC_URL}}img/frepple.svg" alt="frePPLe&nbsp;{% version %}">{% endblock %}
+{% block branding %}<img class="img-fluid" src="{{STATIC_URL}}img/logo.png" alt="frePPLe&nbsp;{% version %}">{% endblock %}
 {% block extrastyle %}{{block.super}}
 <link rel="stylesheet" href="{{STATIC_URL}}css/font-awesome.min.css" />
 <link rel="stylesheet" href="{{STATIC_URL}}css/{{request.theme}}/fonts.css" />
 <link rel="stylesheet" href="{{STATIC_URL}}css/ui.jqgrid.min.css" />
 <link rel="stylesheet" href="{{STATIC_URL}}css/{{request.theme}}/bootstrap.min.css" />
 
-<link rel="shortcut icon" href="{{STATIC_URL}}favicon.ico"/>
+<link rel="shortcut icon" href="{{STATIC_URL}}icon.ico"/>
 <link rel="manifest" href="{{STATIC_URL}}manifest.json">
 {% endblock %}
 {% block extrahead %}{{block.super}}

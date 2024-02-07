@@ -34,7 +34,7 @@ urlpatterns = [
     # Redirect admin index page /data/ to /
     re_path(r"^data/$", RedirectView.as_view(url="/")),
     # Handle browser icon and robots.txt
-    re_path(r"favicon\.ico$", RedirectView.as_view(url="/static/favicon.ico")),
+    re_path(r"icon\.ico$", RedirectView.as_view(url="/static/icon.ico")),
     re_path(r"robots\.txt$", RedirectView.as_view(url="/static/robots.txt")),
 ]
 svcpatterns = []

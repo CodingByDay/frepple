@@ -60,11 +60,10 @@ window.addEventListener("beforeinstallprompt", event => {
 {% block breadcrumbs %}{% endblock %}
 
 {% block content %}
-<div class="row" style="padding-bottom:2rem; padding-top:3rem">
-	<div class="col-4 mx-auto" style="min-width:13rem; max-width:20rem; float:none;">
-	 {% block branding %}{{ block.super }}{% endblock %}
-	</div>
+<div style="text-align: center;margin:2em">
+  <img src="{{ STATIC_URL }}img/brand.png" width="200" />
 </div>
+
 
 <div class="row" id="content-main" >
   <div id="row1" class="col-4 mx-auto" style="min-width:13rem; max-width:20rem">

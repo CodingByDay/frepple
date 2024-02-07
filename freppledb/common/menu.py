@@ -160,9 +160,9 @@ menu.addItem(
 menu.addItem(
     "help",
     "website",
-    url="https://frepple.com",
+    url="https://in-sist.si/",
     window=True,
-    label=_("frePPLe website"),
+    label=_("In.Sist website"),
     prefix=False,
     index=500,
 )
