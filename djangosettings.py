@@ -230,6 +230,7 @@ INSTALLED_APPS = (
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "freppledb.boot",
+    "editor",
     # Add any project specific apps here
     # "freppledb.odoo",
     # "freppledb.erpconnection",
@@ -257,6 +258,7 @@ INSTALLED_APPS = (
 #   - names of installable apps.
 #   - a Path object pointing to a folder where installable apps are found.
 INSTALLABLE_APPS = (
+    "editor",
     "freppledb.odoo",
     "freppledb.forecast",
     "freppledb.wizard",
