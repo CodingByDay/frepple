@@ -130,6 +130,15 @@ menu.addItem(
     index=110,
     dependencies=[ManufacturingOrder, Operation],
 )
+
+menu.addItem(
+    "manufacturing",
+    "visual editor",
+    url="/editor",
+    index=150,
+    dependencies=[ManufacturingOrder, Operation],
+)
+
 menu.addItem(
     "manufacturing",
     "problem report",
