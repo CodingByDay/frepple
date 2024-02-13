@@ -5,6 +5,6 @@ autodiscover = True
 
 
 urlpatterns = [
-    path('editor/', AppsView.as_view(), name='editor'),  # Maps /editor/ to AppsView
+    path('editor', AppsView.as_view(), name='editor'),  # Maps /editor/ to AppsView
     # other URL patterns...
 ]

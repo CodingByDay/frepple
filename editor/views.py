@@ -50,20 +50,17 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_variables
 from django.views.generic.base import View
 class AppsView(View):
-    template_name = "common/apps.html"  # assuming the template is located in common directory under templates
-    reportkey = "common.apps"  # Define the reportkey attribute
+    template_name = "editor/gantt.html"  # assuming the template is located in common directory under templates
+
     @classmethod
     @method_decorator(staff_member_required)
-    def get(cls, request, *args, **kwargs):
-      
+    def get(cls, request, *args, **kwargs):     
         return render(
             request,
             cls.template_name,
             {
-                "title": _("apps"),
-                "edition": "Test",
-                "reportkey": "test",
-                "apps": "test",
+                "title": _("Visual editor"),
+                "edition": "editor",
                 "superuser": request.user.is_superuser,
             },
         )
