@@ -24,11 +24,50 @@
 <div id="visualization"></div>
 
 <script>
-  // create a dataset with items
-  // we specify the type of the fields `start` and `end` here to be strings
-  // containing an ISO date. The fields will be outputted as ISO dates
-  // automatically getting data from the DataSet via items.get().
-  var items = new vis.DataSet({
+  // Function to fetch data from the API
+  async function fetchData() {
+    const response = await fetch('your_api_endpoint');
+    const data = await response.json();
+    return data;
+  }
+
+  // Function to format data for vis.js
+  function formatData(data) {
+    var items = new vis.DataSet();
+    var groups = new vis.DataSet();
+
+    // Format your data here and add it to the items and groups DataSet
+
+    var items = new vis.DataSet({
+    type: { start: 'ISODate', end: 'ISODate' }
+    });
+
+
+    var groups = new vis.DataSet([
+        {id: 1, content: 'Resource 1'},
+        {id: 2, content: 'Resource 2'},
+        {id: 3, content: 'Resource 3'}
+
+    ]);
+    // add items to the DataSet
+    items.add([
+        {id: 1, content: 'item 1', start: '2014-01-21', end: '2014-01-23', group: 1},
+        {id: 2, content: 'item 2', start: '2014-01-21', end: '2014-01-24', group: 1},
+        {id: 3, content: 'item 3', start: '2014-01-21', end: '2014-01-25', group: 1},
+        {id: 4, content: 'item 4', start: '2014-01-19', end: '2014-01-24', group: 2},
+        {id: 5, content: 'item 5', start: '2014-01-28', end: '2014-01-24', group: 2},
+        {id: 6, content: 'item 6', start: '2014-01-26', end: '2014-01-24', group: 3}
+    ]);
+
+
+
+    return { items, groups };
+  }
+
+  async function initializeTimeline() {
+    //var data = await fetchData();
+    //var { items, groups } = formatData(data);
+   var items = new vis.DataSet({
     type: { start: 'ISODate', end: 'ISODate' }
   });
 
@@ -48,32 +87,15 @@
     {id: 5, content: 'item 5', start: '2014-01-28', end: '2014-01-24', group: 2},
     {id: 6, content: 'item 6', start: '2014-01-26', end: '2014-01-24', group: 3}
   ]);
+    const container = document.getElementById('visualization');
+    const options = {
+      // Set your timeline options here
+    };
+    const timeline = new vis.Timeline(container, items, options);
+    timeline.setGroups(groups);
+  }
 
-  // log changes to the console
-  items.on('*', function (event, properties) {
-    console.log(event, properties.items);
-  });
-
-  var container = document.getElementById('visualization');
-  var options = {
-    start: '2014-01-10',
-    end: '2014-02-10',
-    height: '300px',
-    // allow selecting multiple items using ctrl+click, shift+click, or hold.
-    multiselect: true,
-    // allow manipulation of items
-    editable: true,
-    /* alternatively, enable/disable individual actions:
-    editable: {
-      add: true,
-      updateTime: true,
-      updateGroup: true,
-      remove: true
-    },
-    */
-    showCurrentTime: true
-  };
-  var timeline = new vis.Timeline(container, items, options);
-  timeline.setGroups(groups)
+  // Initialize the timeline when the page is loaded
+  document.addEventListener('DOMContentLoaded', initializeTimeline);
 </script>
 {% endblock %}

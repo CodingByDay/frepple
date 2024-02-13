@@ -51,29 +51,23 @@
     height: '300px',
     // allow selecting multiple items using ctrl+click, shift+click, or hold.
     multiselect: true,
-
     // allow manipulation of items
     editable: true,
-
     /* alternatively, enable/disable individual actions:
-
     editable: {
       add: true,
       updateTime: true,
       updateGroup: true,
       remove: true
     },
-
     */
-
     showCurrentTime: true
   };
-
   var timeline = new vis.Timeline(container, items, options);
   timeline.setGroups(groups)
-
-  
-
 </script>
+
+
+
 </body>
 </html>
