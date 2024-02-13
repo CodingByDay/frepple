@@ -1,70 +1,25 @@
-<html>
-    <head>
-        <title>Timeline | editing | itemsAlwaysDraggable Option</title>
-        <meta charset="utf-8">
+{% extends "admin/base_site_nav.html" %}
+{% load i18n %}
 
-         <script type="text/javascript" src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
-         <link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+{% block extrahead %}
+{{block.super}}
 
-    </head>
-   <body>
+<script type="text/javascript" src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
+<link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
 
-<p>An editable timeline allows to drag items around, create new items, and remove items. Changes are logged in the browser console.</p>
+{% endblock %}
 
-<div id="visualization"></div>
+{% block content_title %}
+<div class="row mt-3">
+    <div class="col">
+        <h1>{{title|capfirst|force_escape}}&nbsp;&nbsp;<small>{{edition|capfirst}}</small></h1>
+    </div>
+    <div class="col-auto d-flex ms-auto align-items-center">
+        <h1></h1>
+    </div>
+</div>
+{% endblock %}
 
-<script>
-  // create a dataset with items
-  // we specify the type of the fields `start` and `end` here to be strings
-  // containing an ISO date. The fields will be outputted as ISO dates
-  // automatically getting data from the DataSet via items.get().
-  var items = new vis.DataSet({
-    type: { start: 'ISODate', end: 'ISODate' }
-  });
-
-  // add items to the DataSet
-  items.add([
-    {id: 1, content: 'item 1<br>start', start: '2014-01-23'},
-    {id: 2, content: 'item 2', start: '2014-01-18'},
-    {id: 3, content: 'item 3', start: '2014-01-21'},
-    {id: 4, content: 'item 4', start: '2014-01-19', end: '2014-01-24'},
-    {id: 5, content: 'item 5', start: '2014-01-28', type:'point'},
-    {id: 6, content: 'item 6', start: '2014-01-26'}
-  ]);
-
-  // log changes to the console
-  items.on('*', function (event, properties) {
-    console.log(event, properties.items);
-  });
-
-  var container = document.getElementById('visualization');
-  var options = {
-    start: '2014-01-10',
-    end: '2014-02-10',
-    height: '300px',
-
-    // allow selecting multiple items using ctrl+click, shift+click, or hold.
-    multiselect: true,
-
-    // allow manipulation of items
-    editable: true,
-
-    /* alternatively, enable/disable individual actions:
-
-    editable: {
-      add: true,
-      updateTime: true,
-      updateGroup: true,
-      remove: true
-    },
-
-    */
-
-    showCurrentTime: true
-  };
-
-  var timeline = new vis.Timeline(container, items, options);
-
-</script>
-</body>
-</html>
+{% block content %}
+<h1>PLACEHOLDER FOR THE GANTT CHART</h1>
+{% endblock %}
