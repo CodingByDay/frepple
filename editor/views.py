@@ -66,7 +66,6 @@ from freppledb.common.auth import getWebserviceAuthorization
 
 class GanttView(View):
     template_name = "editor/gantt.html"  
-
     @classmethod
     @method_decorator(staff_member_required)
     def get(cls, request, *args, **kwargs):
@@ -92,7 +91,6 @@ class GanttView(View):
         except requests.RequestException as e:
             # Handle request exceptions, such as network errors or invalid responses
             operation_plan_resources = []
-            print("Error fetching data:", e)
 
         return render(
             request,
