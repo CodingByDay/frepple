@@ -5,8 +5,20 @@ from mimetypes import guess_type
 import multiprocessing
 import os.path
 from pathlib import Path
+from django.db.models import Q
 import re
-
+from freppledb.input.models import (
+    Item,
+    Resource,
+    Operation,
+    Location,
+    SetupMatrix,
+    SetupRule,
+    Skill,
+    ResourceSkill,
+    OperationPlan,
+    OperationPlanResource,
+)
 from django.core import management
 from django.core.paginator import Paginator
 from django.http import (
@@ -38,6 +50,7 @@ from django.utils.text import capfirst
 from django.contrib.auth.models import Group
 from django.utils import translation
 from django.conf import settings
+import requests
 from django.http import (
     Http404,
     HttpResponseRedirect,
@@ -49,12 +62,38 @@ from django.views import static
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_variables
 from django.views.generic.base import View
-class AppsView(View):
-    template_name = "editor/gantt.html"  # assuming the template is located in common directory under templates
+from freppledb.common.auth import getWebserviceAuthorization
+
+class GanttView(View):
+    template_name = "editor/gantt.html"  
 
     @classmethod
     @method_decorator(staff_member_required)
-    def get(cls, request, *args, **kwargs):     
+    def get(cls, request, *args, **kwargs):
+        exp = 0
+        try:
+            exp = int(request.GET.get("exp", "3"))
+        except Exception:
+            exp = 3
+        if exp > 7:
+            exp = 7
+
+        token = getWebserviceAuthorization (
+                user=request.user.username, exp=exp * 86400, database=request.database
+        )
+
+        base_url = request.scheme + "://" + request.get_host()
+        api_url = base_url + "/api/input/operationplanresource/"
+
+        try:
+            response = requests.get(api_url, headers={'Authorization': 'Bearer ' + token})
+            response.raise_for_status()  # Raise an exception for HTTP errors
+            operation_plan_resources = response.json()
+        except requests.RequestException as e:
+            # Handle request exceptions, such as network errors or invalid responses
+            operation_plan_resources = []
+            print("Error fetching data:", e)
+
         return render(
             request,
             cls.template_name,
@@ -62,5 +101,6 @@ class AppsView(View):
                 "title": _("Visual editor"),
                 "edition": "editor",
                 "superuser": request.user.is_superuser,
+                "operation_plan_resources": operation_plan_resources,
             },
         )
