@@ -65,6 +65,18 @@ from django.views.generic.base import View
 from freppledb.common.auth import getWebserviceAuthorization
 
 class GanttView(View):
+
+    @classmethod
+    def _generate_gantt_data(cls, request, *args, **kwargs):
+        # Preparation of the correct filter for a column is currently done on the client side.
+        # The kanban query also doesn't know about pages.
+        request.GET = request.GET.copy()
+        request.GET["page"] = None
+        request.limit = request.pagesize
+        return cls._generate_json_data(request, *args, **kwargs)
+
+
+
     template_name = "editor/gantt.html"  
     @classmethod
     @method_decorator(staff_member_required)

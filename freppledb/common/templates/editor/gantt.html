@@ -26,9 +26,9 @@
 <script>
   // Function to fetch data from the API
   async function fetchData() {
-    const response = await fetch('your_api_endpoint');
-    const data = await response.json();
-    return data;
+    const operationPlanResources = JSON.parse('{{ operation_plan_resources | escapejs }}');
+    console.log(operationPlanResources)
+    return operationPlanResources;
   }
 
   // Function to format data for vis.js
