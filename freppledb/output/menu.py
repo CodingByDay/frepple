@@ -133,9 +133,10 @@ menu.addItem(
 
 menu.addItem(
     "manufacturing",
-    "visual editor",
-    url="/editor",
-    index=150,
+    "Visual editor",
+    url="/editor/",
+    report=freppledb.output.views.e,
+    index=120,
     dependencies=[ManufacturingOrder, Operation],
 )
 
