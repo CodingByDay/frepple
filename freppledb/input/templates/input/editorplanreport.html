@@ -31,7 +31,8 @@ rect.opplan {
 <script src="{{STATIC_URL}}js/angular-gettext.min.js"></script>
 <script src="{{STATIC_URL}}js/angular-websocket.js"></script>
 <script src="{{STATIC_URL}}js/i18n/angular-freppletranslations.js"></script>
-
+<script type="text/javascript" src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
+<link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
 {% if debug_js %}
 <script src="{{STATIC_URL}}common/src/module.js"></script>
 <script src="{{STATIC_URL}}common/src/preferences.js"></script>
@@ -302,7 +303,79 @@ function extraCustomize() {
   else
     return false;
 }
+// Function to fetch data from the API
+async function fetchData() {
+    const operationPlanResources = JSON.parse('{{ operation_plan_resources | escapejs }}');
+    console.log(operationPlanResources)
+    return operationPlanResources;
+  }
 
+  // Function to format data for vis.js
+  function formatData(data) {
+    
+    var items = new vis.DataSet();
+    var groups = new vis.DataSet();
+
+    // Format your data here and add it to the items and groups DataSet
+
+    var items = new vis.DataSet({
+    type: { start: 'ISODate', end: 'ISODate' }
+    });
+
+
+    var groups = new vis.DataSet([
+        {id: 1, content: 'Resource 1'},
+        {id: 2, content: 'Resource 2'},
+        {id: 3, content: 'Resource 3'}
+    ]);
+
+    // add items to the DataSet
+    items.add([
+        {id: 1, content: 'item 1', start: '2014-01-21', end: '2014-01-23', group: 1},
+        {id: 2, content: 'item 2', start: '2014-01-21', end: '2014-01-24', group: 1},
+        {id: 3, content: 'item 3', start: '2014-01-21', end: '2014-01-25', group: 1},
+        {id: 4, content: 'item 4', start: '2014-01-19', end: '2014-01-24', group: 2},
+        {id: 5, content: 'item 5', start: '2014-01-28', end: '2014-01-24', group: 2},
+        {id: 6, content: 'item 6', start: '2014-01-26', end: '2014-01-24', group: 3}
+    ]);
+
+
+
+    return { items, groups };
+  }
+
+  async function initializeTimeline() {
+    //var data = await fetchData();
+    //var { items, groups } = formatData(data);
+   var items = new vis.DataSet({
+    type: { start: 'ISODate', end: 'ISODate' }
+  });
+
+  var groups = new vis.DataSet([
+    {id: 1, content: 'Resource 1'},
+    {id: 2, content: 'Resource 2'},
+    {id: 3, content: 'Resource 3'}
+  ]);
+  // add items to the DataSet
+  items.add([
+    {id: 1, content: 'item 1', start: '2014-01-21', end: '2014-01-23', group: 1},
+    {id: 2, content: 'item 2', start: '2014-01-21', end: '2014-01-24', group: 1},
+    {id: 3, content: 'item 3', start: '2014-01-21', end: '2014-01-25', group: 1},
+    {id: 4, content: 'item 4', start: '2014-01-19', end: '2014-01-24', group: 2},
+    {id: 5, content: 'item 5', start: '2014-01-28', end: '2014-01-24', group: 2},
+    {id: 6, content: 'item 6', start: '2014-01-26', end: '2014-01-24', group: 3}
+  ]);
+    const container = document.getElementById('visualization');
+    const options = {
+    // Set your timeline options here
+    moveable: true // Enable moving items in the timeline
+  };
+    const timeline = new vis.Timeline(container, items, null, options);
+    timeline.setGroups(groups);
+  }
+
+  // Initialize the timeline when the page is loaded
+  document.addEventListener('DOMContentLoaded', initializeTimeline);
 </script>
 {% endblock %}
 
@@ -322,20 +395,7 @@ function extraCustomize() {
     <button data-bs-toggle="tooltip" data-bs-placement="top" title="{% trans "display kanban cards"|capfirst|force_escape %}" class="btn btn-sm btn-primary{% if preferences.mode == 'kanban' %} active{% endif %}" type="button" id="kanbanmode" name="mode">
       <span class="fa fa-columns fa-lg fa-lg" style="margin: 2px 0 3px 0;"></span>
     </button>
-    <div class="btn-group dropdown" data-bs-toggle="tooltip" data-bs-toggle="tooltip"
-      data-bs-placement="top" title="{% trans "display calendar"|capfirst|force_escape %}">
-      <button type="button" id="calendarmode" name="mode"
-        class="btn btn-sm btn-primary dropdown-toggle{% if preferences.mode == 'calendarday' or preferences.mode == 'calendarweek' or preferences.mode == 'calendarmonth' %} active{% endif %}"
-        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-        <span class="fa fa-calendar-o"></span>
-        <span class="caret"></span>
-      </button>
-      <ul class="dropdown-menu">
-        <li class="dropdown-item" id="calendarmonth"><a href="#">{% trans "month"|capfirst %}</a></li>
-        <li class="dropdown-item" id="calendarweek"><a href="#">{% trans "week"|capfirst %}</a></li>
-        <li class="dropdown-item" id="calendarday"><a href="#">{% trans "day"|capfirst %}</a></li>
-      </ul>
-    </div>
+   
     {% if showGantt %}
     <button data-bs-toggle="tooltip" data-bs-placement="top" title="{% trans "display Gantt chart"|capfirst|force_escape %}" class="btn btn-sm btn-primary{% if preferences.mode == 'gantt' %} active{% endif %}" type="button" id="ganttmode" name="mode">
       <span class="fa fa-align-left fa-lg fa-lg" style="margin: 2px 0 3px 0;"></span>
@@ -480,21 +540,8 @@ loadComplete: function(data) {
     <table id="grid" class="table table-striped" style="background-color: white"></table>
     <div id="gridpager"></div>
   </div>
-  <div id="calendar" data-ng-hide="!mode.startsWith('calendar')" class="col-12">
-    <calendar
-      data-range-changed="calendarRangeChanged(startdate, enddate)"
-      data-event-selected="displayInfo(event)"
-      data-event-source="calendarevents"
-      data-editable="{% if reportclass.editable and haschangeperm %}true{% else %}false{% endif %}"
-      data-mode="mode"></calendar>
-  </div>
-  <div id="kanban" data-ng-hide="mode != 'kanban'"
-    show-kanban-drv class="row"
-    data-editable="{% if reportclass.editable and haschangeperm %}true{% else %}false{% endif %}"
-    data-kanbanoperationplans="kanbanoperationplans"
-    data-operationplan="operationplan"
-    data-kanbancolumns="kanbancolumns">
-  </div>
+
+  
   <div id="gantt" data-ng-hide="mode != 'gantt'"
     show-gantt-drv class="row"
     data-event-selected="displayInfo(event)"
@@ -518,32 +565,8 @@ loadComplete: function(data) {
 <div data-ng-controller="operationplandetailCtrl" id="controller">
 
 <div class="row" style="text-align: center">
-<div id="content-main" class="col-md-12" style="min-height: 150px; margin-top: 0.7em">
-  <div data-ng-hide="mode == 'kanban' || mode == 'gantt' || mode.startsWith('calendar')">
-    <table id="grid" class="table table-striped" style="background-color: white"></table>
-    <div id="gridpager"></div>
-  </div>
-  <div id="calendar" data-ng-hide="!mode.startsWith('calendar')" class="col-md-12">
-    <calendar
-      data-range-changed="calendarRangeChanged(startdate, enddate)"
-      data-event-selected="displayInfo(event)"
-      data-event-source="calendarevents"
-      data-editable="{% if reportclass.editable and haschangeperm %}true{% else %}false{% endif %}"
-      data-mode="mode"></calendar>
-  </div>
-  <div id="kanban" data-ng-hide="mode != 'kanban'"
-    show-kanban-drv class="row"
-    data-editable="{% if reportclass.editable and haschangeperm %}true{% else %}false{% endif %}"
-    data-kanbanoperationplans="kanbanoperationplans"
-    data-operationplan="operationplan"
-    data-kanbancolumns="kanbancolumns">
-  </div>
-  <div id="gantt" data-ng-hide="mode != 'gantt'"
-    show-gantt-drv class="row"
-    data-ganttoperationplans="ganttoperationplans"
-    data-editable="{% if reportclass.editable and haschangeperm %}true{% else %}false{% endif %}">
-  </div>
-</div>
+<div id="visualization"></div>
+
 <span id="resize-handle" class="fa fa-bars handle" style="display: inline-block"></span>
 </div>
 
