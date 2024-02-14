@@ -9,12 +9,12 @@ urlpatterns = [
     # other URL patterns...
     re_path(
     r"^editor/operationplanresource/resource/(.+)/$",
-        capacity.ResourceDetail.as_view(),
+        capacity.EditorDetail.as_view(),
         name="input_operationplanresource_plandetail",
     ),     
     re_path(
         r"^editor/operationplanresource/$",
-        capacity.ResourceDetail.as_view(),
+        capacity.EditorDetail.as_view(),
         name="input_operationplanresource_plan",
     ),  
 	re_path (

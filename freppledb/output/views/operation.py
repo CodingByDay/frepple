@@ -494,6 +494,456 @@ class OverviewReport(GridPivot):
                     yield result
 
 
+
+class EditorReport(GridPivot):
+    """
+    A report summarizing all manufacturing orders.
+    """
+
+    template = "output/operation.html"
+    title = _("Visual editor")
+    model = Operation
+    permissions = (("view_operation_report", "Can view operation report"),)
+    help_url = "user-interface/plan-analysis/manufacturing-order-summary.html"
+
+    rows = (
+        GridFieldText(
+            "operation",
+            title=_("operation"),
+            key=True,
+            editable=False,
+            field_name="name",
+            formatter="detail",
+            extra='"role":"input/operation"',
+        ),
+        GridFieldText(
+            "location",
+            title=_("location"),
+            editable=False,
+            field_name="location__name",
+            formatter="detail",
+            extra='"role":"input/location"',
+        ),
+        # Optional fields on the operation
+        GridFieldText(
+            "item",
+            title=_("item"),
+            editable=False,
+            field_name="item__name",
+            formatter="detail",
+            extra='"role":"input/item"',
+            initially_hidden=True,
+        ),
+        GridFieldText(
+            "description", title=_("description"), editable=False, initially_hidden=True
+        ),
+        GridFieldText(
+            "category", title=_("category"), editable=False, initially_hidden=True
+        ),
+        GridFieldText(
+            "subcategory", title=_("subcategory"), editable=False, initially_hidden=True
+        ),
+        GridFieldText("type", title=_("type"), initially_hidden=True, editable=False),
+        GridFieldDuration(
+            "duration", title=_("duration"), initially_hidden=True, editable=False
+        ),
+        GridFieldDuration(
+            "duration_per",
+            title=_("duration per unit"),
+            initially_hidden=True,
+            editable=False,
+        ),
+        GridFieldDuration(
+            "fence", title=_("release fence"), initially_hidden=True, editable=False
+        ),
+        GridFieldDuration(
+            "posttime", title=_("post-op time"), initially_hidden=True, editable=False
+        ),
+        GridFieldNumber(
+            "sizeminimum",
+            title=_("size minimum"),
+            initially_hidden=True,
+            editable=False,
+        ),
+        GridFieldNumber(
+            "sizemultiple",
+            title=_("size multiple"),
+            initially_hidden=True,
+            editable=False,
+        ),
+        GridFieldNumber(
+            "sizemaximum",
+            title=_("size maximum"),
+            initially_hidden=True,
+            editable=False,
+        ),
+        GridFieldInteger(
+            "priority", title=_("priority"), initially_hidden=True, editable=False
+        ),
+        GridFieldDateTime(
+            "effective_start",
+            title=_("effective start"),
+            initially_hidden=True,
+            editable=False,
+        ),
+        GridFieldDateTime(
+            "effective_end",
+            title=_("effective end"),
+            initially_hidden=True,
+            editable=False,
+        ),
+        GridFieldCurrency(
+            "cost", title=_("cost"), initially_hidden=True, editable=False
+        ),
+        GridFieldText(
+            "search", title=_("search mode"), initially_hidden=True, editable=False
+        ),
+        GridFieldText(
+            "source", title=_("source"), initially_hidden=True, editable=False
+        ),
+        GridFieldLastModified("lastmodified", initially_hidden=True, editable=False),
+        # Optional fields on the location
+        GridFieldText(
+            "location__description",
+            editable=False,
+            initially_hidden=True,
+            title=format_lazy("{} - {}", _("location"), _("description")),
+        ),
+        GridFieldText(
+            "location__category",
+            editable=False,
+            initially_hidden=True,
+            title=format_lazy("{} - {}", _("location"), _("category")),
+        ),
+        GridFieldText(
+            "location__subcategory",
+            editable=False,
+            initially_hidden=True,
+            title=format_lazy("{} - {}", _("location"), _("subcategory")),
+        ),
+        GridFieldText(
+            "location__available",
+            editable=False,
+            initially_hidden=True,
+            title=format_lazy("{} - {}", _("location"), _("available")),
+            field_name="location__available__name",
+            formatter="detail",
+            extra='"role":"input/calendar"',
+        ),
+        GridFieldLastModified(
+            "location__lastmodified",
+            initially_hidden=True,
+            editable=False,
+            title=format_lazy("{} - {}", _("location"), _("last modified")),
+        ),
+        # Optional fields referencing the item
+        GridFieldText(
+            "item__description",
+            initially_hidden=True,
+            editable=False,
+            title=format_lazy("{} - {}", _("item"), _("description")),
+        ),
+        GridFieldText(
+            "item__category",
+            initially_hidden=True,
+            editable=False,
+            title=format_lazy("{} - {}", _("item"), _("category")),
+        ),
+        GridFieldText(
+            "item__subcategory",
+            initially_hidden=True,
+            editable=False,
+            title=format_lazy("{} - {}", _("item"), _("subcategory")),
+        ),
+        GridFieldCurrency(
+            "item__cost",
+            title=format_lazy("{} - {}", _("item"), _("cost")),
+            initially_hidden=True,
+            editable=False,
+        ),
+        GridFieldNumber(
+            "item__volume",
+            title=format_lazy("{} - {}", _("item"), _("volume")),
+            initially_hidden=True,
+            editable=False,
+        ),
+        GridFieldNumber(
+            "item__weight",
+            title=format_lazy("{} - {}", _("item"), _("weight")),
+            initially_hidden=True,
+            editable=False,
+        ),
+        GridFieldText(
+            "item__uom",
+            title=format_lazy("{} - {}", _("item"), _("unit of measure")),
+            initially_hidden=True,
+            editable=False,
+        ),
+        GridFieldInteger(
+            "item__periodofcover",
+            title=format_lazy("{} - {}", _("item"), _("period of cover")),
+            initially_hidden=True,
+            editable=False,
+        ),
+        GridFieldText(
+            "item__owner",
+            initially_hidden=True,
+            editable=False,
+            title=format_lazy("{} - {}", _("item"), _("owner")),
+            field_name="item__owner__name",
+        ),
+        GridFieldText(
+            "item__source",
+            initially_hidden=True,
+            editable=False,
+            title=format_lazy("{} - {}", _("item"), _("source")),
+        ),
+        GridFieldLastModified(
+            "item__lastmodified",
+            initially_hidden=True,
+            editable=False,
+            title=format_lazy("{} - {}", _("item"), _("last modified")),
+        ),
+    )
+
+    crosses = (
+        ("proposed_start", {"title": _("proposed starts"), "initially_hidden": True}),
+        ("total_start", {"title": _("total starts")}),
+        ("proposed_end", {"title": _("proposed ends"), "initially_hidden": True}),
+        ("total_end", {"title": _("total ends")}),
+        (
+            "production_proposed",
+            {"title": _("proposed production"), "initially_hidden": True},
+        ),
+        ("production_total", {"title": _("total production")}),
+    )
+
+    @classmethod
+    def initialize(reportclass, request):
+        if reportclass._attributes_added != 2:
+            reportclass._attributes_added = 2
+            reportclass.attr_sql = ""
+            # Adding custom operation attributes
+            for f in getAttributeFields(
+                Operation, related_name_prefix="operation", initially_hidden=True
+            ):
+                f.editable = False
+                reportclass.rows += (f,)
+                reportclass.attr_sql += "operation.%s, " % f.name.split("__")[-1]
+            # Adding custom item attributes
+            for f in getAttributeFields(
+                Item, related_name_prefix="item", initially_hidden=True
+            ):
+                f.editable = False
+                reportclass.rows += (f,)
+                reportclass.attr_sql += "item.%s, " % f.name.split("__")[-1]
+            # Adding custom location attributes
+            for f in getAttributeFields(
+                Location, related_name_prefix="location", initially_hidden=True
+            ):
+                f.editable = False
+                reportclass.rows += (f,)
+                reportclass.attr_sql += "location.%s, " % f.name.split("__")[-1]
+
+    @staticmethod
+    def basequeryset(request, *args, **kwargs):
+        if args and args[0]:
+            request.session["lasttab"] = "plan"
+            return Operation.objects.filter(name=args[0])
+        else:
+            current, start, end = getHorizon(request)
+            return Operation.objects.all().extra(
+                where=[
+                    "exists (select 1 from operationplan where operationplan.operation_id = operation.name and startdate <= %s and enddate >= %s)"
+                ],
+                params=[end, start],
+            )
+
+    @staticmethod
+    def extra_context(request, *args, **kwargs):
+        if args and args[0]:
+            request.session["lasttab"] = "plan"
+            return {
+                "title": force_str(Operation._meta.verbose_name) + " " + args[0],
+                "post_title": _("plan"),
+                "model": Operation,
+            }
+        else:
+            return {}
+
+    @classmethod
+    def query(reportclass, request, basequery, sortsql="1 asc"):
+        basesql, baseparams = basequery.query.get_compiler(basequery.db).as_sql(
+            with_col_aliases=False
+        )
+        # Build the query
+        query = """
+      select
+        operation.name, location.name, operation.item_id, operation.description,
+        operation.category, operation.subcategory, operation.type, operation.duration,
+        operation.duration_per, operation.fence, operation.posttime, operation.sizeminimum,
+        operation.sizemultiple, operation.sizemaximum, operation.priority, operation.effective_start,
+        operation.effective_end, operation.cost, operation.search, operation.source, operation.lastmodified,
+        location.description, location.category, location.subcategory, location.available_id,
+        location.lastmodified, item.description, item.category, item.subcategory, item.cost,
+        item.volume, item.weight, item.uom, item.periodofcover, item.owner_id, item.source, item.lastmodified,
+        %s
+        res.bucket, res.startdate, res.enddate,
+        res.proposed_start, res.total_start, res.proposed_end, res.total_end, res.proposed_production, res.total_production
+      from operation
+      left outer join item
+      on operation.item_id = item.name
+      left outer join location
+      on operation.location_id = location.name
+      inner join (
+        select oper.name as operation_id, d.bucket, d.startdate, d.enddate,
+         coalesce(sum(
+           case when operationplan.status = 'proposed'
+             and d.startdate <= operationplan.startdate and d.enddate > operationplan.startdate
+           then operationplan.quantity
+           else 0 end
+           ), 0) proposed_start,
+         coalesce(sum(
+           case when d.startdate <= operationplan.startdate and d.enddate > operationplan.startdate
+           then operationplan.quantity else 0 end
+           ), 0) total_start,
+         coalesce(sum(
+           case when operationplan.status = 'proposed'
+             and d.startdate < operationplan.enddate and d.enddate >= operationplan.enddate
+           then operationplan.quantity else 0 end
+           ), 0) proposed_end,
+         coalesce(sum(
+           case when d.startdate < operationplan.enddate and d.enddate >= operationplan.enddate
+           then operationplan.quantity else 0 end
+           ), 0) total_end,
+         coalesce(sum(
+           case when operationplan.status = 'proposed' then
+             (
+             -- Total overlap
+             extract (epoch from least(operationplan.enddate, d.enddate) - greatest(operationplan.startdate, d.startdate))
+             -- Minus the interruptions
+             - coalesce((
+                select sum(greatest(0, extract (epoch from
+                  least(to_timestamp(value->>1, 'YYYY-MM-DD HH24:MI:SS'), d.enddate)
+                  - greatest(to_timestamp(value->>0, 'YYYY-MM-DD HH24:MI:SS'), d.startdate)
+                  )))
+                from ( select * from jsonb_array_elements(plan->'interruptions')) breaks
+                ), 0)
+             )
+             / greatest(1, extract(epoch from operationplan.enddate - operationplan.startdate) - coalesce((plan#>>'{unavailable}')::numeric, 0))
+             * operationplan.quantity
+           else 0 end
+           ), 0) proposed_production,
+         coalesce(sum(
+             (
+             -- Total overlap
+             extract (epoch from least(operationplan.enddate, d.enddate) - greatest(operationplan.startdate, d.startdate))
+             -- Minus the interruptions
+             - coalesce((
+                select sum(greatest(0, extract (epoch from
+                  least(to_timestamp(value->>1, 'YYYY-MM-DD HH24:MI:SS'), d.enddate)
+                  - greatest(to_timestamp(value->>0, 'YYYY-MM-DD HH24:MI:SS'), d.startdate)
+                  )))
+                from ( select * from jsonb_array_elements(plan->'interruptions')) breaks
+                ), 0)
+             )
+           / greatest(1, extract(epoch from operationplan.enddate - operationplan.startdate) - coalesce((plan#>>'{unavailable}')::numeric, 0))
+           * operationplan.quantity
+           ), 0) total_production
+        from (%s) oper
+        -- Multiply with buckets
+        cross join (
+          select name as bucket, startdate, enddate
+          from common_bucketdetail
+          where bucket_id = '%s' and enddate > '%s' and startdate < '%s'
+          ) d
+        -- Match overlapping operationplans
+        left outer join operationplan
+          on operationplan.operation_id = oper.name
+          and (operationplan.startdate, operationplan.enddate) overlaps (d.startdate, d.enddate)
+        group by oper.name, d.bucket, d.startdate, d.enddate
+      ) res
+      on res.operation_id = operation.name
+      order by %s, res.startdate
+      """ % (
+            reportclass.attr_sql,
+            basesql,
+            request.report_bucket,
+            request.report_startdate,
+            request.report_enddate,
+            sortsql,
+        )
+
+        # Convert the SQl results to Python
+        with transaction.atomic(using=request.database):
+            with connections[request.database].chunked_cursor() as cursor_chunked:
+                cursor_chunked.execute(query, baseparams)
+                operationattributefields = getAttributeFields(Operation)
+                itemattributefields = getAttributeFields(Item)
+                locationattributefields = getAttributeFields(Location)
+                for row in cursor_chunked:
+                    numfields = len(row)
+                    result = {
+                        "operation": row[0],
+                        "location": row[1],
+                        "item": row[2],
+                        "description": row[3],
+                        "category": row[4],
+                        "subcategory": row[5],
+                        "type": row[6],
+                        "duration": row[7],
+                        "duration_per": row[8],
+                        "fence": row[9],
+                        "posttime": row[10],
+                        "sizeminimum": row[11],
+                        "sizemultiple": row[12],
+                        "sizemaximum": row[13],
+                        "priority": row[14],
+                        "effective_start": row[15],
+                        "effective_end": row[16],
+                        "cost": row[17],
+                        "search": row[18],
+                        "source": row[19],
+                        "lastmodified": row[20],
+                        "location__description": row[21],
+                        "location__category": row[22],
+                        "location__subcategory": row[23],
+                        "location__available": row[24],
+                        "location__lastmodified": row[25],
+                        "item__description": row[26],
+                        "item__category": row[27],
+                        "item__subcategory": row[28],
+                        "item__cost": row[29],
+                        "item__volume": row[30],
+                        "item__weight": row[31],
+                        "item__uom": row[32],
+                        "item__periodofcover": row[33],
+                        "item__owner": row[34],
+                        "item__source": row[35],
+                        "item__lastmodified": row[36],
+                        "bucket": row[numfields - 9],
+                        "startdate": row[numfields - 8].date(),
+                        "enddate": row[numfields - 7].date(),
+                        "proposed_start": row[numfields - 6],
+                        "total_start": row[numfields - 5],
+                        "proposed_end": row[numfields - 4],
+                        "total_end": row[numfields - 3],
+                        "production_proposed": row[numfields - 2],
+                        "production_total": row[numfields - 1],
+                    }
+                    idx = 37
+                    for f in operationattributefields:
+                        result["operation__%s" % f.field_name] = row[idx]
+                        idx += 1
+                    for f in itemattributefields:
+                        result["item__%s" % f.field_name] = row[idx]
+                        idx += 1
+                    for f in locationattributefields:
+                        result["location__%s" % f.field_name] = row[idx]
+                        idx += 1
+                    yield result
+
+
 class PurchaseReport(GridPivot):
     """
     A report summarizing all purchase orders.

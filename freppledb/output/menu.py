@@ -134,8 +134,8 @@ menu.addItem(
 menu.addItem(
     "manufacturing",
     "Visual editor",
-    url="/editor/",
-    report=freppledb.output.views.e,
+    url="/editor/operationplanresource/",
+    report=freppledb.output.views.operation.EditorReport,
     index=120,
     dependencies=[ManufacturingOrder, Operation],
 )
