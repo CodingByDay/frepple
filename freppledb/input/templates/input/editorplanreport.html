@@ -31,8 +31,18 @@ rect.opplan {
 <script src="{{STATIC_URL}}js/angular-gettext.min.js"></script>
 <script src="{{STATIC_URL}}js/angular-websocket.js"></script>
 <script src="{{STATIC_URL}}js/i18n/angular-freppletranslations.js"></script>
-<script type="text/javascript" src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
-<link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+
+
+<!-- DevExtreme theme -->
+<link rel="stylesheet" href="{{STATIC_URL}}devextreme/css/dx.light.css">
+<!-- DevExtreme libraries (reference only one of them) -->
+<script type="text/javascript" src="{{STATIC_URL}}devextreme/js/dx.all.js"></script>
+
+
+<!-- <script type="text/javascript" src="https://cdn3.devexpress.com/jslib/23.2.4/js/dx.web.js"></script> -->
+<!-- <script type="text/javascript" src="https://cdn3.devexpress.com/jslib/23.2.4/js/dx.viz.js"></script> -->
+
+
 {% if debug_js %}
 <script src="{{STATIC_URL}}common/src/module.js"></script>
 <script src="{{STATIC_URL}}common/src/preferences.js"></script>
@@ -303,79 +313,11 @@ function extraCustomize() {
   else
     return false;
 }
-// Function to fetch data from the API
-async function fetchData() {
-    const operationPlanResources = JSON.parse('{{ operation_plan_resources | escapejs }}');
-    console.log(operationPlanResources)
-    return operationPlanResources;
-  }
 
-  // Function to format data for vis.js
-  function formatData(data) {
-    
-    var items = new vis.DataSet();
-    var groups = new vis.DataSet();
-
-    // Format your data here and add it to the items and groups DataSet
-
-    var items = new vis.DataSet({
-    type: { start: 'ISODate', end: 'ISODate' }
+  $(function () {
+        $("#buttonContainer").dxButton();
     });
-
-
-    var groups = new vis.DataSet([
-        {id: 1, content: 'Resource 1'},
-        {id: 2, content: 'Resource 2'},
-        {id: 3, content: 'Resource 3'}
-    ]);
-
-    // add items to the DataSet
-    items.add([
-        {id: 1, content: 'item 1', start: '2014-01-21', end: '2014-01-23', group: 1},
-        {id: 2, content: 'item 2', start: '2014-01-21', end: '2014-01-24', group: 1},
-        {id: 3, content: 'item 3', start: '2014-01-21', end: '2014-01-25', group: 1},
-        {id: 4, content: 'item 4', start: '2014-01-19', end: '2014-01-24', group: 2},
-        {id: 5, content: 'item 5', start: '2014-01-28', end: '2014-01-24', group: 2},
-        {id: 6, content: 'item 6', start: '2014-01-26', end: '2014-01-24', group: 3}
-    ]);
-
-
-
-    return { items, groups };
-  }
-
-  async function initializeTimeline() {
-    //var data = await fetchData();
-    //var { items, groups } = formatData(data);
-   var items = new vis.DataSet({
-    type: { start: 'ISODate', end: 'ISODate' }
-  });
-
-  var groups = new vis.DataSet([
-    {id: 1, content: 'Resource 1'},
-    {id: 2, content: 'Resource 2'},
-    {id: 3, content: 'Resource 3'}
-  ]);
-  // add items to the DataSet
-  items.add([
-    {id: 1, content: 'item 1', start: '2014-01-21', end: '2014-01-23', group: 1},
-    {id: 2, content: 'item 2', start: '2014-01-21', end: '2014-01-24', group: 1},
-    {id: 3, content: 'item 3', start: '2014-01-21', end: '2014-01-25', group: 1},
-    {id: 4, content: 'item 4', start: '2014-01-19', end: '2014-01-24', group: 2},
-    {id: 5, content: 'item 5', start: '2014-01-28', end: '2014-01-24', group: 2},
-    {id: 6, content: 'item 6', start: '2014-01-26', end: '2014-01-24', group: 3}
-  ]);
-    const container = document.getElementById('visualization');
-    const options = {
-    // Set your timeline options here
-    moveable: true // Enable moving items in the timeline
-  };
-    const timeline = new vis.Timeline(container, items, null, options);
-    timeline.setGroups(groups);
-  }
-
-  // Initialize the timeline when the page is loaded
-  document.addEventListener('DOMContentLoaded', initializeTimeline);
+    
 </script>
 {% endblock %}
 
@@ -386,6 +328,7 @@ async function fetchData() {
 {% block tabs %}{% if args %}{% tabs model %}{% endif %}{% endblock %}
 
 {% block actions %}
+<div class="dx-viewport">
   <div class="btn-group" role="group">
     <button data-bs-toggle="tooltip" data-bs-placement="top" title="{% trans "display table"|capfirst|force_escape %}"
       class="btn btn-sm btn-primary{% if preferences.mode != 'kanban' and preferences.mode != 'gantt' and preferences.mode != 'calendarday' and preferences.mode != 'calendarweek' and preferences.mode != 'calendarmonth' or not preferences.mode %} active{% endif %}"
@@ -531,6 +474,10 @@ loadComplete: function(data) {
 
 {% block table %}
 {% if preferences.details == "left" or preferences.details == "right" %}
+
+</div>
+
+<div id="buttonContainer"></div>
 <div data-ng-controller="operationplandetailCtrl" id="controller">
 <div class="row{% if preferences.details == 'left' %} flex-row-reverse{% endif %}">
 
@@ -572,6 +519,7 @@ loadComplete: function(data) {
 
 <div data-ng-include="'/static/operationplandetail/operationplandetail.html'"></div>
 
+</div>
 </div>
 {% endif %}
 {% endblock %}
