@@ -4,6 +4,13 @@
 
 {% block extrastyle %}{{block.super}}
 <style>
+
+#scheduler {
+    height: 20em;
+}
+
+
+
 #attributes-supplyinformation thead tr td,
 #attributes-networkstatus thead tr td,
 #attributes-downstreamoperationplans thead tr td,
@@ -31,23 +38,17 @@ rect.opplan {
 <script src="{{STATIC_URL}}js/angular-gettext.min.js"></script>
 <script src="{{STATIC_URL}}js/angular-websocket.js"></script>
 <script src="{{STATIC_URL}}js/i18n/angular-freppletranslations.js"></script>
-
-
 <!-- DevExtreme theme -->
 <link rel="stylesheet" href="{{STATIC_URL}}devextreme/css/dx.light.css">
 <!-- DevExtreme libraries (reference only one of them) -->
 <script type="text/javascript" src="{{STATIC_URL}}devextreme/js/dx.all.js"></script>
-
-
+<script type="text/javascript" src="{{STATIC_URL}}devextreme/js/devextreme.js"></script>
 <!-- <script type="text/javascript" src="https://cdn3.devexpress.com/jslib/23.2.4/js/dx.web.js"></script> -->
 <!-- <script type="text/javascript" src="https://cdn3.devexpress.com/jslib/23.2.4/js/dx.viz.js"></script> -->
-
-
 {% if debug_js %}
 <script src="{{STATIC_URL}}common/src/module.js"></script>
 <script src="{{STATIC_URL}}common/src/preferences.js"></script>
 <script src="{{STATIC_URL}}common/src/webfactory.js"></script>
-
 <script src="{{STATIC_URL}}input/src/module.js"></script>
 <script src="{{STATIC_URL}}input/src/customer.js"></script>
 <script src="{{STATIC_URL}}input/src/demand.js"></script>
@@ -58,7 +59,6 @@ rect.opplan {
 <script src="{{STATIC_URL}}input/src/operation.js"></script>
 <script src="{{STATIC_URL}}input/src/operationplan.js"></script>
 <script src="{{STATIC_URL}}input/src/model.js"></script>
-
 <script src="{{STATIC_URL}}operationplandetail/src/calendar.js"></script>
 <script src="{{STATIC_URL}}operationplandetail/src/module.js"></script>
 <script src="{{STATIC_URL}}operationplandetail/src/operationplandetailCtrl.js"></script>
@@ -314,10 +314,412 @@ function extraCustomize() {
     return false;
 }
 
-  $(function () {
-        $("#buttonContainer").dxButton();
-    });
-    
+          $(() => {
+            $('#scheduler').dxScheduler({
+              timeZone: 'America/Los_Angeles',
+              dataSource: data,
+              views: ['timelineDay', 'timelineWeek', 'timelineWorkWeek', 'timelineMonth'],
+              currentView: 'timelineWeek',
+              currentDate: new Date(2021, 1, 2),
+              firstDayOfWeek: 0,
+              startDayHour: 8,
+              endDayHour: 20,
+              cellDuration: 60,
+              groups: ['priority'],
+              resources: [{
+                fieldExpr: 'ownerId',
+                allowMultiple: true,
+                dataSource: resourcesData,
+                label: 'Owner',
+                useColorAsDefault: true,
+              }, {
+                fieldExpr: 'priority',
+                allowMultiple: false,
+                dataSource: priorityData,
+                label: 'Priority',
+              }],
+              height: 580,
+            });
+          });
+
+
+          const resourcesData = [
+            {
+              text: 'Samantha Bright',
+              id: 1,
+              color: '#cb6bb2',
+            }, {
+              text: 'John Heart',
+              id: 2,
+              color: '#56ca85',
+            }, {
+              text: 'Todd Hoffman',
+              id: 3,
+              color: '#1e90ff',
+            }, {
+              text: 'Sandra Johnson',
+              id: 4,
+              color: '#ff9747',
+            },
+          ];
+
+          const priorityData = [
+            {
+              text: 'Low Priority',
+              id: 1,
+              color: '#1e90ff',
+            }, {
+              text: 'High Priority',
+              id: 2,
+              color: '#ff9747',
+            },
+          ];
+
+          const data = [{
+            text: 'Google AdWords Strategy',
+            ownerId: [2],
+            startDate: new Date('2021-02-01T16:00:00.000Z'),
+            endDate: new Date('2021-02-01T17:30:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'New Brochures',
+            ownerId: [1],
+            startDate: new Date('2021-02-01T18:30:00.000Z'),
+            endDate: new Date('2021-02-01T21:15:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Brochure Design Review',
+            ownerId: [4],
+            startDate: new Date('2021-02-01T16:00:00.000Z'),
+            endDate: new Date('2021-02-01T23:15:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Website Re-Design Plan',
+            ownerId: [3],
+            startDate: new Date('2021-02-01T23:45:00.000Z'),
+            endDate: new Date('2021-02-02T18:15:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Rollout of New Website and Marketing Brochures',
+            ownerId: [1],
+            startDate: new Date('2021-02-02T15:15:00.000Z'),
+            endDate: new Date('2021-02-02T17:45:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Update Sales Strategy Documents',
+            ownerId: [2],
+            startDate: new Date('2021-02-02T19:00:00.000Z'),
+            endDate: new Date('2021-02-02T20:45:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Non-Compete Agreements',
+            ownerId: [4],
+            startDate: new Date('2021-02-03T16:15:00.000Z'),
+            endDate: new Date('2021-02-03T17:00:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Approve Hiring of John Jeffers',
+            ownerId: [2],
+            startDate: new Date('2021-02-03T17:00:00.000Z'),
+            endDate: new Date('2021-02-03T18:15:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Update NDA Agreement',
+            ownerId: [1],
+            startDate: new Date('2021-02-03T18:45:00.000Z'),
+            endDate: new Date('2021-02-03T20:45:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Update Employee Files with New NDA',
+            ownerId: [2],
+            startDate: new Date('2021-02-03T21:00:00.000Z'),
+            endDate: new Date('2021-02-03T23:45:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Submit Questions Regarding New NDA',
+            ownerId: [1],
+            startDate: new Date('2021-02-05T01:00:00.000Z'),
+            endDate: new Date('2021-02-04T16:30:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Submit Signed NDA',
+            ownerId: [2],
+            startDate: new Date('2021-02-04T19:45:00.000Z'),
+            endDate: new Date('2021-02-04T21:00:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Review Revenue Projections',
+            ownerId: [3],
+            startDate: new Date('2021-02-05T00:15:00.000Z'),
+            endDate: new Date('2021-02-04T15:00:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Comment on Revenue Projections',
+            ownerId: [2],
+            startDate: new Date('2021-02-05T16:15:00.000Z'),
+            endDate: new Date('2021-02-05T18:15:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Provide New Health Insurance Docs',
+            ownerId: [3],
+            startDate: new Date('2021-02-05T19:45:00.000Z'),
+            endDate: new Date('2021-02-05T21:15:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Review Changes to Health Insurance Coverage',
+            ownerId: [2],
+            startDate: new Date('2021-02-05T21:15:00.000Z'),
+            endDate: new Date('2021-02-05T22:30:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Review Training Course for any Omissions',
+            ownerId: [2],
+            startDate: new Date('2021-02-08T21:00:00.000Z'),
+            endDate: new Date('2021-02-09T19:00:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Recall Rebate Form',
+            ownerId: [1],
+            startDate: new Date('2021-02-08T19:45:00.000Z'),
+            endDate: new Date('2021-02-08T20:15:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Create Report on Customer Feedback',
+            ownerId: [4],
+            startDate: new Date('2021-02-09T22:15:00.000Z'),
+            endDate: new Date('2021-02-10T00:30:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Review Customer Feedback Report',
+            ownerId: [2],
+            startDate: new Date('2021-02-09T23:15:00.000Z'),
+            endDate: new Date('2021-02-10T01:30:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Customer Feedback Report Analysis',
+            ownerId: [3],
+            startDate: new Date('2021-02-10T16:30:00.000Z'),
+            endDate: new Date('2021-02-10T17:30:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Prepare Shipping Cost Analysis Report',
+            ownerId: [4],
+            startDate: new Date('2021-02-10T19:30:00.000Z'),
+            endDate: new Date('2021-02-10T20:30:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Provide Feedback on Shippers',
+            ownerId: [2],
+            startDate: new Date('2021-02-10T21:15:00.000Z'),
+            endDate: new Date('2021-02-10T23:00:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Select Preferred Shipper',
+            ownerId: [1],
+            startDate: new Date('2021-02-11T00:30:00.000Z'),
+            endDate: new Date('2021-02-11T03:00:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Complete Shipper Selection Form',
+            ownerId: [2],
+            startDate: new Date('2021-02-11T15:30:00.000Z'),
+            endDate: new Date('2021-02-11T17:00:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Upgrade Server Hardware',
+            ownerId: [4],
+            startDate: new Date('2021-02-11T19:00:00.000Z'),
+            endDate: new Date('2021-02-11T21:15:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Upgrade Personal Computers',
+            ownerId: [3],
+            startDate: new Date('2021-02-11T21:45:00.000Z'),
+            endDate: new Date('2021-02-11T23:30:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Upgrade Apps to Windows RT or stay with WinForms',
+            ownerId: [1],
+            startDate: new Date('2021-02-12T17:30:00.000Z'),
+            endDate: new Date('2021-02-12T20:00:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Estimate Time Required to Touch-Enable Apps',
+            ownerId: [1],
+            startDate: new Date('2021-02-12T21:45:00.000Z'),
+            endDate: new Date('2021-02-12T23:30:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Report on Tranistion to Touch-Based Apps',
+            ownerId: [2],
+            startDate: new Date('2021-02-13T01:30:00.000Z'),
+            endDate: new Date('2021-02-13T02:00:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Submit New Website Design',
+            ownerId: [2],
+            startDate: new Date('2021-02-15T15:00:00.000Z'),
+            endDate: new Date('2021-02-15T17:00:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Create Icons for Website',
+            ownerId: [4],
+            startDate: new Date('2021-02-15T18:30:00.000Z'),
+            endDate: new Date('2021-02-15T20:15:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Create New Product Pages',
+            ownerId: [1],
+            startDate: new Date('2021-02-16T16:45:00.000Z'),
+            endDate: new Date('2021-02-16T18:45:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Approve Website Launch',
+            ownerId: [3],
+            startDate: new Date('2021-02-16T19:00:00.000Z'),
+            endDate: new Date('2021-02-16T22:15:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Update Customer Shipping Profiles',
+            ownerId: [3],
+            startDate: new Date('2021-02-17T16:30:00.000Z'),
+            endDate: new Date('2021-02-17T18:00:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Create New Shipping Return Labels',
+            ownerId: [4],
+            startDate: new Date('2021-02-17T19:45:00.000Z'),
+            endDate: new Date('2021-02-17T21:00:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Get Design for Shipping Return Labels',
+            ownerId: [3],
+            startDate: new Date('2021-02-17T22:00:00.000Z'),
+            endDate: new Date('2021-02-17T23:30:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'PSD needed for Shipping Return Labels',
+            ownerId: [4],
+            startDate: new Date('2021-02-18T15:30:00.000Z'),
+            endDate: new Date('2021-02-18T16:15:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Contact ISP and Discuss Payment Options',
+            ownerId: [1],
+            startDate: new Date('2021-02-18T18:30:00.000Z'),
+            endDate: new Date('2021-02-18T23:00:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Prepare Year-End Support Summary Report',
+            ownerId: [2],
+            startDate: new Date('2021-02-19T00:00:00.000Z'),
+            endDate: new Date('2021-02-19T03:00:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Review New Training Material',
+            ownerId: [3],
+            startDate: new Date('2021-02-19T15:00:00.000Z'),
+            endDate: new Date('2021-02-19T16:15:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Distribute Training Material to Support Staff',
+            ownerId: [2],
+            startDate: new Date('2021-02-19T19:45:00.000Z'),
+            endDate: new Date('2021-02-19T21:00:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Training Material Distribution Schedule',
+            ownerId: [2],
+            startDate: new Date('2021-02-19T21:15:00.000Z'),
+            endDate: new Date('2021-02-19T23:15:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Approval on Converting to New HDMI Specification',
+            ownerId: [4],
+            startDate: new Date('2021-02-22T16:30:00.000Z'),
+            endDate: new Date('2021-02-22T17:15:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Create New Spike for Automation Server',
+            ownerId: [3],
+            startDate: new Date('2021-02-22T17:00:00.000Z'),
+            endDate: new Date('2021-02-22T19:30:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Code Review - New Automation Server',
+            ownerId: [1],
+            startDate: new Date('2021-02-22T20:00:00.000Z'),
+            endDate: new Date('2021-02-22T22:00:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Confirm Availability for Sales Meeting',
+            ownerId: [1],
+            startDate: new Date('2021-02-23T17:15:00.000Z'),
+            endDate: new Date('2021-02-23T22:15:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Reschedule Sales Team Meeting',
+            ownerId: [2],
+            startDate: new Date('2021-02-23T23:15:00.000Z'),
+            endDate: new Date('2021-02-24T01:00:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Send 2 Remotes for Giveaways',
+            ownerId: [3],
+            startDate: new Date('2021-02-24T16:30:00.000Z'),
+            endDate: new Date('2021-02-24T18:45:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Discuss Product Giveaways with Management',
+            ownerId: [1],
+            startDate: new Date('2021-02-24T19:15:00.000Z'),
+            endDate: new Date('2021-02-24T23:45:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Replace Desktops on the 3rd Floor',
+            ownerId: [2],
+            startDate: new Date('2021-02-25T16:30:00.000Z'),
+            endDate: new Date('2021-02-25T17:45:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Update Database with New Leads',
+            ownerId: [3],
+            startDate: new Date('2021-02-25T19:00:00.000Z'),
+            endDate: new Date('2021-02-25T21:15:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Mail New Leads for Follow Up',
+            ownerId: [1],
+            startDate: new Date('2021-02-25T21:45:00.000Z'),
+            endDate: new Date('2021-02-25T22:30:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Send Territory Sales Breakdown',
+            ownerId: [2],
+            startDate: new Date('2021-02-26T01:00:00.000Z'),
+            endDate: new Date('2021-02-26T03:00:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Territory Sales Breakdown Report',
+            ownerId: [1],
+            startDate: new Date('2021-02-26T15:45:00.000Z'),
+            endDate: new Date('2021-02-26T16:45:00.000Z'),
+            priority: 1,
+          }, {
+            text: 'Report on the State of Engineering Dept',
+            ownerId: [3],
+            startDate: new Date('2021-02-26T21:45:00.000Z'),
+            endDate: new Date('2021-02-26T22:30:00.000Z'),
+            priority: 2,
+          }, {
+            text: 'Staff Productivity Report',
+            ownerId: [4],
+            startDate: new Date('2021-02-26T23:15:00.000Z'),
+            endDate: new Date('2021-02-27T02:30:00.000Z'),
+            priority: 2,
+          }];
+
+
 </script>
 {% endblock %}
 
@@ -330,34 +732,9 @@ function extraCustomize() {
 {% block actions %}
 <div class="dx-viewport">
   <div class="btn-group" role="group">
-    <button data-bs-toggle="tooltip" data-bs-placement="top" title="{% trans "display table"|capfirst|force_escape %}"
-      class="btn btn-sm btn-primary{% if preferences.mode != 'kanban' and preferences.mode != 'gantt' and preferences.mode != 'calendarday' and preferences.mode != 'calendarweek' and preferences.mode != 'calendarmonth' or not preferences.mode %} active{% endif %}"
-      type="button" id="gridmode" name="mode">
-      <span class="fa fa-table fa-lg" style="margin: 2px 0 3px 0;"></span>
-    </button>
-    <button data-bs-toggle="tooltip" data-bs-placement="top" title="{% trans "display kanban cards"|capfirst|force_escape %}" class="btn btn-sm btn-primary{% if preferences.mode == 'kanban' %} active{% endif %}" type="button" id="kanbanmode" name="mode">
-      <span class="fa fa-columns fa-lg fa-lg" style="margin: 2px 0 3px 0;"></span>
-    </button>
-   
-    {% if showGantt %}
-    <button data-bs-toggle="tooltip" data-bs-placement="top" title="{% trans "display Gantt chart"|capfirst|force_escape %}" class="btn btn-sm btn-primary{% if preferences.mode == 'gantt' %} active{% endif %}" type="button" id="ganttmode" name="mode">
-      <span class="fa fa-align-left fa-lg fa-lg" style="margin: 2px 0 3px 0;"></span>
-    </button>
-    {% endif %}
+  
   </div>
-{% if reportclass.filterable %}{% include "common/snippet_favorites.html" %}{% endif %}
-{% if hasaddperm %}<button class="btn btn-sm btn-primary" onclick="location.href='{{request.prefix}}/data/{{model|app_label}}/{{model|object_name|lower}}/add/{% if is_popup %}?_popup=1{% endif %}'" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans "Create new object"|escape %}" ><span class="fa fa-plus"></span></button>
-{% endif %}{% if hasaddperm and not is_popup and reportclass.canDuplicate %}<button class="btn btn-sm btn-primary"  disabled id="copy_selected" onclick="grid.showCopy()" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'Copy selected objects'|capfirst|escape %}" ><span class="fa fa-copy"></span></button>
-{% endif %}
-<!--{% if haschangeperm and not is_popup %}<button class="btn btn-sm btn-primary" id="edit_selected" disabled onclick="grid.update('{{request.prefix}}/data/{{model|app_label}}/{{model|object_name|lower}}/')" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans "Update objects"|escape %}" ><span class="fa fa-edit"></span></button>
-{% endif %}-->
-{% if hasdeleteperm and not is_popup %}<button class="btn btn-sm btn-primary" id="delete_selected" disabled data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'Delete selected objects'|capfirst|escape %}" onclick="grid.showDelete('{{request.prefix}}/data/{{model|app_label}}/{{model|object_name|lower}}/')" ><span class="fa fa-minus"></span></button>
-{% endif %}{% if reportclass.hasTimeBuckets %}<button class="btn btn-sm btn-primary" onclick="grid.showBucket()" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'set time horizon'|capfirst|force_escape %}" id="bucketconfig"><span class="fa fa-clock-o"></span></button>
-{% endif %}<button class="btn d-none btn-sm btn-primary" id="zoomin" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'Zoom in'|capfirst|force_escape %}"><span class="fa fa-search-plus"></span></button>
-<button class="btn d-none btn-sm btn-primary" id="zoomout" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'Zoom out'|capfirst|force_escape %}"><span class="fa fa-search-minus"></span></button>
-{% if hasaddperm %}<button class="btn btn-sm d-none d-md-inline-block btn-primary" id="csvimport" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'Import CSV or Excel file'|capfirst|force_escape %}" onclick="import_show('', undefined, true)"><span class="fa fa-arrow-up"></span></button>
-{% endif %}<button class="btn btn-sm btn-primary" onclick="grid.showExport(true,{{ scenario_permissions }})" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'export as CSV or Excel file'|capfirst|force_escape %}"><span class="fa fa-arrow-down"></span></button>
-<button id="customize" class="btn btn-sm btn-primary" onclick="grid.showCustomize(false);" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'customize'|capfirst|force_escape %}"><span class="fa fa-wrench"></span></button>
+
 {% endblock %}
 
 {% block afterPageLoad %}
@@ -473,42 +850,12 @@ loadComplete: function(data) {
 {% endblock %}
 
 {% block table %}
-{% if preferences.details == "left" or preferences.details == "right" %}
 
-</div>
 
-<div id="buttonContainer"></div>
-<div data-ng-controller="operationplandetailCtrl" id="controller">
-<div class="row{% if preferences.details == 'left' %} flex-row-reverse{% endif %}">
+<!-- Place for the gantt chart from devepress -->
+<div id="scheduler"></div>
 
-<div id="content-main" class="col flex-grow-1">
-<div class="pb-3" style="min-height: 150px; margin-top: 0.7em">
-  <div data-ng-hide="mode == 'kanban' || mode == 'gantt' || mode.startsWith('calendar')" class="col-12">
-    <table id="grid" class="table table-striped" style="background-color: white"></table>
-    <div id="gridpager"></div>
-  </div>
 
-  
-  <div id="gantt" data-ng-hide="mode != 'gantt'"
-    show-gantt-drv class="row"
-    data-event-selected="displayInfo(event)"
-    data-ganttoperationplans="ganttoperationplans"
-    data-editable="{% if reportclass.editable and haschangeperm %}true{% else %}false{% endif %}">
-  </div>
-</div>
-</div>
-
-<div class="col-auto ps-1 pe-1">
-<span id="resize-handle" class="fa fa-bars fa-rotate-90 vhandle" ></span>
-</div>
-
-<div id="detailspanel" class="col-1 mt-1"
-  style="width:{% if preferences.detailwidth %}{{ preferences.detailwidth }}px{% else %}25%{% endif %}">
-<div  data-ng-include="'/static/operationplandetail/operationplandetail.html'"></div>
-</div>
-
-</div></div>
-{% else %}
 <div data-ng-controller="operationplandetailCtrl" id="controller">
 
 <div class="row" style="text-align: center">
@@ -521,5 +868,5 @@ loadComplete: function(data) {
 
 </div>
 </div>
-{% endif %}
+
 {% endblock %}
