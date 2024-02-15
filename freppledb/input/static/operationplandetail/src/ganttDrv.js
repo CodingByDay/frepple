@@ -73,7 +73,7 @@ function showGanttDrv($window, gettextCatalog, OperationPlan, PreferenceSvc) {
         null;
     }
     $scope.findOperationPlan = findOperationPlan;
-
+alert("s")
     function buildtooltip() {
       var opplan = $scope.findOperationPlan($(this).attr("data-reference"));
       var extra = '';
@@ -195,6 +195,10 @@ function showGanttDrv($window, gettextCatalog, OperationPlan, PreferenceSvc) {
     $scope.duration2scale = duration2scale;
 
     function drawGantt() {
+
+
+
+
       var width = $("#ganttgraph").width();
       var scale = (width - 200) / 10000;
       if (!$scope.ganttoperationplans.rows) return;

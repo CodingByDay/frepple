@@ -1758,7 +1758,6 @@ class GridReport(View):
             scenario_permissions = cls.getScenarios(request, *args, **kwargs)
         else:
             scenario_permissions = []
-
         if not fmt:
             # Return HTML page
             if not hasattr(request, "crosses"):

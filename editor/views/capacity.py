@@ -22,7 +22,7 @@
 #
 from collections import OrderedDict
 from datetime import datetime
-
+import json
 from django.conf import settings
 from django.db.models import Q
 from django.db.models.expressions import RawSQL
@@ -409,6 +409,7 @@ class ResourceDetail(OperationPlanMixin):
         # The kanban query also doesn't know about pages.
         request.GET = request.GET.copy()
         request.GET["page"] = None
+        request.GET["data"] = cls._generate_json_data(request, *args, **kwargs)
         request.limit = request.pagesize
         return cls._generate_json_data(request, *args, **kwargs)
 
@@ -1418,11 +1419,14 @@ class EditorDetail(OperationPlanMixin):
             == "true"
         )
         ctx = super().extra_context(request, *args, **kwargs)
+
+        data = OperationPlanResource.objects.using(request.database).all()
+
+
         if args and args[0]:
             request.session["lasttab"] = "plandetail"
             ctx.update(
                 {
-                    "default_operationplan_type": "MO",
                     "groupBy": "operationplan__status",
                     "active_tab": "plandetail",
                     "model": Resource,

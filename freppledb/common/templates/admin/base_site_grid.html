@@ -37,6 +37,9 @@ var actions = { {% for i in actions %}
    };
 
 function displayGrid(load) {
+  var url = (location.href.indexOf("#") != -1 ? location.href.substr(0, location.href.indexOf("#")) : location.href) +
+    (location.search.length > 0 ? "&format=json" : "?format=json");
+  
   jQuery("#grid").jqGrid({
    	url: (location.href.indexOf("#") != -1 ? location.href.substr(0,location.href.indexOf("#")) : location.href)
    	  + (location.search.length > 0 ? "&format=json" : "?format=json"),
@@ -173,6 +176,8 @@ function displayGrid(load) {
         return true;
     },{% endif %}
     loadComplete: function(data) {
+
+    
     	{% if reportclass.message_when_empty %}
     	$("#grid_empty_message").remove();
     	if (data.records == 0 && $(this).getGridParam("postData").filters === undefined)
