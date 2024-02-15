@@ -32,7 +32,6 @@ rect.opplan {
 </style>
 {% endblock %}
 
-{% block extrahead %}{{block.super}}
 <script src="{{STATIC_URL}}js/angular.min.js"></script>
 <script src="{{STATIC_URL}}js/angular-cookies.min.js"></script>
 <script src="{{STATIC_URL}}js/angular-gettext.min.js"></script>
@@ -80,239 +79,7 @@ rect.opplan {
 {% endif %}
 <script>
 
-  var mode = preferences && preferences.mode || "table";
-  var calendarmode = preferences && preferences.calendarmode || "{{reportclass.calendarmode}}";
-  var grouping = preferences && preferences.grouping || null;
-  var groupingdir = preferences && preferences.groupingdir || "asc";
-  var detailposition = preferences && preferences.details || "bottom";
-  var editable = {% if reportclass.editable and haschangeperm %}true{% else %}false{% endif %};
-  var service_url = {% if proxied %}'/svc/{{request.database}}/'{% else %}document.location.protocol + "//{{port}}/"{% endif %};
-  var service_token = '{{token}}';
-
-  function saveData(rows, ok_callback) {
-      $.ajax({
-        url: service_url + 'operationplan/',
-        data: JSON.stringify(rows),
-        type: "POST",
-        headers: { "Authorization": "Bearer " + service_token },
-        contentType: "application/json",
-        success: function () {
-          upload.undo();
-          $("#save i").addClass('hidden');
-          $(".ng-dirty").removeClass('ng-dirty');
-          if (typeof ok_callback !== 'undefined') ok_callback();
-        },
-        error: ajaxerror
-    });
-  }
-
-  function extraPreference() {
-    return {
-      "height": Math.floor($("#content-main").height()),
-      "width": Math.floor($("#fields").width()),
-      "mode": mode,
-      "calendarmode": calendarmode,
-      "columns": angular.element('#controller').scope().kanbancolumns,
-      "grouping": grouping,
-      "groupingdir": groupingdir,
-      "details": detailposition,
-      "detailwidth": Math.floor($("#detailspanel").width() || 0)
-    };
-  }
-
-  function extraSearchUpdate(filter) {
-    thefilter = filter;
-  	if (preferences && preferences.mode == "kanban") {
-      initialfilter = filter;
-  	  angular.element('#controller').scope().loadKanbanData(filter);
-  	  return true;
-  	}
-  	else if (preferences && preferences.mode == "gantt") {
-      initialfilter = filter;
-  	  angular.element('#controller').scope().loadGanttData(filter);
-  	  return true;
-  	}
-    else if (preferences && preferences.mode && preferences.mode.startsWith("calendar")) {
-      initialfilter = filter;
-      angular.element('#controller').scope().loadCalendarData(filter);
-      return true;
-    }
-    return false;
-  }
-
-  function setHeights() {
-    var h = $('#content-main').height();
-    $('#grid').setGridWidth($('#content-main').width());
-    $("#grid").setGridHeight(h - 52);
-    $(".column-body").css("height", h - 25);
-    $("#scrolldayview").css("height", h - 25);
-    $("#scrollweekview").css("height", h - 60);
-    $("#scrollmonthview").css("height", h - 45);
-  }
-
-  function setWidths() {
-    var w = $("#workarea").width() - $('#detailspanel').width() - $("#resize-handle").parent().width();
-    $('#grid').setGridWidth(w);
-    $("#grid").setGridHeight($('#content-main').height() - 52);
-    $("#kanban").css("width", w - 25);
-    $("#scrolldayview").css("width", w - 25);
-    $("#scrollweekview").css("width", w - 60);
-    $("#scrollmonthview").css("width", w - 45);
-  }
-
-  function getDirtyData() {
-  	if (preferences && preferences.mode && (preferences.mode == "kanban" || preferences.mode == "gantt" || preferences.mode.startsWith("calendar"))) {
-      initialfilter = thefilter;
-      return angular.element('#controller').scope().getDirtyCards();
-    }
-  	else {
-      var dirty = $("#grid").getChangedCells('dirty');
-      for (var c of dirty) {
-        var ref = $("#grid").jqGrid('getCell', c.id, "operationplan__reference");
-        if (ref) c.operationplan__reference = ref;
-      }
-      return dirty;
-    }
-  }
-
-  var language = "{{LANGUAGE_CODE}}";
-  var version = '{% version_short %}';
-  var lastid = '';
-  var preferences = {{ preferences | json }};
-  var default_operationplan_type = "{{ default_operationplan_type }}";
-  var groupBy = "{{ groupBy }}";
-  var thefilter = initialfilter;
-  var groupingcfg = {{ groupingcfg | json }};
-  var currentdate = new Date("{{ currentdate|date:'Y-m-d' }}");
-
-  var horizonstart = new Date({{request.report_startdate|date:"Y"}},{{request.report_startdate|date:"n"}}-1,{{request.report_startdate|date:"j"}});
-  var horizonend = new Date({{request.report_enddate|date:"Y"}},{{request.report_enddate|date:"n"}}-1,{{request.report_enddate|date:"j"}});
-  var viewstart = new Date(horizonstart.getTime());
-  var viewend = new Date(horizonend.getTime());
-
-  function zoom(factor) {
-    gantt.zoom(factor, "#ganttheader");
-    angular.element('#controller').scope().zoom();
-  }
-
-  $(function() {
-    $("#workarea").css('overflow-x','visible');
-    if (detailposition == "bottom")
-      $("#content-main").resizable({
-        handleSelector: "#resize-handle",
-        resizeWidth: false,
-        resizeHeight: true,
-        onDrag: setHeights,
-        onDragEnd: function (e, $el, opt) {
-          grid.saveColumnConfiguration();
-        }
-      });
-    else
-      $("#detailspanel").resizable({
-        handleSelector: "#resize-handle",
-        resizeWidth: true,
-        resizeHeight: false,
-        onDrag: setWidths,
-        reverse: detailposition == "right",
-        onDragEnd: function (e, $el, opt) {
-          grid.saveColumnConfiguration();
-        }
-      });
-    $("#save").on('click', function() {
-      $(window).off('beforeunload', upload.warnUnsavedChanges);
-      });
-    $("#undo").on('click', function() {
-      $(window).off('beforeunload', upload.warnUnsavedChanges);
-      });
-    $("#actionsul li, button#actions1").on('click', function() {
-      angular.element('#controller').scope().refreshstatus($("#actions").val());
-    });
-    $("#gridmode").on('click', function() {
-      angular.element('#controller').scope().setMode("table");
-    });
-    $("#kanbanmode").on('click', function() {
-      angular.element('#controller').scope().setMode("kanban");
-    });
-    $("#calendarmonth").on('click', function() {
-      angular.element('#controller').scope().setMode("calendarmonth");
-    });
-    $("#calendarweek").on('click', function() {
-      angular.element('#controller').scope().setMode("calendarweek");
-    });
-    $("#calendarday").on('click', function() {
-      angular.element('#controller').scope().setMode("calendarday");
-    });
-    $('#zoomin').on("click", function() { zoom(0.5); });
-    $('#zoomout').on("click", function() { zoom(2); });
-    {% if showGantt %}
-    $("#ganttmode").on('click', function() {
-      angular.element('#controller').scope().setMode("gantt");
-    });
-    $("#zoomin, #zoomout").removeClass("d-none");
-    {% endif %}
-  });
-  // frepple.js will call this function to alert angular that the grid has changed
-  function checkrows(grid, selection) {
-    var selectiondata = [];
-    jQuery.each(selection , function(index,item){
-      selectiondata.push(grid.getRowData(item));
-    });
-    if (selectiondata.length > 1) {
-      angular.element('#controller').scope().processAggregatedInfo(selectiondata, jQuery("#grid").jqGrid ('getGridParam', 'colModel'));
-    } else if (selectiondata.length === 1) {
-      angular.element('#controller').scope().displayInfo(selectiondata[0]);
-    } else {
-      angular.element('#controller').scope().displayInfo(undefined);
-    }
-  }
-
-  // Controller will call this function to pass values to the grid
-  function displayongrid(id, columnid, value) {
-    angular.element(document).find(document.getElementById(id)).removeClass("edited").addClass("edited");
-    if (
-      columnid === "startdate" ||
-      columnid === "enddate" ||
-      columnid === "quantity" ||
-      columnid === "quantity_completed" ||
-      columnid === "remark" ||
-      (columnid === "status" && ['proposed', 'approved', 'confirmed', 'completed', 'closed'].indexOf(value) > -1)
-    ) {
-      angular.element(document).find("#grid").jqGrid("setCell", id, columnid, value, "dirty-cell");
-      $("#save, #undo").removeClass("btn-primary btn-danger").addClass("btn-danger").prop("disabled", false);
-      $(window).off('beforeunload', upload.warnUnsavedChanges);
-      $(window).on('beforeunload', upload.warnUnsavedChanges);
-    }
-  }
-
-extra_customize_html = '<div class="row mt-3"><div class="col">'
-  + gettext("Position of details") + '&nbsp;&nbsp;&nbsp;&nbsp;'
-  + '&nbsp;&nbsp;<label class="text-capitalize"><input class="form-check-input" type="radio" id="detailpositionleft" name="detailposition" value="left"'
-      + ((detailposition == "left") ? ' checked="true"' : '')
-      + '>&nbsp;' + gettext("left") + '&nbsp;</label>'
-  + '&nbsp;&nbsp;&nbsp;<label class="text-capitalize"><input class="form-check-input" type="radio" id="detailpositionbottom" name="detailposition" value="bottom"'
-      + ((detailposition != "left" && detailposition != "right") ? ' checked="true"' : '')
-      + '>&nbsp;' + gettext("bottom") + '&nbsp;</label>'
-  + '&nbsp;&nbsp;&nbsp;<label class="text-capitalize"><input class="form-check-input" type="radio" id="detailpositionright" name="detailposition" value="right"'
-      + ((detailposition == "right") ? ' checked="true"' : '')
-      + '>&nbsp;' + gettext("right") + '&nbsp;</label>'
-  + '</div></div>';
-
-function extraCustomize() {
-  if ($("#detailpositionleft").is(":checked") && detailposition != "left") {
-    detailposition = "left";
-    return true;
-  }
-  else if ($("#detailpositionbottom").is(":checked") && detailposition != "bottom") {
-    detailposition = "bottom";
-    return true;
-  }
-  else if ($("#detailpositionright").is(":checked") && detailposition != "right") {
-    detailposition = "right";
-    return true;
-  }
-  else
-    return false;
-}
+ 
 
       $(() => {
         $('#scheduler').dxScheduler({
@@ -721,150 +488,30 @@ function extraCustomize() {
 
 
 </script>
-{% endblock %}
 
-{% block extracontainer %}data-ng-app="operationplandetailapp"{% endblock %}
-
-{% block tools %}{% if args %}{% include "common/snippet_follow.html" %}{% endif %}{% endblock %}
-
-{% block tabs %}{% if args %}{% tabs model %}{% endif %}{% endblock %}
 
 {% block actions %}
+{% if request.rows %}
+    <ul>
+        {% for row in request.rows %}
+            <li>{{ row }}</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No rows found.</p>
+{% endif %}
+
+
 <div class="dx-viewport">
   <div class="btn-group" role="group">
   
   </div>
-
-{% endblock %}
-
-{% block afterPageLoad %}
-displayGrid({% if preferences.mode != "kanban" and preferences.mode != "gantt" and preferences.mode != "calendarday" and preferences.mode != "calendarweek" and preferences.mode != "calendarmonth" %}true{% else %}false{% endif %});
-{% endblock %}
-
-{% block extra_grid %}
-
-onSelectAll: function(aRowids,status){
-  var selection = $(this).jqGrid('getGridParam','selarrrow');
-  var selectiondata = [];
-  jQuery.each(selection , function(index,item) {
-    selectiondata.push(jQuery("#grid").getRowData(item));
-  });
-  if (status === true)
-    angular.element('#controller').scope().processAggregatedInfo(selectiondata, jQuery("#grid").jqGrid ('getGridParam', 'colModel'));
-  else
-    angular.element('#controller').scope().displayInfo(undefined);
-  if ($("#actions").length) $("#actions1").prop('disabled', !status);
-},
-beforeSaveCell: function(rowid, cellname, value, iRow, iCol) {
-  var selection = $(this).jqGrid('getGridParam','selarrrow');
-  var selectiondata = [];
-  var rowdata = {};
-  var temprow = jQuery("#grid").getRowData(rowid);
-
-  jQuery.each(selection , function(index,item){
-    if (item === rowid) {
-      //update temprow
-      temprow[cellname] = value;
-
-      selectiondata.push(temprow);
-    } else {
-      rowdata = jQuery("#grid").getRowData(item);
-
-      //if is being edited
-      var el = $(document.getElementById(item));
-      if (typeof el.find("input").attr('cm','[Object Object]').not('.cbox').val() !== 'undefined') {
-        if (el.hasClass('success')) {
-          if (typeof el.find("input").attr('cm','[Object Object]').not('.cbox').attr("id") !== 'undefined') {
-            colname=el.find("input").attr('cm','[Object Object]').not('.cbox').attr("id").split("_")[1];
-            if (typeof colname !== 'undefined') {
-              rowdata[colname] = el.find("input").attr('cm','[Object Object]').not('.cbox').val();
-            }
-          }
-        }
-      }
-      selectiondata.push(rowdata);
-    }
-  });
-  upload.select();
-  if (selection.length > 1)
-    angular.element('#controller').scope().processAggregatedInfo(selectiondata, jQuery("#grid").jqGrid ('getGridParam', 'colModel'));
-  else
-    angular.element('#controller').scope().displayonpanel(rowid, cellname, value);
-},
-onSelectRow: function(rowid, status, e) {
-  var selection = [];
-  if ($(this).jqGrid('getGridParam').multiselect === true) {
-    selection = $(this).jqGrid('getGridParam','selarrrow').slice();
-  } else {
-    selection = [$(this).jqGrid('getGridParam','selrow').slice()];
-  }
-  grid.markSelectedRow(selection.length);
-
-  var selectiondata = [];
-  var rowdata={};
-  var colname = "";
-  var editedval = "";
-  jQuery.each(selection , function(index,item) {
-    rowdata = jQuery("#grid").getRowData(item);
-    var elem = $(document.getElementById(item)).find("input");
-    editedval = elem.attr('cm','[Object Object]').not('.cbox').val();
-    if ( typeof elem.attr('cm','[Object Object]').not('.cbox').val() !== 'undefined' ) {
-      if (typeof elem.attr('cm','[Object Object]').not('.cbox').attr("id") !== 'undefined') {
-        colname=elem.attr('cm','[Object Object]').not('.cbox').attr("id").split("_")[1];
-        if (typeof colname !== 'undefined') {
-          rowdata[colname] = elem.attr('cm','[Object Object]').not('.cbox').val();
-        }
-      }
-    }
-    selectiondata.push(rowdata);
-  });
-
-  if (selectiondata.length > 1) {
-    angular.element('#controller').scope().processAggregatedInfo(selectiondata, jQuery("#grid").jqGrid ('getGridParam', 'colModel'));
-  } else if (selectiondata.length === 1) {
-    angular.element('#controller').scope().displayInfo(selectiondata[0]);
-  } else {
-    angular.element('#controller').scope().displayInfo(undefined);
-  }
-},
-multiboxonly: false,
-loadComplete: function(data) {
-      $('#curerror').html("");
-      if (upload.selectedRows.length === 1) {
-        angular.element('#controller').scope().displayInfo(
-          jQuery("#grid").getRowData(upload.selectedRows[0])
-        );
-      }
-      else if (upload.selectedRows.length > 1) {
-        var selectiondata = [];
-        for (var x of upload.selectedRows)
-          selectiondata.push(jQuery("#grid").getRowData(x));
-        angular.element('#controller').scope().processAggregatedInfo(selectiondata, jQuery("#grid").jqGrid ('getGridParam', 'colModel'));
-      }
-      else {
-        var s = angular.element('#controller').scope();
-        if (s) s.processAggregatedInfo([], jQuery("#grid").jqGrid ('getGridParam', 'colModel'));
-      }
-      upload.restoreSelection();
-    },
-{% endblock %}
-
-{% block table %}
 
 
 <!-- Place for the gantt chart from devepress -->
 <div id="scheduler"></div>
 
 
-<div data-ng-controller="operationplandetailCtrl" id="controller">
-
-<div class="row" style="text-align: center">
-<div id="visualization"></div>
-
-<span id="resize-handle" class="fa fa-bars handle" style="display: inline-block"></span>
-</div>
-
-<div data-ng-include="'/static/operationplandetail/operationplandetail.html'"></div>
 
 </div>
 </div>

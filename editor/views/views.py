@@ -81,7 +81,7 @@ class GanttView(View):
     @classmethod
     @method_decorator(staff_member_required)
     def get(cls, request, *args, **kwargs):
-        exp = 0
+        '''exp = 0
         try:
             exp = int(request.GET.get("exp", "3"))
         except Exception:
@@ -102,8 +102,8 @@ class GanttView(View):
             operation_plan_resources = response.json()
         except requests.RequestException as e:
             # Handle request exceptions, such as network errors or invalid responses
-            operation_plan_resources = []
-
+            operation_plan_resources = []'''
+        data = OperationPlanResource.objects.using(request.database).all()
         return render(
             request,
             cls.template_name,
@@ -111,6 +111,6 @@ class GanttView(View):
                 "title": _("Visual editor"),
                 "edition": "editor",
                 "superuser": request.user.is_superuser,
-                "operation_plan_resources": operation_plan_resources,
+                "tasks": data
             },
         )

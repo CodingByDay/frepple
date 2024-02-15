@@ -1718,6 +1718,7 @@ class GridReport(View):
     @classmethod
     def get(cls, request, *args, **kwargs):
         # Pick up the list of time buckets
+        
         if cls.hasTimeBuckets:
             cls.getBuckets(request, args, kwargs)
             bucketnames = Bucket.objects.using(request.database)

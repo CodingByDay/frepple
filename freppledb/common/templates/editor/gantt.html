@@ -1,100 +1,519 @@
-{% extends "admin/base_site_nav.html" %}
+{% extends "admin/base_site_grid.html" %}
 {% load i18n %}
+{% load static %}
 
-{% block extrahead %}
-{{block.super}}
+{% block extrastyle %}{{block.super}}
+<style>
 
-<script type="text/javascript" src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
-<link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+#scheduler {
+    height: 20em;
+}
 
+
+
+#attributes-supplyinformation thead tr td,
+#attributes-networkstatus thead tr td,
+#attributes-downstreamoperationplans thead tr td,
+#attributes-upstreamoperationplans thead tr td,
+#attributes-operationproblems thead tr td,
+#attributes-operationresources thead tr td,
+#attributes-operationflowplans thead tr td,
+#attributes-operationdemandpegging thead tr td {
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  border-bottom-color: #bbb;
+}
+
+rect.opplan {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1px;
+  stroke: rgb(0,0,0);
+}
+</style>
 {% endblock %}
 
-{% block content_title %}
-<div class="row mt-3">
-    <div class="col">
-        <h1>{{title|capfirst|force_escape}}&nbsp;&nbsp;<small>{{edition|capfirst}}</small></h1>
-    </div>
-    <div class="col-auto d-flex ms-auto align-items-center">
-        <h1></h1>
-    </div>
-</div>
-{% endblock %}
-
-{% block content %}
-<div id="visualization"></div>
-
+<script src="{{STATIC_URL}}js/angular.min.js"></script>
+<script src="{{STATIC_URL}}js/angular-cookies.min.js"></script>
+<script src="{{STATIC_URL}}js/angular-gettext.min.js"></script>
+<script src="{{STATIC_URL}}js/angular-websocket.js"></script>
+<script src="{{STATIC_URL}}js/i18n/angular-freppletranslations.js"></script>
+<!-- DevExtreme theme -->
+<link rel="stylesheet" href="{{STATIC_URL}}devextreme/css/dx.light.css">
+<!-- DevExtreme libraries (reference only one of them) -->
+<script type="text/javascript" src="{{STATIC_URL}}devextreme/js/dx.all.js"></script>
+<script type="text/javascript" src="{{STATIC_URL}}devextreme/js/devextreme.js"></script>
+<!-- <script type="text/javascript" src="https://cdn3.devexpress.com/jslib/23.2.4/js/dx.web.js"></script> -->
+<!-- <script type="text/javascript" src="https://cdn3.devexpress.com/jslib/23.2.4/js/dx.viz.js"></script> -->
+{% if debug_js %}
+<script src="{{STATIC_URL}}common/src/module.js"></script>
+<script src="{{STATIC_URL}}common/src/preferences.js"></script>
+<script src="{{STATIC_URL}}common/src/webfactory.js"></script>
+<script src="{{STATIC_URL}}input/src/module.js"></script>
+<script src="{{STATIC_URL}}input/src/customer.js"></script>
+<script src="{{STATIC_URL}}input/src/demand.js"></script>
+<script src="{{STATIC_URL}}input/src/location.js"></script>
+<script src="{{STATIC_URL}}input/src/buffer.js"></script>
+<script src="{{STATIC_URL}}input/src/resource.js"></script>
+<script src="{{STATIC_URL}}input/src/item.js"></script>
+<script src="{{STATIC_URL}}input/src/operation.js"></script>
+<script src="{{STATIC_URL}}input/src/operationplan.js"></script>
+<script src="{{STATIC_URL}}input/src/model.js"></script>
+<script src="{{STATIC_URL}}operationplandetail/src/calendar.js"></script>
+<script src="{{STATIC_URL}}operationplandetail/src/module.js"></script>
+<script src="{{STATIC_URL}}operationplandetail/src/operationplandetailCtrl.js"></script>
+<script src="{{STATIC_URL}}operationplandetail/src/problemspanelDrv.js"></script>
+<script src="{{STATIC_URL}}operationplandetail/src/resourcespanelDrv.js"></script>
+<script src="{{STATIC_URL}}operationplandetail/src/bufferspanelDrv.js"></script>
+<script src="{{STATIC_URL}}operationplandetail/src/demandpeggingpanelDrv.js"></script>
+<script src="{{STATIC_URL}}operationplandetail/src/operationplanpanelDrv.js"></script>
+<script src="{{STATIC_URL}}operationplandetail/src/networkstatusDrv.js"></script>
+<script src="{{STATIC_URL}}operationplandetail/src/downstreamoperationplansDrv.js"></script>
+<script src="{{STATIC_URL}}operationplandetail/src/upstreamoperationplansDrv.js"></script>
+<script src="{{STATIC_URL}}operationplandetail/src/supplyinformationDrv.js"></script>
+<script src="{{STATIC_URL}}operationplandetail/src/kanbanDrv.js"></script>
+<script src="{{STATIC_URL}}operationplandetail/src/ganttDrv.js"></script>
+{% else %}
+<script src="{{STATIC_URL}}js/frepple-common.min.js"></script>
+<script src="{{STATIC_URL}}js/frepple-input.min.js"></script>
+<script src="{{STATIC_URL}}js/frepple-operationplandetail.min.js"></script>
+{% endif %}
 <script>
-  // Function to fetch data from the API
-  async function fetchData() {
-    const operationPlanResources = JSON.parse('{{ operation_plan_resources | escapejs }}');
-    console.log(operationPlanResources)
-    return operationPlanResources;
-  }
 
-  // Function to format data for vis.js
-  function formatData(data) {
-    var items = new vis.DataSet();
-    var groups = new vis.DataSet();
+ 
 
-    // Format your data here and add it to the items and groups DataSet
-
-    var items = new vis.DataSet({
-    type: { start: 'ISODate', end: 'ISODate' }
-    });
-
-
-    var groups = new vis.DataSet([
-        {id: 1, content: 'Resource 1'},
-        {id: 2, content: 'Resource 2'},
-        {id: 3, content: 'Resource 3'}
-
-    ]);
-    // add items to the DataSet
-    items.add([
-        {id: 1, content: 'item 1', start: '2014-01-21', end: '2014-01-23', group: 1},
-        {id: 2, content: 'item 2', start: '2014-01-21', end: '2014-01-24', group: 1},
-        {id: 3, content: 'item 3', start: '2014-01-21', end: '2014-01-25', group: 1},
-        {id: 4, content: 'item 4', start: '2014-01-19', end: '2014-01-24', group: 2},
-        {id: 5, content: 'item 5', start: '2014-01-28', end: '2014-01-24', group: 2},
-        {id: 6, content: 'item 6', start: '2014-01-26', end: '2014-01-24', group: 3}
-    ]);
+      $(() => {
+        $('#scheduler').dxScheduler({
+          timeZone: 'America/Los_Angeles',
+          dataSource: data,
+          views: ['timelineDay', 'timelineWeek', 'timelineWorkWeek', 'timelineMonth'],
+          currentView: 'timelineWeek',
+          currentDate: new Date(2021, 1, 2),
+          firstDayOfWeek: 0,
+          startDayHour: 8,
+          endDayHour: 20,
+          cellDuration: 60,
+          groups: ['priority'],
+          resources: [{
+            fieldExpr: 'ownerId',
+            allowMultiple: true,
+            dataSource: resourcesData,
+            label: 'Owner',
+            useColorAsDefault: true,
+          }, {
+            fieldExpr: 'priority',
+            allowMultiple: false,
+            dataSource: priorityData,
+            label: 'Priority',
+          }],
+          height: 580,
+        });
+      });
 
 
+      const resourcesData = [
+        {
+          text: 'Samantha Bright',
+          id: 1,
+          color: '#cb6bb2',
+        }, {
+          text: 'John Heart',
+          id: 2,
+          color: '#56ca85',
+        }, {
+          text: 'Todd Hoffman',
+          id: 3,
+          color: '#1e90ff',
+        }, {
+          text: 'Sandra Johnson',
+          id: 4,
+          color: '#ff9747',
+        },
+      ];
 
-    return { items, groups };
-  }
+      const priorityData = [
+        {
+          text: 'Low Priority',
+          id: 1,
+          color: '#1e90ff',
+        }, {
+          text: 'High Priority',
+          id: 2,
+          color: '#ff9747',
+        },
+      ];
 
-  async function initializeTimeline() {
-    //var data = await fetchData();
-    //var { items, groups } = formatData(data);
-   var items = new vis.DataSet({
-    type: { start: 'ISODate', end: 'ISODate' }
-  });
+      const data = [{
+        text: 'Google AdWords Strategy',
+        ownerId: [2],
+        startDate: new Date('2021-02-01T16:00:00.000Z'),
+        endDate: new Date('2021-02-01T17:30:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'New Brochures',
+        ownerId: [1],
+        startDate: new Date('2021-02-01T18:30:00.000Z'),
+        endDate: new Date('2021-02-01T21:15:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Brochure Design Review',
+        ownerId: [4],
+        startDate: new Date('2021-02-01T16:00:00.000Z'),
+        endDate: new Date('2021-02-01T23:15:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Website Re-Design Plan',
+        ownerId: [3],
+        startDate: new Date('2021-02-01T23:45:00.000Z'),
+        endDate: new Date('2021-02-02T18:15:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Rollout of New Website and Marketing Brochures',
+        ownerId: [1],
+        startDate: new Date('2021-02-02T15:15:00.000Z'),
+        endDate: new Date('2021-02-02T17:45:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Update Sales Strategy Documents',
+        ownerId: [2],
+        startDate: new Date('2021-02-02T19:00:00.000Z'),
+        endDate: new Date('2021-02-02T20:45:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Non-Compete Agreements',
+        ownerId: [4],
+        startDate: new Date('2021-02-03T16:15:00.000Z'),
+        endDate: new Date('2021-02-03T17:00:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Approve Hiring of John Jeffers',
+        ownerId: [2],
+        startDate: new Date('2021-02-03T17:00:00.000Z'),
+        endDate: new Date('2021-02-03T18:15:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Update NDA Agreement',
+        ownerId: [1],
+        startDate: new Date('2021-02-03T18:45:00.000Z'),
+        endDate: new Date('2021-02-03T20:45:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Update Employee Files with New NDA',
+        ownerId: [2],
+        startDate: new Date('2021-02-03T21:00:00.000Z'),
+        endDate: new Date('2021-02-03T23:45:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Submit Questions Regarding New NDA',
+        ownerId: [1],
+        startDate: new Date('2021-02-05T01:00:00.000Z'),
+        endDate: new Date('2021-02-04T16:30:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Submit Signed NDA',
+        ownerId: [2],
+        startDate: new Date('2021-02-04T19:45:00.000Z'),
+        endDate: new Date('2021-02-04T21:00:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Review Revenue Projections',
+        ownerId: [3],
+        startDate: new Date('2021-02-05T00:15:00.000Z'),
+        endDate: new Date('2021-02-04T15:00:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Comment on Revenue Projections',
+        ownerId: [2],
+        startDate: new Date('2021-02-05T16:15:00.000Z'),
+        endDate: new Date('2021-02-05T18:15:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Provide New Health Insurance Docs',
+        ownerId: [3],
+        startDate: new Date('2021-02-05T19:45:00.000Z'),
+        endDate: new Date('2021-02-05T21:15:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Review Changes to Health Insurance Coverage',
+        ownerId: [2],
+        startDate: new Date('2021-02-05T21:15:00.000Z'),
+        endDate: new Date('2021-02-05T22:30:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Review Training Course for any Omissions',
+        ownerId: [2],
+        startDate: new Date('2021-02-08T21:00:00.000Z'),
+        endDate: new Date('2021-02-09T19:00:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Recall Rebate Form',
+        ownerId: [1],
+        startDate: new Date('2021-02-08T19:45:00.000Z'),
+        endDate: new Date('2021-02-08T20:15:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Create Report on Customer Feedback',
+        ownerId: [4],
+        startDate: new Date('2021-02-09T22:15:00.000Z'),
+        endDate: new Date('2021-02-10T00:30:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Review Customer Feedback Report',
+        ownerId: [2],
+        startDate: new Date('2021-02-09T23:15:00.000Z'),
+        endDate: new Date('2021-02-10T01:30:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Customer Feedback Report Analysis',
+        ownerId: [3],
+        startDate: new Date('2021-02-10T16:30:00.000Z'),
+        endDate: new Date('2021-02-10T17:30:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Prepare Shipping Cost Analysis Report',
+        ownerId: [4],
+        startDate: new Date('2021-02-10T19:30:00.000Z'),
+        endDate: new Date('2021-02-10T20:30:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Provide Feedback on Shippers',
+        ownerId: [2],
+        startDate: new Date('2021-02-10T21:15:00.000Z'),
+        endDate: new Date('2021-02-10T23:00:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Select Preferred Shipper',
+        ownerId: [1],
+        startDate: new Date('2021-02-11T00:30:00.000Z'),
+        endDate: new Date('2021-02-11T03:00:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Complete Shipper Selection Form',
+        ownerId: [2],
+        startDate: new Date('2021-02-11T15:30:00.000Z'),
+        endDate: new Date('2021-02-11T17:00:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Upgrade Server Hardware',
+        ownerId: [4],
+        startDate: new Date('2021-02-11T19:00:00.000Z'),
+        endDate: new Date('2021-02-11T21:15:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Upgrade Personal Computers',
+        ownerId: [3],
+        startDate: new Date('2021-02-11T21:45:00.000Z'),
+        endDate: new Date('2021-02-11T23:30:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Upgrade Apps to Windows RT or stay with WinForms',
+        ownerId: [1],
+        startDate: new Date('2021-02-12T17:30:00.000Z'),
+        endDate: new Date('2021-02-12T20:00:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Estimate Time Required to Touch-Enable Apps',
+        ownerId: [1],
+        startDate: new Date('2021-02-12T21:45:00.000Z'),
+        endDate: new Date('2021-02-12T23:30:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Report on Tranistion to Touch-Based Apps',
+        ownerId: [2],
+        startDate: new Date('2021-02-13T01:30:00.000Z'),
+        endDate: new Date('2021-02-13T02:00:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Submit New Website Design',
+        ownerId: [2],
+        startDate: new Date('2021-02-15T15:00:00.000Z'),
+        endDate: new Date('2021-02-15T17:00:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Create Icons for Website',
+        ownerId: [4],
+        startDate: new Date('2021-02-15T18:30:00.000Z'),
+        endDate: new Date('2021-02-15T20:15:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Create New Product Pages',
+        ownerId: [1],
+        startDate: new Date('2021-02-16T16:45:00.000Z'),
+        endDate: new Date('2021-02-16T18:45:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Approve Website Launch',
+        ownerId: [3],
+        startDate: new Date('2021-02-16T19:00:00.000Z'),
+        endDate: new Date('2021-02-16T22:15:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Update Customer Shipping Profiles',
+        ownerId: [3],
+        startDate: new Date('2021-02-17T16:30:00.000Z'),
+        endDate: new Date('2021-02-17T18:00:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Create New Shipping Return Labels',
+        ownerId: [4],
+        startDate: new Date('2021-02-17T19:45:00.000Z'),
+        endDate: new Date('2021-02-17T21:00:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Get Design for Shipping Return Labels',
+        ownerId: [3],
+        startDate: new Date('2021-02-17T22:00:00.000Z'),
+        endDate: new Date('2021-02-17T23:30:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'PSD needed for Shipping Return Labels',
+        ownerId: [4],
+        startDate: new Date('2021-02-18T15:30:00.000Z'),
+        endDate: new Date('2021-02-18T16:15:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Contact ISP and Discuss Payment Options',
+        ownerId: [1],
+        startDate: new Date('2021-02-18T18:30:00.000Z'),
+        endDate: new Date('2021-02-18T23:00:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Prepare Year-End Support Summary Report',
+        ownerId: [2],
+        startDate: new Date('2021-02-19T00:00:00.000Z'),
+        endDate: new Date('2021-02-19T03:00:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Review New Training Material',
+        ownerId: [3],
+        startDate: new Date('2021-02-19T15:00:00.000Z'),
+        endDate: new Date('2021-02-19T16:15:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Distribute Training Material to Support Staff',
+        ownerId: [2],
+        startDate: new Date('2021-02-19T19:45:00.000Z'),
+        endDate: new Date('2021-02-19T21:00:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Training Material Distribution Schedule',
+        ownerId: [2],
+        startDate: new Date('2021-02-19T21:15:00.000Z'),
+        endDate: new Date('2021-02-19T23:15:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Approval on Converting to New HDMI Specification',
+        ownerId: [4],
+        startDate: new Date('2021-02-22T16:30:00.000Z'),
+        endDate: new Date('2021-02-22T17:15:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Create New Spike for Automation Server',
+        ownerId: [3],
+        startDate: new Date('2021-02-22T17:00:00.000Z'),
+        endDate: new Date('2021-02-22T19:30:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Code Review - New Automation Server',
+        ownerId: [1],
+        startDate: new Date('2021-02-22T20:00:00.000Z'),
+        endDate: new Date('2021-02-22T22:00:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Confirm Availability for Sales Meeting',
+        ownerId: [1],
+        startDate: new Date('2021-02-23T17:15:00.000Z'),
+        endDate: new Date('2021-02-23T22:15:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Reschedule Sales Team Meeting',
+        ownerId: [2],
+        startDate: new Date('2021-02-23T23:15:00.000Z'),
+        endDate: new Date('2021-02-24T01:00:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Send 2 Remotes for Giveaways',
+        ownerId: [3],
+        startDate: new Date('2021-02-24T16:30:00.000Z'),
+        endDate: new Date('2021-02-24T18:45:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Discuss Product Giveaways with Management',
+        ownerId: [1],
+        startDate: new Date('2021-02-24T19:15:00.000Z'),
+        endDate: new Date('2021-02-24T23:45:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Replace Desktops on the 3rd Floor',
+        ownerId: [2],
+        startDate: new Date('2021-02-25T16:30:00.000Z'),
+        endDate: new Date('2021-02-25T17:45:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Update Database with New Leads',
+        ownerId: [3],
+        startDate: new Date('2021-02-25T19:00:00.000Z'),
+        endDate: new Date('2021-02-25T21:15:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Mail New Leads for Follow Up',
+        ownerId: [1],
+        startDate: new Date('2021-02-25T21:45:00.000Z'),
+        endDate: new Date('2021-02-25T22:30:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Send Territory Sales Breakdown',
+        ownerId: [2],
+        startDate: new Date('2021-02-26T01:00:00.000Z'),
+        endDate: new Date('2021-02-26T03:00:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Territory Sales Breakdown Report',
+        ownerId: [1],
+        startDate: new Date('2021-02-26T15:45:00.000Z'),
+        endDate: new Date('2021-02-26T16:45:00.000Z'),
+        priority: 1,
+      }, {
+        text: 'Report on the State of Engineering Dept',
+        ownerId: [3],
+        startDate: new Date('2021-02-26T21:45:00.000Z'),
+        endDate: new Date('2021-02-26T22:30:00.000Z'),
+        priority: 2,
+      }, {
+        text: 'Staff Productivity Report',
+        ownerId: [4],
+        startDate: new Date('2021-02-26T23:15:00.000Z'),
+        endDate: new Date('2021-02-27T02:30:00.000Z'),
+        priority: 2,
+      }];
 
-  var groups = new vis.DataSet([
-    {id: 1, content: 'Resource 1'},
-    {id: 2, content: 'Resource 2'},
-    {id: 3, content: 'Resource 3'}
-  ]);
-  
-  // add items to the DataSet
-  items.add([
-    {id: 1, content: 'item 1', start: '2014-01-21', end: '2014-01-23', group: 1},
-    {id: 2, content: 'item 2', start: '2014-01-21', end: '2014-01-24', group: 1},
-    {id: 3, content: 'item 3', start: '2014-01-21', end: '2014-01-25', group: 1},
-    {id: 4, content: 'item 4', start: '2014-01-19', end: '2014-01-24', group: 2},
-    {id: 5, content: 'item 5', start: '2014-01-28', end: '2014-01-24', group: 2},
-    {id: 6, content: 'item 6', start: '2014-01-26', end: '2014-01-24', group: 3}
-  ]);
-    const container = document.getElementById('visualization');
-    const options = {
-      // Set your timeline options here
-    };
-    const timeline = new vis.Timeline(container, items, options);
-    timeline.setGroups(groups);
-  }
 
-  // Initialize the timeline when the page is loaded
-  document.addEventListener('DOMContentLoaded', initializeTimeline);
 </script>
+
+
+{% block actions %}
+{% if request.rows %}
+    <ul>
+        {% for row in request.rows %}
+            <li>{{ row }}</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No rows found.</p>
+{% endif %}
+
+
+<div class="dx-viewport">
+  <div class="btn-group" role="group">
+  
+  </div>
+
+
+<!-- Place for the gantt chart from devepress -->
+<div id="scheduler"></div>
+
+
+
+</div>
+</div>
+
 {% endblock %}

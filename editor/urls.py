@@ -9,21 +9,21 @@ urlpatterns = [
     # other URL patterns...
     re_path(
     r"^editor/operationplanresource/resource/(.+)/$",
-        capacity.EditorDetail.as_view(),
+        views.GanttView.as_view(),
         name="input_operationplanresource_plandetail",
     ),     
     re_path(
         r"^editor/operationplanresource/$",
-        capacity.EditorDetail.as_view(),
+        views.GanttView.as_view(),
         name="input_operationplanresource_plan",
     ),  
 	re_path (
-	    r"^editor/operationplanresource/$",
+	    r"^editor/api/operationplanresource/$",
 	    serializers.OperationPlanResourceAPI.as_view(),
 	),
       
     re_path (
-        r"^editor/operationplanresource/(?P<pk>(.+))/$",
+        r"^editor/api/operationplanresource/(?P<pk>(.+))/$",
         serializers.OperationPlanResourcedetailAPI.as_view(),
     ),
 ]
