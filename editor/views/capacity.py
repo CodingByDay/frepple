@@ -1219,7 +1219,8 @@ class EditorDetail(OperationPlanMixin):
     multiselect = True
     height = 250
     help_url = "user-interface/plan-analysis/resource-detail-report.html"
-    message_when_empty = Template(
+    message_when_empty = Template
+    (
         """
         <h3>Resource detail</h3>
         <br>
@@ -1388,6 +1389,7 @@ class EditorDetail(OperationPlanMixin):
                         request.GET._mutable = True  # to make it editable
                         request.GET["operationplan__startdate__lt"] = bucketend
                         request.GET._mutable = False
+        
         except Exception:
             # silently fail
             pass
@@ -1449,6 +1451,10 @@ class EditorDetail(OperationPlanMixin):
                     "showGantt": True,
                 }
             )
+
+
+        # Getting the gantt data.
+                   
         return ctx
 
     rows = (
