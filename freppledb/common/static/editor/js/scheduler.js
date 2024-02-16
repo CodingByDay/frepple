@@ -1,4 +1,7 @@
 
+var startResource = -1
+var endResource = -1
+
 
 $(function(){
 
@@ -19,7 +22,7 @@ $(function(){
                 return {
                   text: resourceText,
                   id: Math.floor(Math.random() * 1000), // Assign random integer IDs
-                  color: '#' + Math.floor(Math.random() * 16777215).toString(16) // Generate a random color
+                  color: '#081a45'  // Generate a random color
                 };
               });
               
@@ -34,7 +37,9 @@ $(function(){
 
               const tasksFromApril2024 = tasks.filter(task => task.startDate >= new Date(2024, 3, 1)); // Month is 0-indexed, so April is 3
               const minStartDate = new Date(Math.min(...tasksFromApril2024.map(task => task.startDate)));
-
+              const screenHeight = window.innerHeight; // Get the height of the screen
+              const schedulerHeightPercentage = 30; // Set the percentage of the screen height you want to use for the scheduler
+              const schedulerHeight = (screenHeight * schedulerHeightPercentage) / 100; // Calculate the height of the scheduler control
               $('#scheduler').dxScheduler({
                 timeZone: 'America/Los_Angeles',
                 dataSource: tasks,
@@ -43,6 +48,7 @@ $(function(){
                 currentDate: minStartDate,
                 firstDayOfWeek: 0,
                 startDayHour: 8,
+                maxAppointmentsPerCell: 'unlimited',
                 endDayHour: 20,
                 cellDuration: 60,
                 groups: ['resource'],
@@ -52,11 +58,20 @@ $(function(){
                   dataSource: uniqueResources,
                   label: 'Resources',
                 }],
-                height: 580,
-              });
+                height: schedulerHeight, // Set the height of the scheduler control
 
-              console.log(tasks)
-              console.log(uniqueResources)
+                  onAppointmentUpdating: function (e) {
+                    
+                    if(e.oldData.resource !== e.newData.resource) {
+                      e.cancel = true;
+                    }
+
+                  }
+                  // other configurations...
+                });
+      
+
+
         },
         error: function(xhr, status, error) {
 
@@ -76,20 +91,4 @@ $(function(){
 
 
 
-/* Cancel dragging into another group
 
-$(() => {
-  $('#scheduler').dxScheduler({
-    // other configurations...
-    onAppointmentDragging: function(e) {
-      var sourceResourceId = e.itemData.ownerId; // Get the ID of the source resource
-      var targetResourceId = e.newResource ? e.newResource.id : null; // Get the ID of the target resource
-      if (sourceResourceId !== targetResourceId) {
-        e.cancel = true; // Cancel dragging if the source and target resources are different
-      }
-    },
-    // other configurations...
-  });
-});
-
-*/
