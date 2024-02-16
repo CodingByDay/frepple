@@ -22,8 +22,10 @@
 #
 
 from datetime import datetime, timedelta
+import shlex
 
 from django.db import models
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from freppledb.common.models import User
@@ -112,7 +114,11 @@ class ScheduledTask(models.Model):
         return (
             Task.objects.all()
             .using(self._state.db)
-            .filter(name="scheduletasks", arguments="--schedule=%s" % self.name)
+            .filter(
+                Q(arguments="--schedule=%s" % shlex.quote(self.name))
+                | Q(arguments="--schedule='%s'" % shlex.quote(self.name)),
+                name="scheduletasks",
+            )
             .order_by("-id")
             .first()
         )
