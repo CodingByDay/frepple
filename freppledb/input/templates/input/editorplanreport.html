@@ -311,82 +311,9 @@ function extraCustomize() {
 }
 
 
-var url = (location.href.indexOf("#") != -1 ? location.href.substr(0, location.href.indexOf("#")) : location.href) +
-    (location.search.length > 0 ? "&format=json" : "?format=json");
-
-// Make AJAX request
-$.ajax({
-    url: url,
-    method: 'GET',
-    dataType: 'json',
-    success: function(response) {
-        // Handle successful response
-        alert("Success! Received response: " + JSON.stringify(response));
-    },
-    error: function(xhr, status, error) {
-        // Handle error
-        alert("Error occurred while fetching data: " + error);
-    }
-});
 
 
 
-$(function(){
-
-
-  const appointments = [
-    {
-        title: "Install New Database",
-        startDate: new Date("2021-05-23T08:45:00.000Z"),
-        endDate: new Date("2021-05-23T09:45:00.000Z")
-    }, {
-        title: "Create New Online Marketing Strategy",
-        startDate: new Date("2021-05-24T09:00:00.000Z"),
-        endDate: new Date("2021-05-24T11:00:00.000Z")
-    }, {
-        title: "Upgrade Personal Computers",
-        startDate: new Date("2021-05-25T10:15:00.000Z"),
-        endDate: new Date("2021-05-25T13:30:00.000Z")
-    }, {
-        title: "Customer Workshop",
-        startDate: new Date("2021-05-26T08:00:00.000Z"),
-        endDate: new Date("2021-05-26T10:00:00.000Z"),
-        dayLong: true,
-        recurrence: "FREQ=WEEKLY;BYDAY=TU,FR;COUNT=10"
-    }, {
-        title: "Prepare Development Plan",
-        startDate: new Date("2021-05-27T08:00:00.000Z"),
-        endDate: new Date("2021-05-27T10:30:00.000Z")
-    }, {
-        title: "Testing",
-        startDate: new Date("2021-05-23T09:00:00.000Z"),
-        endDate: new Date("2021-05-23T10:00:00.000Z"),
-        recurrence: "FREQ=WEEKLY;INTERVAL=2;COUNT=2"
-    }, {
-        title: "Meeting of Instructors",
-        startDate: new Date("2021-05-24T10:00:00.000Z"),
-        endDate: new Date("2021-05-24T11:15:00.000Z"),
-        recurrence: "FREQ=DAILY;BYDAY=WE;UNTIL=20211001"
-    }, {
-        title: "Recruiting students",
-        startDate: new Date("2021-05-25T08:00:00.000Z"),
-        endDate: new Date("2021-05-25T09:00:00.000Z"),
-        recurrence: "FREQ=YEARLY",
-    }, {
-        title: "Monthly Planning",
-        startDate: new Date("2021-05-26T09:30:00.000Z"),
-        endDate: new Date("2021-05-26T10:45:00.000Z"),
-        recurrence: "FREQ=MONTHLY;BYMONTHDAY=28;COUNT=1"
-    }, {
-        title: "Open Day",
-        startDate: new Date("2021-05-27T09:30:00.000Z"),
-        endDate: new Date("2021-05-27T19:00:00.000Z"),
-    }
-];
-    
-
-updateSchedulerControl("scheduler", appointments)
-  });
 </script>
 {% endblock %}
 
@@ -529,38 +456,13 @@ loadComplete: function(data) {
 
 {% block table %}
 
-<div id="scheduler"></div>
 
-{% if preferences.details == "left" or preferences.details == "right" %}
-<div data-ng-controller="operationplandetailCtrl" id="controller">
-<div class="row{% if preferences.details == 'left' %} flex-row-reverse{% endif %}">
-
-<div id="content-main" class="col flex-grow-1">
-<div class="pb-3" style="min-height: 150px; margin-top: 0.7em">
-  <div data-ng-hide="mode == 'kanban' || mode == 'gantt' || mode.startsWith('calendar')" class="col-12">
-    <table id="grid" class="table table-striped" style="background-color: white"></table>
-    <div id="gridpager"></div>
-  </div>
-
-</div>
-</div>
-
-<div class="col-auto ps-1 pe-1">
-<span id="resize-handle" class="fa fa-bars fa-rotate-90 vhandle" ></span>
-</div>
-
-<div id="detailspanel" class="col-1 mt-1"
-  style="width:{% if preferences.detailwidth %}{{ preferences.detailwidth }}px{% else %}25%{% endif %}">
-<div  data-ng-include="'/static/operationplandetail/operationplandetail.html'"></div>
-</div>
-
-</div></div>
-{% else %}
 <div data-ng-controller="operationplandetailCtrl" id="controller">
 
 <div class="row" style="text-align: center">
 <div id="content-main" class="col-md-12" style="min-height: 150px; margin-top: 0.7em">
 
+  <div id="scheduler"></div>
   
 </div>
 <span id="resize-handle" class="fa fa-bars handle" style="display: inline-block"></span>
@@ -571,5 +473,5 @@ loadComplete: function(data) {
 </div>
 
 
-{% endif %}
+
 {% endblock %}
