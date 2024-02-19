@@ -73,7 +73,6 @@ function showGanttDrv($window, gettextCatalog, OperationPlan, PreferenceSvc) {
         null;
     }
     $scope.findOperationPlan = findOperationPlan;
-alert("s")
     function buildtooltip() {
       var opplan = $scope.findOperationPlan($(this).attr("data-reference"));
       var extra = '';
