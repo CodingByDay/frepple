@@ -7,6 +7,9 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
 
     var directive = {
         restrict: 'EA',
+        scope: {
+            selected: '&'
+          },
         templateUrl: '/static/operationplandetail/editableGantt.html', // Template for the scheduler
         link: linkfunc // Link function for directive logic
     };
@@ -109,6 +112,9 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                             tooltip.on('click', function (event) {
                                 event.stopPropagation();
                             });
+                           
+                            $scope.$parent.selected();
+
 
                             return tooltip;
                         }

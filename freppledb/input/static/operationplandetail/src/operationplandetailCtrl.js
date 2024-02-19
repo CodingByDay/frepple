@@ -105,8 +105,15 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
           }
         }
         oldValue[0] = newValue[0];
-      }); //end watchGroup
+      }); // end watchGroup
   }
+
+  function selected() {
+    alert("Angular connection success");
+  }
+
+  $scope.selected = selected;
+
 
   function processAggregatedInfo(selectionData, colModel) {
     var aggColModel = [];
