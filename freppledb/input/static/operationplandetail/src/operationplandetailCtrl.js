@@ -238,6 +238,8 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
   $scope.zoom = zoom;
 
   function displayInfo(row) {
+    console.log(row)
+    alert("test")
     if ($scope.mode == "kanban" && row === undefined) {
       $scope.loadKanbanData();
       return;
@@ -261,6 +263,7 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
     angular.element(document).find("#delete_selected, #copy_selected, #edit_selected").prop("disabled", false);
 
     function callback(opplan) {
+
       if (row === undefined)
         return opplan;
       if (opplan.hasOwnProperty("duplicated")) {
@@ -625,6 +628,12 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
     });
   }
   $scope.loadKanbanData = loadKanbanData;
+
+ 
+
+
+
+
 
   function loadGanttData() {
     var tmp = $('#grid').getGridParam("postData");

@@ -250,6 +250,11 @@ function showGanttDrv($window, gettextCatalog, OperationPlan, PreferenceSvc) {
       gantt.header("#ganttheader");
 
       $('svg rect').on("click", function (d) {
+      
+
+
+        // This is the event for the gant click!!!
+
         var prev = $scope.findOperationPlan($scope.curselected);
         if (prev) {
           $scope.curselected = null;

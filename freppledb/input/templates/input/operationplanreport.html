@@ -129,6 +129,12 @@ rect.opplan {
     return false;
   }
 
+
+  function test() {
+    angular.element('#controller').scope().loadCalendarData(filter);
+  }
+
+
   function setHeights() {
     var h = $('#content-main').height();
     $('#grid').setGridWidth($('#content-main').width());

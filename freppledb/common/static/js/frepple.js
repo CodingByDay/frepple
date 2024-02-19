@@ -1810,6 +1810,8 @@ var grid = {
   },
 
   markSelectedRow: function (sel) {
+
+    
     if (typeof sel !== 'undefined' && sel > 0) {
       $("#delete_selected, #copy_selected, #edit_selected").prop('disabled', false);
       if ($("#actions").length) $("#actions1").prop('disabled', false);
