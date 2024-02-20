@@ -249,10 +249,7 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
   function displayInfoEditable(row) {
 
 
-    console.log("Testing")
     console.log(row)
-
-
 
 
     var rowid = undefined;
@@ -327,6 +324,11 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
       else
         $scope.operationplan.get(callback);
     }
+
+
+
+    console.log($scope.operationplan)
+
   }
 
   $scope.displayInfoEditable = displayInfoEditable;
