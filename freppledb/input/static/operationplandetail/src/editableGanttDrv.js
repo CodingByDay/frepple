@@ -207,7 +207,19 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
 
 
                             return tooltip;
-                        }
+                        },
+                        appointmentTemplate(model) {
+
+
+                            
+                           if(typeof model.appointmentData.original.color === "undefined") {
+                                return $("<div class='appointment-class' style='width:100%;height:100%;background: rgb(0, 255, 0)'></div>");
+                            } else {
+                                return $("<div class='appointment-class' style='width:100%;height:100%;background: rgb(255, 0, 0)'></div>");
+                            }
+
+                       
+                          }
                     });
                 },
                 error: function (xhr, status, error) {
