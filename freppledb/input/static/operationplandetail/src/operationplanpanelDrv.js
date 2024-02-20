@@ -50,6 +50,8 @@ function showoperationplanDrv($window, gettextCatalog) {
     }
 
     scope.$on("cardChanged", function (event, field, oldvalue, newvalue) {
+      alert("te")
+      // Testing whether this is the correct place for the modifications
       if (!scope.operationplan)
         return;
       else if (field === "startdate")
@@ -66,6 +68,9 @@ function showoperationplanDrv($window, gettextCatalog) {
       'operationplan.completed_quantity', 'operationplan.criticality', 'operationplan.delay',
       'operationplan.status', 'operationplan.remark'
     ], function (newValue, oldValue) {
+   
+      alert("te")
+
       if (scope.operationplan === undefined || scope.operationplan === null)
         return;
       if (scope.operationplan.id == -1 || scope.operationplan.type === 'STCK') {

@@ -327,7 +327,6 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
 
 
 
-    console.log($scope.operationplan)
 
   }
 
