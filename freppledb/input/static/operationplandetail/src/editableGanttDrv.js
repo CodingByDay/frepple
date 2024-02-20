@@ -8,7 +8,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
     var directive = {
         restrict: 'EA',
         scope: {
-            editableGanttSelected: '&'
+          displayInfoEditable: '&'
           },
         templateUrl: '/static/operationplandetail/editableGantt.html', // Template for the scheduler
         link: linkfunc // Link function for directive logic
@@ -111,6 +111,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
 
                     for (var i = 0; i<tasks.length;i++) {
                         var x = tasks[i].original
+                        var main = tasks[i]
                         x.type = x.operationplan__type || x.type || default_operationplan_type;
                         if (x.hasOwnProperty("enddate"))
                           x.enddate = new Date(x.enddate);
@@ -191,7 +192,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                                 .append($('<div class="dx-tooltip-appointment-item-content-date">').text('Resource: ' + resource.text))
                                 .append($('<div class="dx-tooltip-appointment-item-content-date">').text('Item: ' + data.appointmentData.item))
                                 .append($('<div class="dx-tooltip-appointment-item-content-date">').text('Quantity: ' + data.appointmentData.quantity))
-                                .append($('<div class="dx-tooltip-appointment-item-content-date">').text('Delay: ' + data.appointmentData.delay))
+                                .append($('<div class="dx-tooltip-appointment-item-content-date">').text('Delay: ' + data.appointmentData.original.inventory_status))
                                 .append($('<div class="dx-tooltip-appointment-item-content-date">').text('Status: ' + data.appointmentData.status))
                                 .append($('<div class="dx-tooltip-appointment-item-content-date">').text('Reference: ' + data.appointmentData.reference));
 
@@ -203,13 +204,12 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                                 event.stopPropagation();
                             });
                            
-                            $scope.$parent.editableGanttSelected(data);
+                            $scope.$parent.displayInfoEditable(data.appointmentData.original);
 
 
                             return tooltip;
                         },
                         appointmentTemplate(model) {
-
 
                             
                            if(typeof model.appointmentData.original.color === "undefined") {

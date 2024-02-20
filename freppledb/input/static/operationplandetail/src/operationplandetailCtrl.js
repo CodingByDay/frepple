@@ -245,6 +245,94 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
   };
   $scope.zoom = zoom;
 
+
+  function displayInfoEditable(row) {
+
+
+    console.log("Testing")
+    console.log(row)
+
+
+
+
+    var rowid = undefined;
+    if (typeof row !== 'undefined') {
+      if (row.hasOwnProperty('operationplan__reference'))
+        rowid = row.operationplan__reference;
+      else
+        rowid = row.reference;
+    }
+
+    angular.element(document).find("#delete_selected, #copy_selected, #edit_selected").prop("disabled", false);
+
+    function callback(opplan) {
+
+      if (row === undefined)
+        return opplan;
+      if (opplan.hasOwnProperty("duplicated")) {
+        opplan.reference = opplan.id = 'Copy of ' + opplan.duplicated;
+        delete opplan.upstreamoperationplans;
+        delete opplan.downstreamoperationplans;
+        delete opplan.pegging_demand;
+      }
+
+      // load previous changes from grid
+      if (row.operationplan__startdate !== undefined && row.operationplan__startdate !== '')
+        opplan.start = row.operationplan__startdate;
+      else if (row.startdate !== undefined && row.startdate !== '')
+        opplan.start = row.startdate;
+      if (row.operationplan__enddate !== undefined && row.operationplan__enddate !== '')
+        opplan.end = row.operationplan__enddate;
+      else if (row.enddate !== undefined && row.enddate !== '')
+        opplan.end = row.enddate;
+      if (row.operationplan__quantity !== undefined && row.operationplan__quantity !== '')
+        opplan.quantity = parseFloat(row.operationplan__quantity);
+      else if (row.quantity !== undefined && row.quantity !== '')
+        opplan.quantity = parseFloat(row.quantity);
+      if (row.operationplan__status !== undefined && row.operationplan__status !== '')
+        opplan.status = row.operationplan__status;
+      else if (row.status !== undefined && row.status !== '')
+        opplan.status = row.status;
+      if (row.operationplan__quantity_completed !== undefined && row.operationplan__quantity_completed !== '')
+        opplan.quantity_completed = parseFloat(row.operationplan__quantity_completed);
+      else if (row.quantity_completed !== undefined && row.quantity_completed !== '')
+        opplan.quantity_completed = parseFloat(row.quantity_completed);
+      if (opplan.invstatus !== undefined) opplan.invstatus.pipeline = 0;
+
+      // Assure data type
+      if ($scope.operationplan.hasOwnProperty("start") && !($scope.operationplan.start instanceof Date))
+        $scope.operationplan.start = moment($scope.operationplan.start, datetimeformat).toDate();
+      if ($scope.operationplan.hasOwnProperty("end") && !($scope.operationplan.end instanceof Date))
+        $scope.operationplan.end = moment($scope.operationplan.end, datetimeformat).toDate();
+      if ($scope.operationplan.hasOwnProperty("operationplan__startdate") && !($scope.operationplan.operationplan__startdate instanceof Date))
+        $scope.operationplan.operationplan__startdate = moment($scope.operationplan.operationplan__startdate, datetimeformat).toDate();
+      if ($scope.operationplan.hasOwnProperty("operationplan__enddate") && !($scope.operationplan.operationplan__enddate instanceof Date))
+        $scope.operationplan.operationplan__enddate = moment($scope.operationplan.operationplan__enddate, datetimeformat).toDate();
+    }
+
+    if (row && row.hasOwnProperty("duplicated")) {
+      $scope.operationplan = new OperationPlan(row);
+      $scope.operationplan.id = row.duplicated;
+      $scope.operationplan.get(callback);
+    }
+    else {
+      if ($scope.operationplan === null || typeof ($scope.operationplan) !== 'object')
+        $scope.operationplan = new OperationPlan();
+      $scope.operationplan.id = rowid;
+      if (typeof $scope.operationplan.id === 'undefined')
+        $scope.$apply(function () {
+          angular.element(document).find("#delete_selected, #copy_selected, #edit_selected").prop("disabled", true);
+          $scope.operationplan = new OperationPlan();
+        });
+      else
+        $scope.operationplan.get(callback);
+    }
+  }
+
+  $scope.displayInfoEditable = displayInfoEditable;
+
+
+
   function displayInfo(row) {
 
     if ($scope.mode == "kanban" && row === undefined) {
