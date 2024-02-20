@@ -108,11 +108,12 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
       }); // end watchGroup
   }
 
-  function selected() {
-    alert("Angular connection success");
+  function editableGanttSelected(row) {
+    console.log(row)
+    alert("test")
   }
 
-  $scope.selected = selected;
+  $scope.editableGanttSelected = editableGanttSelected;
 
 
   function processAggregatedInfo(selectionData, colModel) {
@@ -245,8 +246,7 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
   $scope.zoom = zoom;
 
   function displayInfo(row) {
-    console.log(row)
-    alert("test")
+
     if ($scope.mode == "kanban" && row === undefined) {
       $scope.loadKanbanData();
       return;
@@ -691,6 +691,7 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
               x.origin = x.operationplan__origin;
             [x.color, x.inventory_status] = formatInventoryStatus(x);
           }
+
           $scope.ganttoperationplans = tmp;
         },
         function (err) {
@@ -930,9 +931,11 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
 
   // Initial display
   if (preferences) {
-    if (preferences.mode == "kanban")
+    if (preferences.mode == "kanban") {
       $scope.loadKanbanData();
-    else if (preferences.mode == "gantt")
+    }
+    else if (preferences.mode == "gantt") {
       $scope.loadGanttData();
+    }
   }
 }
