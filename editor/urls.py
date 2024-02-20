@@ -26,4 +26,13 @@ urlpatterns = [
         r"^editor/api/operationplanresource/(?P<pk>(.+))/$",
         serializers.OperationPlanResourcedetailAPI.as_view(),
     ),
+    re_path (
+	    r"^editor/api/dependency/$",
+	    serializers.OperationDependencyAPI.as_view(),
+	),
+      
+    re_path (
+        r"^editor/api/dependency/(?P<pk>(.+))/$",
+        serializers.OperationDependencydetailAPI.as_view(),
+    ),
 ]

@@ -75,7 +75,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
         $(function () {
             var url = (location.href.indexOf("#") != -1 ? location.href.substr(0, location.href.indexOf("#")) : location.href) +
                 (location.search.length > 0 ? "&format=json" : "?format=json");
-
+           
             // Make AJAX request
             $.ajax({
                 url: url,
