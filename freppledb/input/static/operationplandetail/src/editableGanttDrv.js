@@ -85,11 +85,14 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                 (location.search.length > 0 ? "?format=gantt&pagesize=1000" : "?format=gantt&pagesize=1000");
 
             // Make AJAX request
+            
             $.ajax({
                 url: url,
                 method: 'GET',
                 dataType: 'json',
                 success: function (response) {
+
+
                     // Extract unique resources from data
                     const uniqueResources = Array.from(new Set(response.rows.map(row => row.resource))).map(resourceText => {
                         return {
@@ -113,7 +116,6 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                         status: row.operationplan__status,
                         reference: row.operationplan__reference,
                         original: row
-
                     }));
 
 

@@ -477,8 +477,34 @@ displayInfoEditable="displayInfoEditable"
 </dev-extreme-scheduler-drv>
   
 </div>
-<span id="resize-handle" class="fa fa-bars handle" style="display: inline-block"></span>
-</div>
+<div class="row">
+  <div class="col-auto">
+      <button id="save" class="btn btn-primary ng-binding" data-bs-toggle="tooltip" data-ng-click="save()" data-bs-title="Save plan from memory to the database">
+      <!-- ngIf: busy_saving -->
+      Save
+      </button>
+  </div>
+
+  <div class="col-auto ms-auto">
+    <ul class="nav nav-tabs" style="margin-top: 0" role="tablist">
+      <li class="nav-item" role="presentation">
+        <a data-ng-class="{'nav-link': true, 'active': showtab === 'attributes-tab'}" data-bs-toggle="tab" data-ng-click="showtab = 'attributes-tab'" id="attributes-tab" style="text-transform: capitalize" translate="" class="nav-link" aria-selected="false" tabindex="-1" role="tab"><span class="ng-scope">attributes</span></a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a data-ng-class="{'nav-link': true, 'active': showtab === 'demand-tab'}" data-bs-toggle="tab" data-ng-click="showtab = 'demand-tab'" id="demand-tab" style="text-transform: capitalize" translate="" class="nav-link active" aria-selected="true" role="tab"><span class="ng-scope">demand</span></a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a data-ng-class="{'nav-link': true, 'active': showtab === 'resource-tab'}" data-bs-toggle="tab" data-ng-click="showtab = 'resource-tab'" id="resource-tab" style="text-transform: capitalize" translate="" class="nav-link" aria-selected="false" tabindex="-1" role="tab"><span class="ng-scope">resource</span></a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a data-ng-class="{'nav-link': true, 'active': showtab === 'buffer-tab'}" data-bs-toggle="tab" data-ng-click="showtab = 'buffer-tab'" id="buffer-tab" style="text-transform: capitalize" translate="" class="nav-link" aria-selected="false" tabindex="-1" role="tab"><span class="ng-scope">buffer</span></a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a data-ng-class="{'nav-link': true, 'active': showtab === 'chart-tab'}" data-bs-toggle="tab" data-ng-click="showtab = 'chart-tab'" id="chart-tab" style="text-transform: capitalize" translate="" class="nav-link" aria-selected="false" tabindex="-1" role="tab"><span class="ng-scope">colors</span></a>
+      </li>
+    </ul>
+  </div>
+</div></div>
 
 <div data-ng-include="'/static/operationplandetail/operationplandetail.html'"></div>
 
