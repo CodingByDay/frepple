@@ -50,7 +50,6 @@ function showoperationplanDrv($window, gettextCatalog) {
     }
 
     scope.$on("cardChanged", function (event, field, oldvalue, newvalue) {
-      alert("te")
       // Testing whether this is the correct place for the modifications
       if (!scope.operationplan)
         return;
@@ -69,7 +68,6 @@ function showoperationplanDrv($window, gettextCatalog) {
       'operationplan.status', 'operationplan.remark'
     ], function (newValue, oldValue) {
    
-      alert("te")
 
       if (scope.operationplan === undefined || scope.operationplan === null)
         return;

@@ -109,8 +109,6 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
   }
 
   function editableGanttSelected(row) {
-    console.log(row)
-    alert("test")
   }
 
   $scope.editableGanttSelected = editableGanttSelected;
@@ -249,7 +247,6 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
   function displayInfoEditable(row) {
 
 
-    console.log(row)
 
 
     var rowid = undefined;
@@ -746,11 +743,13 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
     var baseurl = (location.href.indexOf("#") != -1 ? location.href.substr(0, location.href.indexOf("#")) : location.href)
       + (location.search.length > 0 ? "&format=gantt" : "?format=gantt")
       + sortname;
+
     $http.get(thefilter ?
       baseurl + "&filters=" + encodeURIComponent(JSON.stringify(thefilter)) :
       baseurl)
       .then(
         function success(response) {
+          
           var tmp = angular.copy(response.data);
           for (var x of tmp.rows) {
             x.type = x.operationplan__type || x.type || default_operationplan_type;

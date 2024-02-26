@@ -22,6 +22,13 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
 
     function linkfunc($scope, $elem, attrs) {
 
+
+      // A place to handle the updating of the data and component rendering
+      $scope.$watch('tasks', function () {
+      });
+
+
+
         function formatInventoryStatus(opplan) {
 
             if (opplan.color === undefined || opplan.color === '')
@@ -74,16 +81,26 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
 
         $(function () {
             var url = (location.href.indexOf("#") != -1 ? location.href.substr(0, location.href.indexOf("#")) : location.href) +
-                (location.search.length > 0 ? "&format=json" : "?format=json");
-
+                (location.search.length > 0 ? "?format=gantt&pagesize=1" : "?format=gantt&pagesize=1");
             // Make AJAX request
             $.ajax({
                 url: url,
                 method: 'GET',
                 dataType: 'json',
                 success: function (response) {
-                    // Extract unique resources from data
-                    const uniqueResources = Array.from(new Set(response.rows.map(row => row.resource))).map(resourceText => {
+
+
+                  var urlPage = (location.href.indexOf("#") != -1 ? location.href.substr(0, location.href.indexOf("#")) : location.href) +
+                (location.search.length > 0 ? `?format=gantt&pagesize=${response.records}` : `?format=gantt&pagesize=${response.records}`);
+                  $.ajax({
+                    url: urlPage,
+                    method: 'GET',
+                    dataType: 'json',
+                    success: function (response) {
+
+
+
+                      const uniqueResources = Array.from(new Set(response.rows.map(row => row.resource))).map(resourceText => {
                         return {
                             text: resourceText,
                             id: Math.floor(Math.random() * 1000), // Assign random integer IDs
@@ -142,7 +159,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
 
                       $scope.calendarevents = response.rows;
                       $scope.totalevents = response.records;
-                    
+                      $scope.tasks = tasks
 
                     const tasksFromApril2024 = tasks.filter(task => task.startDate >= new Date(2024, 3, 1)); // Month is 0-indexed, so April is 3
                     const minStartDate = new Date(Math.min(...tasksFromApril2024.map(task => task.startDate)));
@@ -221,6 +238,13 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                        
                           }
                     });
+                   
+                    },
+                    error: function (xhr, status, error) {
+    
+                    }
+                  });
+           
                 },
                 error: function (xhr, status, error) {
 

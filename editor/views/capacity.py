@@ -1237,7 +1237,8 @@ class EditorDetail(OperationPlanMixin):
         # The kanban query also doesn't know about pages.
         request.GET = request.GET.copy()
         request.GET["page"] = None
-        request.limit = request.pagesize
+        pagesize = int(request.GET.get("pagesize", 100))
+        request.limit = pagesize
         return cls._generate_json_data(request, *args, **kwargs)
 
     @classmethod
