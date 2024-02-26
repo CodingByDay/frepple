@@ -515,9 +515,25 @@ displayInfoEditable="displayInfoEditable"
       </li>
     </ul>
   </div>
-</div></div>
 
-<div data-ng-include="'/static/operationplandetail/operationplandetail.html'"></div>
+
+</div></div>
+    <div ng-show="showtab === 'attributes-tab'">
+        <div data-ng-include="'/static/operationplandetail/operationplandetail.html'"></div>
+    </div>
+    <div ng-show="showtab === 'demand-tab'">
+        <h1>Demand Tab Content</h1>
+    </div>
+    <div ng-show="showtab === 'resource-tab'">
+        <h1>Resource Tab Content</h1>
+    </div>
+    <div ng-show="showtab === 'buffer-tab'">
+        <h1>Buffer Tab Content</h1>
+    </div>
+    <div ng-show="showtab === 'chart-tab'">
+
+        <h1>Chart Tab Content</h1>
+    </div>
 
 </div>
 
