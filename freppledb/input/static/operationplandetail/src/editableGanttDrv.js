@@ -192,6 +192,9 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                         onAppointmentUpdating: function (e) {
                             if (e.oldData.resource !== e.newData.resource) {
                                 e.cancel = true;
+                            } else {
+                              console.log([e.oldData, e.newData])
+                              alert("Ready to recalculate the result")
                             }
                         },
 
