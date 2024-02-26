@@ -1,5 +1,5 @@
 
-var startResource = -1
+/*var startResource = -1
 var endResource = -1
 
 
@@ -133,3 +133,4 @@ $(function(){
 
 
 
+*/

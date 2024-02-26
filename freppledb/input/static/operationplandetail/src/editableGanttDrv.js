@@ -80,34 +80,26 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
         var endResource = -1;
 
         $(function () {
+
             var url = (location.href.indexOf("#") != -1 ? location.href.substr(0, location.href.indexOf("#")) : location.href) +
-                (location.search.length > 0 ? "?format=gantt&pagesize=1" : "?format=gantt&pagesize=1");
+                (location.search.length > 0 ? "?format=gantt&pagesize=1000" : "?format=gantt&pagesize=1000");
+
             // Make AJAX request
             $.ajax({
                 url: url,
                 method: 'GET',
                 dataType: 'json',
                 success: function (response) {
-
-
-                  var urlPage = (location.href.indexOf("#") != -1 ? location.href.substr(0, location.href.indexOf("#")) : location.href) +
-                (location.search.length > 0 ? `?format=gantt&pagesize=${response.records}` : `?format=gantt&pagesize=${response.records}`);
-                  $.ajax({
-                    url: urlPage,
-                    method: 'GET',
-                    dataType: 'json',
-                    success: function (response) {
-
-
-
-                      const uniqueResources = Array.from(new Set(response.rows.map(row => row.resource))).map(resourceText => {
+                    // Extract unique resources from data
+                    const uniqueResources = Array.from(new Set(response.rows.map(row => row.resource))).map(resourceText => {
                         return {
                             text: resourceText,
                             id: Math.floor(Math.random() * 1000), // Assign random integer IDs
                             color: '#081a45' // Generate a random color
                         };
                     });
-
+                    
+            
                     // Map through the tasks to reference resources by their text and assigned IDs
                     const tasks = response.rows.map(row => ({
                         text: row.operationplan__operation__name,
@@ -123,7 +115,6 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                         original: row
 
                     }));
-
 
 
                     for (var i = 0; i<tasks.length;i++) {
@@ -161,11 +152,21 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                       $scope.totalevents = response.records;
                       $scope.tasks = tasks
 
-                    const tasksFromApril2024 = tasks.filter(task => task.startDate >= new Date(2024, 3, 1)); // Month is 0-indexed, so April is 3
-                    const minStartDate = new Date(Math.min(...tasksFromApril2024.map(task => task.startDate)));
+                      var minStartDate;
+                      const tasksFromApril2024 = tasks.filter(task => task.startDate >= new Date(2024, 3, 1)); // Month is 0-indexed, so April is 3                     
+                      if (tasksFromApril2024.length > 0) {
+                          minStartDate = new Date(Math.min(...tasksFromApril2024.map(task => task.startDate)));
+                      } else {
+                          // If there are no tasks in 2024, set a default date
+                          minStartDate = new Date(); // Use current date as default
+                      }
+
+
                     const screenHeight = window.innerHeight; // Get the height of the screen
                     const schedulerHeightPercentage = 30; // Set the percentage of the screen height you want to use for the scheduler
                     const schedulerHeight = (screenHeight * schedulerHeightPercentage) / 100; // Calculate the height of the scheduler control
+  
+
                     $('#scheduler').dxScheduler({
                         timeZone: 'America/Los_Angeles',
                         dataSource: tasks,
@@ -222,29 +223,17 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                             });
                            
                             $scope.$parent.displayInfoEditable(data.appointmentData.original);
-
-
                             return tooltip;
                         },
-                        appointmentTemplate(model) {
 
-                            
-                           if(typeof model.appointmentData.original.color === "undefined") {
-                                return $("<div class='appointment-class' style='width:100%;height:100%;background: rgb(0, 255, 0)'></div>");
-                            } else {
-                                return $("<div class='appointment-class' style='width:100%;height:100%;background: rgb(255, 0, 0)'></div>");
-                            }
-
-                       
-                          }
-                    });
-                   
-                    },
-                    error: function (xhr, status, error) {
-    
-                    }
-                  });
-           
+                        appointmentTemplate(model) {                          
+                                if(typeof model.appointmentData.original.color === "undefined") {
+                                    return $("<div class='appointment-class' style='width:100%;height:100%;background: rgb(0, 255, 0)'></div>");
+                                } else {
+                                    return $("<div class='appointment-class' style='width:100%;height:100%;background: rgb(255, 0, 0)'></div>");
+                                }                      
+                        }
+                    }); 
                 },
                 error: function (xhr, status, error) {
 
