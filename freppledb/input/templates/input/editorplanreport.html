@@ -3,7 +3,18 @@
 {% load static %}
 
 {% block extrastyle %}{{block.super}}
+
+
 <style>
+.row.tabs span {
+    color: black;
+}
+.row.tabs {
+    padding: 1em;
+    margin: 1em;
+}
+
+
 #attributes-supplyinformation thead tr td,
 #attributes-networkstatus thead tr td,
 #attributes-downstreamoperationplans thead tr td,
@@ -477,7 +488,7 @@ displayInfoEditable="displayInfoEditable"
 </dev-extreme-scheduler-drv>
   
 </div>
-<div class="row">
+<div class="row tabs">
   <div class="col-auto">
       <button id="save" class="btn btn-primary ng-binding" data-bs-toggle="tooltip" data-ng-click="save()" data-bs-title="Save plan from memory to the database">
       <!-- ngIf: busy_saving -->
