@@ -48,6 +48,9 @@ This release is scheduled for end February 2024. You can already check out a `pr
 - | 15, 16, 17: Allow export of approved and confirmed purchase orders from frePPLe to Odoo to
     update various fields of the Odoo purchase order lines (quantity, receipt date, item...).
 
+- | 15, 16, 17: Creation of purchase orders in Odoo (upon export from frePPLe) uses generic
+    Odoo code so that fields such as tax, unit_price, description... are standard.
+
 - | The XMLRPC version of the connector is deprecated.
   | It has always been only an experimental feature, which we see now as a dead end.
 
@@ -57,6 +60,8 @@ This release is scheduled for end February 2024. You can already check out a `pr
   | The automated scheduling of tasks on a time schedul no longer uses the at-command.
 
 - | Bug fix: sending an email when executing a task group fails didn't work.
+
+- | Bug fix: Basic authentication on web requests failed when the password contains colons.
 
 8.4.0 (2024-01-19)
 ==================
@@ -77,6 +82,12 @@ This release is scheduled for end February 2024. You can already check out a `pr
 
 - | Bug fix: Corner case with unplanned demand when an item is consumed multiple times
     in the same supply path.
+
+- | Bug fix: Manufacturing orders were being proposed on resources with a
+    0-priority skill.
+  | Consistent with other alternates, the planning algorithm should never
+    propose replenishments on 0-priority alternates. Such alternates are
+    only selected manually.
 
 .. rubric:: Demand forecasting
 
