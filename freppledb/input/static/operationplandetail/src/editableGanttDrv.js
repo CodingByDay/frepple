@@ -36,7 +36,8 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
     });
     
     function showCustomTooltip(appointmentData, x, y) {
-        const tooltipContent = `
+        const tooltipContent = ` 
+            Name: ${appointmentData.text}<br>
             Start Date: ${appointmentData.startDate.toLocaleString()}<br>
             End Date: ${appointmentData.endDate.toLocaleString()}<br>
             Resource: ${appointmentData.resource}<br>
@@ -96,12 +97,6 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
         return tooltip;
     }
     
-    // Assuming you have a function to show the tooltip
-    function showTooltip(data) {
-        const tooltip = createTooltip(data);
-        // Show tooltip at desired position or attach it to the body
-        tooltip.appendTo('body'); // Appending tooltip to body for simplicity
-    }
 
         function formatInventoryStatus(opplan) {
 
@@ -150,8 +145,6 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
 
 
 
-        var startResource = -1;
-        var endResource = -1;
 
         $(function () {
 
@@ -197,7 +190,6 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
 
                     for (var i = 0; i<tasks.length;i++) {
                         var x = tasks[i].original
-                        var main = tasks[i]
                         x.type = x.operationplan__type || x.type || default_operationplan_type;
                         if (x.hasOwnProperty("enddate"))
                           x.enddate = new Date(x.enddate);
@@ -280,6 +272,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                           let reference = e.appointmentData.reference
                           let schedulerInstance = $('#scheduler').dxScheduler('instance')
                           let appointment = e.appointmentData
+                          // Tasks with the same reference
                           tasks.forEach(function(same) {
                               if(same.reference === reference) {
                                 same.prevColor = same.color
@@ -290,14 +283,35 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                                 }
                               }
                           });
+
+                          // Tasks with at least one same demand
+
+                          const tasksWithSameDemand = tasks.filter(task => {
+                            // Extract the names from demands array of the task
+                            const taskDemandNames = task.original.demands.map(demand => demand[1]);
+                            // Check if there's at least one name common between task's demands and appointment's demands
+                            return appointment.original.demands.some(appointmentDemand => taskDemandNames.includes(appointmentDemand[1]));
+                          });
+                        
+                        
+
+
+                          // Add borders to those items
+
+
+
+                          // Tasks with at least one same demand
                           schedulerInstance.option("dataSource", tasks)
                           // Preserve the horizontal scroll position after repaint
                           schedulerInstance.repaint()
-                          schedulerInstance.scrollTo(appointment.startDate)
-
-
+                          const viewStartDate = schedulerInstance.option('currentViewData.startDate');
+                          const viewEndDate = schedulerInstance.option('currentViewData.endDate');          
+                          // Check if the appointment's start date is within the visible range
+                    
+                          // Scroll to the appointment's start date
+                          schedulerInstance.scrollTo(appointment.startDate);
+                          
                           $scope.$parent.displayInfoEditable(appointment.original)
-
                         },
                         
 
@@ -337,19 +351,9 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                         appointmentTemplate(model) {                          
                           let color = model.appointmentData.color; // Assuming 'color' is a property in your appointment data
                           let appointment = model.appointmentData;
-                          let tooltipContent = `
-                              Start Date: ${appointment.startDate.toLocaleString()}<br>
-                              End Date: ${appointment.endDate.toLocaleString()}<br>
-                              Resource: ${appointment.resource}<br>
-                              Item: ${appointment.item}<br>
-                              Quantity: ${appointment.quantity}<br>
-                              Delay: ${appointment.delay}<br>
-                              Status: ${appointment.status}<br>
-                              Reference: ${appointment.reference}<br>
-                          `;
                       
                           // Store the appointment data as a data attribute on the appointment element
-                          const appointmentElement = $(`<div class='appointment-class' style='width:100%;height:100%;background: ${color}'></div>`);
+                          const appointmentElement = $(`<div class='appointment-class' title = '' style='width:100%;height:100%;background: ${color}'></div>`);
                           appointmentElement.data('appointmentData', appointment); // Store appointment data
                           appointmentElement.appendTo('#scheduler'); // Append appointment element to scheduler
                       
@@ -358,7 +362,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                       
                     }); 
                 },
-                error: function (xhr, status, error) {
+                error: function () {
 
                 }
             });
