@@ -285,20 +285,21 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                           });
 
                           // Tasks with at least one same demand
-
-                          const tasksWithSameDemand = tasks.filter(task => {
+                          const tasksWithSameDemandIndices = tasks.reduce((indices, task, index) => {
                             // Extract the names from demands array of the task
                             const taskDemandNames = task.original.demands.map(demand => demand[1]);
                             // Check if there's at least one name common between task's demands and appointment's demands
-                            return appointment.original.demands.some(appointmentDemand => taskDemandNames.includes(appointmentDemand[1]));
+                            if (appointment.original.demands.some(appointmentDemand => taskDemandNames.includes(appointmentDemand[1]))) {
+                                indices.push(index);
+                            }
+                            return indices;
+                          }, []);
+                          
+                          // Update the tasks with the same demand by setting the border property to true
+                          tasksWithSameDemandIndices.forEach(index => {
+                            
+                              tasks[index].border = true;
                           });
-                        
-                        
-
-
-                          // Add borders to those items
-
-
 
                           // Tasks with at least one same demand
                           schedulerInstance.option("dataSource", tasks)
@@ -348,12 +349,19 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                             return tooltip;
                         }, */
                       
-                        appointmentTemplate(model) {                          
+                        appointmentTemplate(model) { 
                           let color = model.appointmentData.color; // Assuming 'color' is a property in your appointment data
                           let appointment = model.appointmentData;
-                      
+                          console.log(appointment.border)                         
+
+                          var borderStyle = ""
+                          if(appointment.border) {
+                              borderStyle = '2px solid #081a45'
+                          } else {
+                              borderStyle = 'none'
+                          }
                           // Store the appointment data as a data attribute on the appointment element
-                          const appointmentElement = $(`<div class='appointment-class' title = '' style='width:100%;height:100%;background: ${color}'></div>`);
+                          const appointmentElement = $(`<div class='appointment-class' title = '' style='width:100%;border: ${borderStyle};height:100%;background: ${color}'></div>`);
                           appointmentElement.data('appointmentData', appointment); // Store appointment data
                           appointmentElement.appendTo('#scheduler'); // Append appointment element to scheduler
                       
