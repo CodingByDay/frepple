@@ -114,8 +114,9 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                         quantity: row.operationplan__quantity,
                         delay: row.operationplan__delay,
                         status: row.operationplan__status,
-                        reference: row.operationplan__reference,
-                        original: row
+                        reference: parseInt(row.operationplan__reference),
+                        original: row,
+                        color: "rgb(0, 255, 0)"
                     }));
 
 
@@ -194,8 +195,22 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                                 e.cancel = true;
                             } else {
                               console.log([e.oldData, e.newData])
-                              alert("Ready to recalculate the result")
                             }
+                        },
+
+                        onAppointmentClick: function (e) {
+                          let reference = e.appointmentData.reference
+                          let schedulerInstance = $('#scheduler').dxScheduler('instance');
+
+                          tasks.forEach(function(same) {
+                              if(same.reference === reference) {
+                                same.color = "#081a45"
+                              }
+                          });
+
+                          schedulerInstance.option("dataSource", tasks);
+                          schedulerInstance.repaint()
+
                         },
 
                         appointmentTooltipTemplate(data, cell) {
@@ -232,11 +247,8 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                         },
 
                         appointmentTemplate(model) {                          
-                                if(typeof model.appointmentData.original.color === "undefined") {
-                                    return $("<div class='appointment-class' style='width:100%;height:100%;background: rgb(0, 255, 0)'></div>");
-                                } else {
-                                    return $("<div class='appointment-class' style='width:100%;height:100%;background: rgb(255, 0, 0)'></div>");
-                                }                      
+                            var color = model.appointmentData.color; // Assuming 'color' is a property in your appointment data
+                            return $(`<div class='appointment-class' style='width:100%;height:100%;background: ${color}'></div>`);                               
                         }
                     }); 
                 },
