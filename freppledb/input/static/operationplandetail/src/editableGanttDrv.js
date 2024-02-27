@@ -21,13 +21,87 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
 
 
     function linkfunc($scope, $elem, attrs) {
-
+      $(document).ready(function() {
+        // Bind mouseenter and mouseleave events to the appointment elements
+        $('#scheduler').on('mouseenter', '.appointment-class', function(event) {
+            // Extract appointment data from the data attribute
+            const appointmentData = $(this).data('appointmentData');
+    
+            // Show the custom tooltip with appointment details
+            showCustomTooltip(appointmentData, event.pageX, event.pageY);
+        }).on('mouseleave', '.appointment-class', function() {
+            // Hide the custom tooltip when mouse leaves the appointment
+            hideCustomTooltip();
+        });
+    });
+    
+    function showCustomTooltip(appointmentData, x, y) {
+        const tooltipContent = `
+            Start Date: ${appointmentData.startDate.toLocaleString()}<br>
+            End Date: ${appointmentData.endDate.toLocaleString()}<br>
+            Resource: ${appointmentData.resource}<br>
+            Item: ${appointmentData.item}<br>
+            Quantity: ${appointmentData.quantity}<br>
+            Delay: ${appointmentData.delay}<br>
+            Status: ${appointmentData.status}<br>
+            Reference: ${appointmentData.reference}<br>
+        `;
+    
+        // Update the content of the custom tooltip
+        $('#customTooltip').html(tooltipContent);
+    
+        // Position the tooltip near the mouse cursor
+        $('#customTooltip').css({
+            left: x + 10 + 'px', // Add 10px offset to prevent tooltip from overlapping mouse cursor
+            top: y + 10 + 'px' // Add 10px offset to prevent tooltip from overlapping mouse cursor
+        });
+    
+        // Show the custom tooltip
+        $('#customTooltip').show();
+    }
+    
+    function hideCustomTooltip() {
+        // Hide the custom tooltip
+        $('#customTooltip').hide();
+    }
 
       // A place to handle the updating of the data and component rendering
       $scope.$watch('tasks', function () {
       });
 
-
+      function createTooltip(data) {
+        const tooltip = $('<div class="dx-tooltip-appointment-item">');
+    
+        // Extract resource color using resourceId
+        const resource = uniqueResources.find(resource => resource.id === data.appointmentData.resource);
+        const markerColor = resource ? resource.color : '#337ab7';
+    
+        const markerBody = $('<div class="dx-tooltip-appointment-item-marker-body">').css('background', markerColor);
+        const marker = $('<div class="dx-tooltip-appointment-item-marker">').append(markerBody);
+    
+        const content = $('<div class="dx-tooltip-appointment-item-content">')
+            .append($('<div class="dx-tooltip-appointment-item-content-subject">').text(data.appointmentData.text))
+            .append($('<div class="dx-tooltip-appointment-item-content-date">').text('Start Date: ' + data.appointmentData.startDate.toLocaleString()))
+            .append($('<div class="dx-tooltip-appointment-item-content-date">').text('End Date: ' + data.appointmentData.endDate.toLocaleString()))
+            .append($('<div class="dx-tooltip-appointment-item-content-date">').text('Resource: ' + resource.text))
+            .append($('<div class="dx-tooltip-appointment-item-content-date">').text('Item: ' + data.appointmentData.item))
+            .append($('<div class="dx-tooltip-appointment-item-content-date">').text('Quantity: ' + data.appointmentData.quantity))
+            .append($('<div class="dx-tooltip-appointment-item-content-date">').text('Delay: ' + data.appointmentData.original.inventory_status))
+            .append($('<div class="dx-tooltip-appointment-item-content-date">').text('Status: ' + data.appointmentData.status))
+            .append($('<div class="dx-tooltip-appointment-item-content-date">').text('Reference: ' + data.appointmentData.reference));
+    
+        tooltip.append(marker);
+        tooltip.append(content);
+    
+        return tooltip;
+    }
+    
+    // Assuming you have a function to show the tooltip
+    function showTooltip(data) {
+        const tooltip = createTooltip(data);
+        // Show tooltip at desired position or attach it to the body
+        tooltip.appendTo('body'); // Appending tooltip to body for simplicity
+    }
 
         function formatInventoryStatus(opplan) {
 
@@ -201,6 +275,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                             }
                         },
 
+
                         onAppointmentClick: function (e) {
                           let reference = e.appointmentData.reference
                           let schedulerInstance = $('#scheduler').dxScheduler('instance')
@@ -219,9 +294,14 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                           // Preserve the horizontal scroll position after repaint
                           schedulerInstance.repaint()
                           schedulerInstance.scrollTo(appointment.startDate)
-                        },
 
-                        appointmentTooltipTemplate(data, cell) {
+
+                          $scope.$parent.displayInfoEditable(appointment.original)
+
+                        },
+                        
+
+                       /*   appointmentTooltipTemplate(data) {
                             const tooltip = $('<div class="dx-tooltip-appointment-item">');
 
                             // Extract resource color using resourceId
@@ -252,12 +332,30 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                            
                             $scope.$parent.displayInfoEditable(data.appointmentData.original);
                             return tooltip;
-                        },
-
+                        }, */
+                      
                         appointmentTemplate(model) {                          
-                            var color = model.appointmentData.color; // Assuming 'color' is a property in your appointment data
-                            return $(`<div class='appointment-class' style='width:100%;height:100%;background: ${color}'></div>`);                               
-                        }
+                          let color = model.appointmentData.color; // Assuming 'color' is a property in your appointment data
+                          let appointment = model.appointmentData;
+                          let tooltipContent = `
+                              Start Date: ${appointment.startDate.toLocaleString()}<br>
+                              End Date: ${appointment.endDate.toLocaleString()}<br>
+                              Resource: ${appointment.resource}<br>
+                              Item: ${appointment.item}<br>
+                              Quantity: ${appointment.quantity}<br>
+                              Delay: ${appointment.delay}<br>
+                              Status: ${appointment.status}<br>
+                              Reference: ${appointment.reference}<br>
+                          `;
+                      
+                          // Store the appointment data as a data attribute on the appointment element
+                          const appointmentElement = $(`<div class='appointment-class' style='width:100%;height:100%;background: ${color}'></div>`);
+                          appointmentElement.data('appointmentData', appointment); // Store appointment data
+                          appointmentElement.appendTo('#scheduler'); // Append appointment element to scheduler
+                      
+                          return appointmentElement;
+                      }
+                      
                     }); 
                 },
                 error: function (xhr, status, error) {
