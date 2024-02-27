@@ -116,7 +116,8 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                         status: row.operationplan__status,
                         reference: parseInt(row.operationplan__reference),
                         original: row,
-                        color: "rgb(0, 255, 0)"
+                        color: "rgb(0, 255, 0)",
+                        prevColor: "rgb(0, 255, 0)"
                     }));
 
 
@@ -166,7 +167,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
 
 
                     const screenHeight = window.innerHeight; // Get the height of the screen
-                    const schedulerHeightPercentage = 30; // Set the percentage of the screen height you want to use for the scheduler
+                    const schedulerHeightPercentage = 40; // Set the percentage of the screen height you want to use for the scheduler
                     const schedulerHeight = (screenHeight * schedulerHeightPercentage) / 100; // Calculate the height of the scheduler control
   
 
@@ -189,7 +190,9 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                             label: 'Resources',
                         }],
                         height: schedulerHeight, // Set the height of the scheduler control
-
+                        scrolling: {
+                          mode: 'standard'
+                        },
                         onAppointmentUpdating: function (e) {
                             if (e.oldData.resource !== e.newData.resource) {
                                 e.cancel = true;
@@ -200,17 +203,22 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
 
                         onAppointmentClick: function (e) {
                           let reference = e.appointmentData.reference
-                          let schedulerInstance = $('#scheduler').dxScheduler('instance');
-
+                          let schedulerInstance = $('#scheduler').dxScheduler('instance')
+                          let appointment = e.appointmentData
                           tasks.forEach(function(same) {
                               if(same.reference === reference) {
+                                same.prevColor = same.color
                                 same.color = "#081a45"
+                              } else {
+                                if(same.prevColor!=same.color) {
+                                  same.color = same.prevColor
+                                }
                               }
                           });
-
-                          schedulerInstance.option("dataSource", tasks);
+                          schedulerInstance.option("dataSource", tasks)
+                          // Preserve the horizontal scroll position after repaint
                           schedulerInstance.repaint()
-
+                          schedulerInstance.scrollTo(appointment.startDate)
                         },
 
                         appointmentTooltipTemplate(data, cell) {
