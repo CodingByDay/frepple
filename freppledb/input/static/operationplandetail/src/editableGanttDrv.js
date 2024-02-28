@@ -160,7 +160,6 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                 success: function (response) {
 
 
-                  console.log(response)
 
                     // Extract unique resources from data
                     const uniqueResources = Array.from(new Set(response.rows.map(row => row.resource))).map(resourceText => {

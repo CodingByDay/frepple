@@ -2419,12 +2419,20 @@ class OperationPlanDetail(View):
 
         for opplan_data in data:
             try:
+
                 # Read the object from the database
-                opplan = (
+                '''opplan = (
                     OperationPlan.objects.all()
                     .using(request.database)
-                    .get(reference=opplan_data.get("id", None))
-                )
+                    .get(reference=opplan_data.get(opplan_data["operationplan__reference"], None))
+                )'''
+
+
+                opplan = (
+                 OperationPlan.objects.all()
+                .using(request.database)
+                .get(reference=opplan_data.get("id", None))
+                 )
 
                 # Check permissions
                 if opplan.type == "DO" and not update_DO:

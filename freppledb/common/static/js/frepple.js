@@ -273,11 +273,9 @@ var upload = {
     // page we use that, otherwise we use the standard functionality of jqgrid.
     $("#grid").saveCell(editrow, editcol);
     if (typeof getDirtyData == 'function') {
-      debugger;
       var rows = getDirtyData();
     }
     else
-      debugger;
       var rows = $("#grid").getChangedCells('dirty');
 
     // Remember the selected rows, which will be restored in the loadcomplete event
@@ -288,7 +286,6 @@ var upload = {
       // Send the update to the server
       $("#save i").removeClass('hidden');
       if (typeof saveData !== 'undefined') {
-        debugger;
         saveData(rows, ok_callback);
       }
       else

@@ -168,7 +168,6 @@ rect.opplan {
     }
   	else {
       var dirty = $("#grid").getChangedCells('dirty');
-      console.log(dirty)
       for (var c of dirty) {
         var ref = $("#grid").jqGrid('getCell', c.id, "operationplan__reference");
         if (ref) c.operationplan__reference = ref;
