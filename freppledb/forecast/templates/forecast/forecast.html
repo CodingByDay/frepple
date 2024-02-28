@@ -36,6 +36,7 @@ var service_url = {% if proxied %}'/svc/{{request.database}}/'{% else %}document
 var service_token = '{{token}}';
 
 function saveData(rows, ok_callback) {
+
       $.ajax({
         url: service_url + 'forecast/detail/',
         data: JSON.stringify(rows),

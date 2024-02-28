@@ -79,8 +79,11 @@ rect.opplan {
   var service_token = '{{token}}';
 
   function saveData(rows, ok_callback) {
+
+      console.log(rows)
+
       $.ajax({
-        url: service_url + 'operationplan/',
+        url: 'http://127.0.0.1:8000/operationplan/',
         data: JSON.stringify(rows),
         type: "POST",
         headers: { "Authorization": "Bearer " + service_token },
@@ -93,6 +96,9 @@ rect.opplan {
         },
         error: ajaxerror
     });
+
+
+
   }
 
   function extraPreference() {
@@ -162,6 +168,7 @@ rect.opplan {
     }
   	else {
       var dirty = $("#grid").getChangedCells('dirty');
+      console.log(dirty)
       for (var c of dirty) {
         var ref = $("#grid").jqGrid('getCell', c.id, "operationplan__reference");
         if (ref) c.operationplan__reference = ref;
