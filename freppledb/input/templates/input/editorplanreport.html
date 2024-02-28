@@ -1,4 +1,4 @@
-{% extends "admin/base_site_grid.html" %}
+{% extends "admin/base_site_grid_editor.html" %}
 {% load i18n %}
 {% load static %}
 
@@ -6,6 +6,11 @@
 
 
 <style>
+
+  .dropdown.d-inline.colorby {
+      float: inline-start;
+  }
+
   .custom-tooltip {
     position: absolute;
     display: none;
@@ -19,8 +24,7 @@
     color: black;
 }
 .row.tabs {
-    padding: 1em;
-    margin: 1em;
+    padding: 3em;
 }
 
 .dx-scheduler-appointment-content {
@@ -501,12 +505,7 @@ displayInfoEditable="displayInfoEditable"
   
 </div>
 <div class="row tabs">
-  <div class="col-auto">
-      <button id="save" class="btn btn-primary ng-binding" data-bs-toggle="tooltip" data-ng-click="save()" data-bs-title="Save plan from memory to the database">
-      <!-- ngIf: busy_saving -->
-      Save
-      </button>
-  </div>
+
 
   <div class="col-auto ms-auto">
     <ul class="nav nav-tabs" style="margin-top: 0" role="tablist">
