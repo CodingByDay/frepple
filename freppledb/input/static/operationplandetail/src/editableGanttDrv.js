@@ -295,10 +295,17 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                             return indices;
                           }, []);
                           
+
+                          // Reset all previous colors to false
+
+                          tasks.forEach(task => {
+                            task.border = false
+                          });
+
+
                           // Update the tasks with the same demand by setting the border property to true
-                          tasksWithSameDemandIndices.forEach(index => {
-                            
-                              tasks[index].border = true;
+                          tasksWithSameDemandIndices.forEach(index => {                         
+                              tasks[index].border = true
                           });
 
                           // Tasks with at least one same demand
@@ -352,7 +359,6 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                         appointmentTemplate(model) { 
                           let color = model.appointmentData.color; // Assuming 'color' is a property in your appointment data
                           let appointment = model.appointmentData;
-                          console.log(appointment.border)                         
 
                           var borderStyle = ""
                           if(appointment.border) {
