@@ -230,10 +230,10 @@ INSTALLED_APPS = (
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "freppledb.boot",
-    "editor",
-    # Add any project specific apps here
-    # "freppledb.odoo",
-    # "freppledb.erpconnection",
+    "freppledb.editor",
+        #  Add any project specific apps here
+        # "freppledb.odoo",
+        # "freppledb.erpconnection",
     "freppledb.wizard",
     "freppledb.input",
     "freppledb.forecast",
@@ -246,8 +246,8 @@ INSTALLED_APPS = (
     "rest_framework",
     "django.contrib.admin",
     "freppledb.archive",
-    # The next two apps allow users to run their own SQL statements on
-    # the database, using the SQL_ROLE configured above.
+        # The next two apps allow users to run their own SQL statements on
+        # the database, using the SQL_ROLE configured above.
     "freppledb.reportmanager",
     "freppledb.executesql",
     "freppledb.debugreport",
@@ -258,7 +258,7 @@ INSTALLED_APPS = (
 #   - names of installable apps.
 #   - a Path object pointing to a folder where installable apps are found.
 INSTALLABLE_APPS = (
-    "editor",
+    "freppledb.editor",
     "freppledb.odoo",
     "freppledb.forecast",
     "freppledb.wizard",

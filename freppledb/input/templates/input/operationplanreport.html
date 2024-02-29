@@ -80,10 +80,10 @@ rect.opplan {
 
   function saveData(rows, ok_callback) {
 
-      console.log(rows)
 
+    
       $.ajax({
-        url: 'http://127.0.0.1:8000/operationplan/',
+        url: service_url + 'operationplan/',
         data: JSON.stringify(rows),
         type: "POST",
         headers: { "Authorization": "Bearer " + service_token },
