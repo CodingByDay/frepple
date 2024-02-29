@@ -61,6 +61,9 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
     $scope.$watchGroup(
       ['operationplan.id', 'operationplan.start', 'operationplan.end', 'operationplan.quantity', 'operationplan.status', 'operationplan.quantity_completed', "operationplan.remark", "operationplan.loadplans", "operationplan.resource"],
       function (newValue, oldValue) {
+
+
+
         if (oldValue[0] === newValue[0] && newValue[0] !== -1 && typeof oldValue[0] !== 'undefined') {
           //is a change to the current operationplan
           if (typeof oldValue[1] !== 'undefined' && typeof newValue[1] !== 'undefined' && oldValue[1] !== newValue[1]) {
@@ -260,6 +263,8 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
     angular.element(document).find("#delete_selected, #copy_selected, #edit_selected").prop("disabled", false);
 
     function callback(opplan) {
+
+
 
       if (row === undefined)
         return opplan;

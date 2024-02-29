@@ -108,7 +108,7 @@ rect.opplan {
 {% endif %}
 <script>
 
-  var mode = preferences && preferences.mode || "table";
+  var mode = "editable-gantt";
   var calendarmode = preferences && preferences.calendarmode || "{{reportclass.calendarmode}}";
   var grouping = preferences && preferences.grouping || null;
   var groupingdir = preferences && preferences.groupingdir || "asc";
@@ -152,6 +152,8 @@ rect.opplan {
       "detailwidth": Math.floor($("#detailspanel").width() || 0)
     };
   }
+
+
 
   function extraSearchUpdate(filter) {
     thefilter = filter;
@@ -212,6 +214,7 @@ rect.opplan {
   var version = '{% version_short %}';
   var lastid = '';
   var preferences = {{ preferences | json }};
+  preferences.mode = "test"
   var default_operationplan_type = "{{ default_operationplan_type }}";
   var groupBy = "{{ groupBy }}";
   var thefilter = initialfilter;
@@ -301,6 +304,7 @@ rect.opplan {
 
   // Controller will call this function to pass values to the grid
   function displayongrid(id, columnid, value) {
+
     angular.element(document).find(document.getElementById(id)).removeClass("edited").addClass("edited");
     if (
       columnid === "startdate" ||

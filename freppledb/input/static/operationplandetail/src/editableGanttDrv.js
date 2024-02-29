@@ -21,6 +21,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
 
 
     function linkfunc($scope, $elem, attrs) {
+
       $(document).ready(function() {
         // Bind mouseenter and mouseleave events to the appointment elements
         $('#scheduler').on('mouseenter', '.appointment-class', function(event) {

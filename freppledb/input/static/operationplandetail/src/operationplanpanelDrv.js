@@ -39,6 +39,7 @@ function showoperationplanDrv($window, gettextCatalog) {
   return directive;
 
   function linkfunc(scope, elem, attrs) {
+
     scope.actions = actions;
     scope.editable = editable;
     scope.opptype = { //just a translation
@@ -65,10 +66,8 @@ function showoperationplanDrv($window, gettextCatalog) {
     scope.$watchGroup([
       'operationplan.id', 'operationplan.start', 'operationplan.end', 'operationplan.quantity',
       'operationplan.completed_quantity', 'operationplan.criticality', 'operationplan.delay',
-      'operationplan.status', 'operationplan.remark'
+      'operationplan.status', 'operationplan.remark', 'operationplan.resource'
     ], function (newValue, oldValue) {
-   
-
       if (scope.operationplan === undefined || scope.operationplan === null)
         return;
       if (scope.operationplan.id == -1 || scope.operationplan.type === 'STCK') {

@@ -80,7 +80,6 @@ rect.opplan {
 
   function saveData(rows, ok_callback) {
 
-      console.log(rows)
     
       $.ajax({
         url: service_url + 'operationplan/',
@@ -180,6 +179,9 @@ rect.opplan {
   var version = '{% version_short %}';
   var lastid = '';
   var preferences = {{ preferences | json }};
+
+
+  console.log(preferences)
   var default_operationplan_type = "{{ default_operationplan_type }}";
   var groupBy = "{{ groupBy }}";
   var thefilter = initialfilter;

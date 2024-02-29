@@ -32,7 +32,7 @@ function showresourcespanelDrv($window, gettextCatalog) {
 
 	var directive = {
 		restrict: 'EA',
-		scope: { operationplan: '=data', mode: "=mode" },
+		scope: { operationplan: '=data', mode: "=mode", test: "=test" },
 		link: linkfunc
 	};
 	return directive;
@@ -98,7 +98,7 @@ function showresourcespanelDrv($window, gettextCatalog) {
 							});
 							// Redraw the directive
 							redraw();
-
+							console.log(scope)
 							if (scope.mode && (scope.mode.startsWith("calendar") || scope.mode == "kanban")) {
 								// Update a calendar or kanban card
 								scope.$emit("updateCard", "loadplans", scope.operationplan.loadplansOriginal, scope.operationplan.loadplans);
