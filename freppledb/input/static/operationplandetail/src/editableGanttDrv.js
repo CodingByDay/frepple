@@ -264,7 +264,8 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                             if (e.oldData.resource !== e.newData.resource) {
                                 e.cancel = true;
                             } else {
-                              console.log([e.oldData, e.newData])
+
+                              console.log(upload)
                             }
                         },
 
@@ -321,6 +322,10 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                           schedulerInstance.scrollTo(appointment.startDate);
                           
                           $scope.$parent.displayInfoEditable(appointment.original)
+
+
+
+                          //console.log(upload)
                         },
                         
 

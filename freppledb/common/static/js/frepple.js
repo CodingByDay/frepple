@@ -266,6 +266,14 @@ var upload = {
     upload.selectedRows = [];
   },
 
+
+
+
+  saveEditable: function () {
+    // This is the place for implementation of the gantt edit.
+  },
+
+
   save: function (ok_callback) {
     if ($('#save').hasClass("btn-primary")) return;
 

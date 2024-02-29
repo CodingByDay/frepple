@@ -2419,29 +2419,12 @@ class OperationPlanDetail(View):
 
         for opplan_data in data:
             try:
-
-
                 # Read the object from the database
-                plans = (
+                opplan = (
                     OperationPlan.objects.all()
                     .using(request.database)
+                    .get(reference=opplan_data.get("id", None))
                 )
-                opplan = None
-                for plan in plans:
-                    pk = plan.pk
-                    ref = opplan_data["operationplan__reference"]
-                    if pk == ref:
-                        # process plan
-                        opplan = plan
-                
-            
-
-
-                '''opplan = (
-                 OperationPlan.objects.all()
-                .using(request.database)
-                .get(reference=opplan_data.get("id", None))
-                 )'''
 
                 # Check permissions
                 if opplan.type == "DO" and not update_DO:
@@ -2482,8 +2465,6 @@ class OperationPlanDetail(View):
                     opplan.reference = opplan_data["reference"]
                     save = True
 
-
-                save = True
                 # Save if changed
                 if save:
                     opplan.save(
@@ -2493,7 +2474,7 @@ class OperationPlanDetail(View):
                             "enddate",
                             "quantity",
                             "quantity_completed",
-                            "resources",
+                            "reference",
                             "lastmodified",
                         ],
                     )

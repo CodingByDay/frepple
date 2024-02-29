@@ -319,9 +319,15 @@ function displayGrid(load) {
 
 <div class="row">
 
+  <div id="save_undo" class="col-auto">
 
+  <button class="btn btn-primary" id="save" onclick="upload.save()"
+    title="{% trans 'save changes'|capfirst|force_escape %}">
+      <i class="fa fa-spinner fa-spin d-none"></i>
+      {% filter force_escape|capfirst %}{% trans "Save" %}{% endfilter %}
+  </button>
 
-</div>
+  </div>
 
 {% block table %}
 <div class="row" id="main-row" style="text-align: center;">
