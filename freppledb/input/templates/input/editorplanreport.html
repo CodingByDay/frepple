@@ -229,7 +229,18 @@ rect.opplan {
         } else {
           // Transform this into the appropriate array structure
           let update = convertToObjectStructure(op, original.original.id)
-          console.log(update);
+          $.ajax({
+            url: service_url + 'operationplan/',
+            data: JSON.stringify(update),
+            type: "POST",
+            headers: { "Authorization": "Bearer " + service_token },
+            contentType: "application/json",
+            success: function () {
+              alert("Success!");
+            },
+            error: ajaxerror
+        });
+
         }
     }    
   }
