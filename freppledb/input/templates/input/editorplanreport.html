@@ -125,7 +125,51 @@ rect.opplan {
   // Jquery on load function for getting the data for the editor
 
 
+  $(function () {
 
+        var url = (location.href.indexOf("#") != -1 ? location.href.substr(0, location.href.indexOf("#")) : location.href) +
+            (location.search.length > 0 ? "?format=gantt&pagesize=1000" : "?format=gantt&pagesize=1000");
+
+        // Make AJAX request
+
+        $.ajax({
+        url: url,
+        method: 'GET',
+        dataType: 'json',
+        success: function (response) {
+        // Extract unique resources from data
+        const uniqueResources = Array.from(new Set(response.rows.map(row => row.resource))).map(resourceText => {
+            return {
+                text: resourceText,
+                id: Math.floor(Math.random() * 1000), // Assign random integer IDs
+                color: '#081a45' // Generate a random color
+            };
+        });      
+
+
+        // Map through the tasks to reference resources by their text and assigned IDs
+        const tasks = response.rows.map(row => ({
+            text: row.operationplan__operation__name,
+            startDate: new Date(row.operationplan__startdate),
+            endDate: new Date(row.operationplan__enddate),
+            // Find the resource by its text in uniqueResources and get its assigned ID
+            resource: uniqueResources.find(resource => resource.text === row.resource).id,
+            item: row.operationplan__item__name,
+            quantity: row.operationplan__quantity,
+            delay: row.operationplan__delay,
+            status: row.operationplan__status,
+            reference: parseInt(row.operationplan__reference),
+            original: row,
+            color: "rgb(0, 255, 0)",
+            prevColor: "rgb(0, 255, 0)"
+        }));
+
+        editorData = tasks
+
+
+      }
+    });
+  });
 
   function saveData(rows, ok_callback) {
 
@@ -149,21 +193,61 @@ rect.opplan {
   }
 
 
+  // This is only for testing purposes, not the most correct or efficient way to do this.
 
   function saveDataEditable() {
-
-    let op = angular.element('#controller').scope().operationplan
+    var op = angular.element('#controller').scope().operationplan
     if(Object.keys(op).length > 1) {
         // Working logic .. Compare this operation plan with the data from the api to know whether to ignore it or not.
         let id = op.owner
         let reference = op.reference
-    } else {
-      return;
-    }
-
-    
+        var original = editorData.find(obj => obj.reference == reference);      
+        let arrayResources = op.loadplans
+        let differenceFound = false
+        for (let i = 0; i < arrayResources.length; i++) { 
+          var resource = arrayResources[i]
+          var newName = resource.resource.name      
+          var newStartDate = op.start;
+          var oldStartDate = original.startDate
+          var newEndDate = op.end;
+          var oldEndDate = original.endDate
+          var found = false
+          for (let j = 0; j < original.original.resources.length; j++) {
+            if(original.original.resources[j][0] == newName) {
+              found = true
+              break;
+            }
+          }
+          if(!found) {
+            differenceFound = true;
+          }
+            
+        }
+        if(newStartDate.getTime() == oldStartDate.getTime() && newEndDate.getTime() == oldEndDate.getTime()  && !differenceFound) {
+          // Ignore the notification
+          return;
+        } else {
+          // Transform this into the appropriate array structure
+          let update = convertToObjectStructure(op, original.original.id)
+          console.log(update);
+        }
+    }    
   }
 
+  function convertToObjectStructure(obj, id) {
+    // Initialize an empty array to store the results
+    const resultArray = [];
+        // Extract the required properties and create a new object
+        const newObj = {
+            "resources": obj.loadplans.map(load => [load.resource.name, "1"]), // Extract resource names and create nested arrays
+            "id": id, // Convert the first element to a string
+            "operationplan__reference": obj.reference
+        };
+        // Push the new object to the result array
+        resultArray.push(newObj);
+    // Return the result array
+    return resultArray;
+}
   function extraPreference() {
     return {
       "height": Math.floor($("#content-main").height()),
