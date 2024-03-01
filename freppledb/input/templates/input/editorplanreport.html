@@ -115,7 +115,7 @@ rect.opplan {
   var editable = {% if reportclass.editable and haschangeperm %}true{% else %}false{% endif %};
   var service_url = {% if proxied %}'/svc/{{request.database}}/'{% else %}document.location.protocol + "//{{port}}/"{% endif %};
   var service_token = '{{token}}';
-
+  var editedx = 'false';
 
 
 
@@ -229,6 +229,8 @@ rect.opplan {
         } else {
           // Transform this into the appropriate array structure
           let update = convertToObjectStructure(op, original.original.id)
+          
+
           $.ajax({
             url: service_url + 'operationplan/',
             data: JSON.stringify(update),
@@ -236,7 +238,8 @@ rect.opplan {
             headers: { "Authorization": "Bearer " + service_token },
             contentType: "application/json",
             success: function () {
-              alert("Success!");
+              location.reload();
+              // for now
             },
             error: ajaxerror
         });
@@ -639,6 +642,7 @@ loadComplete: function(data) {
 
 <dev-extreme-scheduler-drv 
 displayInfoEditable="displayInfoEditable"
+
 >
 
 
