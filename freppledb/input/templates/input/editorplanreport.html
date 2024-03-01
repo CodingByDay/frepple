@@ -118,8 +118,9 @@ rect.opplan {
 
   function saveData(rows, ok_callback) {
 
-
+      console.log(rows);
       
+
       $.ajax({
         url: service_url + 'operationplan/',
         data: JSON.stringify(rows),
@@ -141,7 +142,7 @@ rect.opplan {
 
   function saveDataEditable(data) {
 
-    console.log(data)
+
 
     /*
       $.ajax({

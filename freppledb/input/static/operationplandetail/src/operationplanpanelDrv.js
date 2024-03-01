@@ -65,28 +65,20 @@ function showoperationplanDrv($window, gettextCatalog) {
         scope.operationplan[field] = newvalue;
     });
 
-    //need to watch all of these because a webservice may change them on the fly
+    // need to watch all of these because a webservice may change them on the fly
     scope.$watchGroup([
       'operationplan.id', 'operationplan.start', 'operationplan.end', 'operationplan.quantity',
       'operationplan.completed_quantity', 'operationplan.criticality', 'operationplan.delay',
       'operationplan.status', 'operationplan.remark', 'operationplan.resource'
     ], function (newValue, oldValue) {
 
-
-
-      
-
       if (scope.operationplan === undefined || scope.operationplan === null) {
         return;
       }
 
-
       if(scope.mode == "editable-gantt") {
         // Gantt chart mode 1.03.2024 Janko Jovičić
-        var updatedPayload = scope.operationplan;
-
-
-
+        var updatedPayload = scope.operationplan;       
         scope.$emit("updateEditableGantt", "loadplans", updatedPayload);
         // Gantt chart mode 1.03.2024 Janko Jovičić
       } else if (scope.operationplan.id == -1 || scope.operationplan.type === 'STCK') {
