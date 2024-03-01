@@ -269,12 +269,21 @@ var upload = {
 
 
 
-  saveEditable: function () {
-    // This is the place for implementation of the gantt edit.
+  // Pick up all changed cells. If a function "getData" is defined on the page we use that.
+  saveEditableGantt: function (data) {
+    
+alert("frepple")
+
   },
 
 
+
+
+
+
+
   save: function (ok_callback) {
+
     if ($('#save').hasClass("btn-primary")) return;
 
     // Pick up all changed cells. If a function "getData" is defined on the

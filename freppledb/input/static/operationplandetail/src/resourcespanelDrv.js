@@ -103,7 +103,7 @@ function showresourcespanelDrv($window, gettextCatalog) {
 							redraw();
 
 							if(scope.mode && scope.mode == "editable-gantt") {
-								scope.$emit("updateEditableGantt", "loadplans", scope.operationplan);
+								scope.$emit("updateEditableGantt", "loadplans", []);
 							}
 
 							else if (scope.mode && (scope.mode.startsWith("calendar") || scope.mode == "kanban")) {

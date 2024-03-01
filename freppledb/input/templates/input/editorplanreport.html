@@ -116,10 +116,20 @@ rect.opplan {
   var service_url = {% if proxied %}'/svc/{{request.database}}/'{% else %}document.location.protocol + "//{{port}}/"{% endif %};
   var service_token = '{{token}}';
 
+
+
+
+  var editorData = [];
+
+
+  // Jquery on load function for getting the data for the editor
+
+
+
+
   function saveData(rows, ok_callback) {
 
-      console.log(rows);
-      
+
 
       $.ajax({
         url: service_url + 'operationplan/',
@@ -140,25 +150,18 @@ rect.opplan {
 
 
 
-  function saveDataEditable(data) {
+  function saveDataEditable() {
 
+    let op = angular.element('#controller').scope().operationplan
+    if(Object.keys(op).length > 1) {
+        // Working logic .. Compare this operation plan with the data from the api to know whether to ignore it or not.
+        let id = op.owner
+        let reference = op.reference
+    } else {
+      return;
+    }
 
-
-    /*
-      $.ajax({
-      url: service_url + 'operationplan/',
-      data: JSON.stringify(data),
-      type: "POST",
-      headers: { "Authorization": "Bearer " + service_token },
-      contentType: "application/json",
-      success: function () {
-        upload.undo();
-        $("#save i").addClass('hidden');
-        $(".ng-dirty").removeClass('ng-dirty');
-      },
-      error: ajaxerror
-       });
-    */
+    
   }
 
   function extraPreference() {
@@ -218,11 +221,17 @@ rect.opplan {
   }
 
   function getDirtyData() {
-  	if (preferences && preferences.mode && (preferences.mode == "kanban" || preferences.mode == "gantt" || preferences.mode.startsWith("calendar"))) {
+    if(preferences.mode == "editable-gantt") {
+
+      
+
+    }
+  	else if (preferences && preferences.mode && (preferences.mode == "kanban" || preferences.mode == "gantt" || preferences.mode.startsWith("calendar"))) {
       initialfilter = thefilter;
       return angular.element('#controller').scope().getDirtyCards();
     }
   	else {
+
       var dirty = $("#grid").getChangedCells('dirty');
       for (var c of dirty) {
         var ref = $("#grid").jqGrid('getCell', c.id, "operationplan__reference");

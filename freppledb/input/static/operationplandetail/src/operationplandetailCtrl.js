@@ -243,7 +243,7 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
 
   $scope.$on('updateEditableGantt', function (event, field, data) {
     // Testing the editable Gantt implementation
-    saveDataEditable(data);
+    saveDataEditable();
   }); 
 
 
