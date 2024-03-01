@@ -70,10 +70,10 @@ rect.opplan {
 <!-- <script type="text/javascript" src="https://cdn3.devexpress.com/jslib/23.2.4/js/dx.web.js"></script> -->
 <!-- <script type="text/javascript" src="https://cdn3.devexpress.com/jslib/23.2.4/js/dx.viz.js"></script> -->
 {% if debug_js %}
+
 <script src="{{STATIC_URL}}common/src/module.js"></script>
 <script src="{{STATIC_URL}}common/src/preferences.js"></script>
 <script src="{{STATIC_URL}}common/src/webfactory.js"></script>
-
 <script src="{{STATIC_URL}}input/src/module.js"></script>
 <script src="{{STATIC_URL}}input/src/customer.js"></script>
 <script src="{{STATIC_URL}}input/src/demand.js"></script>
@@ -84,7 +84,6 @@ rect.opplan {
 <script src="{{STATIC_URL}}input/src/operation.js"></script>
 <script src="{{STATIC_URL}}input/src/operationplan.js"></script>
 <script src="{{STATIC_URL}}input/src/model.js"></script>
-
 <script src="{{STATIC_URL}}operationplandetail/src/calendar.js"></script>
 <script src="{{STATIC_URL}}operationplandetail/src/module.js"></script>
 <script src="{{STATIC_URL}}operationplandetail/src/operationplandetailCtrl.js"></script>
@@ -108,7 +107,7 @@ rect.opplan {
 {% endif %}
 <script>
 
-  var mode = "editable-gantt";
+  var mode = preferences && preferences.mode || "table";
   var calendarmode = preferences && preferences.calendarmode || "{{reportclass.calendarmode}}";
   var grouping = preferences && preferences.grouping || null;
   var groupingdir = preferences && preferences.groupingdir || "asc";
@@ -119,7 +118,10 @@ rect.opplan {
 
   function saveData(rows, ok_callback) {
 
-   
+
+
+
+ 
       
 
 
@@ -214,7 +216,6 @@ rect.opplan {
   var version = '{% version_short %}';
   var lastid = '';
   var preferences = {{ preferences | json }};
-  preferences.mode = "test"
   var default_operationplan_type = "{{ default_operationplan_type }}";
   var groupBy = "{{ groupBy }}";
   var thefilter = initialfilter;
@@ -230,6 +231,13 @@ rect.opplan {
     gantt.zoom(factor, "#ganttheader");
     angular.element('#controller').scope().zoom();
   }
+
+
+  function changeMode(mode) {
+
+    angular.element("#controller").scope().setMode("editable-gantt")
+  }
+
 
   $(function() {
     $("#workarea").css('overflow-x','visible');

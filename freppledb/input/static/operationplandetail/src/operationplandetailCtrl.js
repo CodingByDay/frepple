@@ -239,6 +239,18 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
     });
   });
 
+
+  
+
+
+  $scope.$on('updateEditableGantt', function (event, data){
+
+      
+
+  }); 
+
+
+
   function zoom() {
     $scope.$apply(function () {
       $scope.$broadcast('zoom');

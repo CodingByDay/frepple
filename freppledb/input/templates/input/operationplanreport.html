@@ -181,7 +181,7 @@ rect.opplan {
   var preferences = {{ preferences | json }};
 
 
-  console.log(preferences)
+
   var default_operationplan_type = "{{ default_operationplan_type }}";
   var groupBy = "{{ groupBy }}";
   var thefilter = initialfilter;
@@ -268,6 +268,9 @@ rect.opplan {
       angular.element('#controller').scope().displayInfo(undefined);
     }
   }
+
+
+
 
   // Controller will call this function to pass values to the grid
   function displayongrid(id, columnid, value) {
@@ -362,8 +365,10 @@ function extraCustomize() {
 {% endif %}
 <!--{% if haschangeperm and not is_popup %}<button class="btn btn-sm btn-primary" id="edit_selected" disabled onclick="grid.update('{{request.prefix}}/data/{{model|app_label}}/{{model|object_name|lower}}/')" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans "Update objects"|escape %}" ><span class="fa fa-edit"></span></button>
 {% endif %}-->
-{% if hasdeleteperm and not is_popup %}<button class="btn btn-sm btn-primary" id="delete_selected" disabled data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'Delete selected objects'|capfirst|escape %}" onclick="grid.showDelete('{{request.prefix}}/data/{{model|app_label}}/{{model|object_name|lower}}/')" ><span class="fa fa-minus"></span></button>
-{% endif %}{% if reportclass.hasTimeBuckets %}<button class="btn btn-sm btn-primary" onclick="grid.showBucket()" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'set time horizon'|capfirst|force_escape %}" id="bucketconfig"><span class="fa fa-clock-o"></span></button>
+{% if hasdeleteperm and not is_popup %}
+<button class="btn btn-sm btn-primary" id="delete_selected" disabled data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'Delete selected objects'|capfirst|escape %}" onclick="grid.showDelete('{{request.prefix}}/data/{{model|app_label}}/{{model|object_name|lower}}/')" ><span class="fa fa-minus"></span></button>
+{% endif %}{% if reportclass.hasTimeBuckets %}
+<button class="btn btn-sm btn-primary" onclick="grid.showBucket()" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'set time horizon'|capfirst|force_escape %}" id="bucketconfig"><span class="fa fa-clock-o"></span></button>
 {% endif %}<button class="btn d-none btn-sm btn-primary" id="zoomin" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'Zoom in'|capfirst|force_escape %}"><span class="fa fa-search-plus"></span></button>
 <button class="btn d-none btn-sm btn-primary" id="zoomout" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'Zoom out'|capfirst|force_escape %}"><span class="fa fa-search-minus"></span></button>
 {% if hasaddperm %}<button class="btn btn-sm d-none d-md-inline-block btn-primary" id="csvimport" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{% trans 'Import CSV or Excel file'|capfirst|force_escape %}" onclick="import_show('', undefined, true)"><span class="fa fa-arrow-up"></span></button>

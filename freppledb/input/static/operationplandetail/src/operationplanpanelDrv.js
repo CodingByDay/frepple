@@ -94,3 +94,7 @@ function showoperationplanDrv($window, gettextCatalog) {
 
   } //link end
 } //directive end
+
+
+
+// THIS IS THE CORRECT DIRECTIVE FOR THE DATE UPDATE 

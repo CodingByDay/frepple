@@ -32,7 +32,7 @@ function showresourcespanelDrv($window, gettextCatalog) {
 
 	var directive = {
 		restrict: 'EA',
-		scope: { operationplan: '=data', mode: "=mode", test: "=test" },
+		scope: { operationplan: '=data', mode: "=mode" },
 		link: linkfunc
 	};
 	return directive;
@@ -82,8 +82,11 @@ function showresourcespanelDrv($window, gettextCatalog) {
 			};
 			angular.element(document).find('#attributes-operationresources tbody').append(rows);
 			angular.element(document).find('#attributes-operationresources a.alternateresource').bind('click', function () {
+
 				var newresource = $(this).html();
 				var curresource = $(this).parent().parent().prev().html();
+				var operationPlan = scope.operationplan
+
 				if (newresource != curresource) {
 					var first = true;
 					angular.forEach(scope.operationplan.loadplans, function (theresource) {
@@ -98,11 +101,16 @@ function showresourcespanelDrv($window, gettextCatalog) {
 							});
 							// Redraw the directive
 							redraw();
-							console.log(scope)
-							if (scope.mode && (scope.mode.startsWith("calendar") || scope.mode == "kanban")) {
+
+							if(scope.mode && scope.mode == "editable-gantt") {
+								scope.$emit("updateEditableGantt", "loadplans", ["testing the emit function payload"]);
+							}
+
+							else if (scope.mode && (scope.mode.startsWith("calendar") || scope.mode == "kanban")) {
 								// Update a calendar or kanban card
 								scope.$emit("updateCard", "loadplans", scope.operationplan.loadplansOriginal, scope.operationplan.loadplans);
 							}
+
 							else {
 								// Update the grid
 								// TODO this code shouldn't live here...
@@ -111,7 +119,7 @@ function showresourcespanelDrv($window, gettextCatalog) {
 								var colmodel = grid.jqGrid('getGridParam', 'colModel').find(function (i) { return i.name == "resources" });
 								if (!colmodel)
 									colmodel = grid.jqGrid('getGridParam', 'colModel').find(function (i) { return i.name == "resource" });
-								var cell = grid.jqGrid('getCell', selrow, colmodel.name);
+									var cell = grid.jqGrid('getCell', selrow, colmodel.name);
 								if (colmodel.formatter == 'detail' && cell == curresource) {
 									grid.jqGrid("setCell", selrow, colmodel.name, newresource, "dirty-cell");
 									grid.jqGrid("setRowData", selrow, false, "edited");
