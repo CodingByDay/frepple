@@ -119,12 +119,7 @@ rect.opplan {
   function saveData(rows, ok_callback) {
 
 
-
-
- 
       
-
-
       $.ajax({
         url: service_url + 'operationplan/',
         data: JSON.stringify(rows),
@@ -139,6 +134,30 @@ rect.opplan {
         },
         error: ajaxerror
     });
+    
+  }
+
+
+
+  function saveDataEditable(data) {
+
+    console.log(data)
+
+    /*
+      $.ajax({
+      url: service_url + 'operationplan/',
+      data: JSON.stringify(data),
+      type: "POST",
+      headers: { "Authorization": "Bearer " + service_token },
+      contentType: "application/json",
+      success: function () {
+        upload.undo();
+        $("#save i").addClass('hidden');
+        $(".ng-dirty").removeClass('ng-dirty');
+      },
+      error: ajaxerror
+       });
+    */
   }
 
   function extraPreference() {

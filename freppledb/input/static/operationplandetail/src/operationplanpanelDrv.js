@@ -51,6 +51,9 @@ function showoperationplanDrv($window, gettextCatalog) {
     }
 
     scope.$on("cardChanged", function (event, field, oldvalue, newvalue) {
+
+   
+
       // Testing whether this is the correct place for the modifications
       if (!scope.operationplan)
         return;
@@ -68,9 +71,25 @@ function showoperationplanDrv($window, gettextCatalog) {
       'operationplan.completed_quantity', 'operationplan.criticality', 'operationplan.delay',
       'operationplan.status', 'operationplan.remark', 'operationplan.resource'
     ], function (newValue, oldValue) {
-      if (scope.operationplan === undefined || scope.operationplan === null)
+
+
+
+      
+
+      if (scope.operationplan === undefined || scope.operationplan === null) {
         return;
-      if (scope.operationplan.id == -1 || scope.operationplan.type === 'STCK') {
+      }
+
+
+      if(scope.mode == "editable-gantt") {
+        // Gantt chart mode 1.03.2024 Janko Jovičić
+        var updatedPayload = scope.operationplan;
+
+
+
+        scope.$emit("updateEditableGantt", "loadplans", updatedPayload);
+        // Gantt chart mode 1.03.2024 Janko Jovičić
+      } else if (scope.operationplan.id == -1 || scope.operationplan.type === 'STCK') {
         // Multiple operationplans selected
         angular.element(elem).find('input').attr('disabled', 'disabled');
       }
@@ -92,8 +111,8 @@ function showoperationplanDrv($window, gettextCatalog) {
       );
     }); //watch end
 
-  } //link end
-} //directive end
+  } // link end
+} // directive end
 
 
 
