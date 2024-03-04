@@ -291,16 +291,23 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                               }
                           });
 
-                          // Tasks with at least one same demand
-                          const tasksWithSameDemandIndices = tasks.reduce((indices, task, index) => {
-                            // Extract the names from demands array of the task
-                            const taskDemandNames = task.original.demands.map(demand => demand[1]);
-                            // Check if there's at least one name common between task's demands and appointment's demands
-                            if (appointment.original.demands.some(appointmentDemand => taskDemandNames.includes(appointmentDemand[1]))) {
-                                indices.push(index);
-                            }
-                            return indices;
-                          }, []);
+                       // Tasks with at least one same demand
+                        const tasksWithSameDemandIndices = tasks.reduce((indices, task, index) => {
+                          // Check if task has demands and if it's an array
+                          if (task.original && task.original.demands && Array.isArray(task.original.demands)) {
+                              // Extract the names from demands array of the task
+                              const taskDemandNames = task.original.demands.map(demand => demand[1]);
+                              
+                              // Check if appointment has demands and if there's at least one name common between task's demands and appointment's demands
+                              if (appointment.original.demands && Array.isArray(appointment.original.demands) && 
+                                  appointment.original.demands.some(appointmentDemand => taskDemandNames.includes(appointmentDemand[1]))) {
+                                  indices.push(index);
+                              }
+                          }
+                          return indices;
+                        }, []);
+
+
                           
 
                           // Reset all previous colors to false
