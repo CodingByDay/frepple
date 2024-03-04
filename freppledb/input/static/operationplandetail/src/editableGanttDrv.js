@@ -5,6 +5,9 @@ devExtremeSchedulerDrv.$inject = ['$window', 'gettextCatalog', 'OperationPlan', 
 function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, PreferenceSvc) {
     'use strict';
 
+
+
+
     var directive = {
         restrict: 'EA',
         scope: {
@@ -13,7 +16,8 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
           },
           controller: function($scope) {
             // Expose the method on the directive's controller
-            this.callDirectiveMethod = function() {
+            this.reload = function(last) {
+              lastAppointment = last;
               loadComponent($scope, true);
             };
         },
@@ -21,31 +25,25 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
         link: linkfunc // Link function for directive logic
     };
 
+
+    var lastAppointment = {}
     return directive;
-
-
-
     var test = []
-
-
     function loadComponent(scope, refresh) {
       var url = (location.href.indexOf("#") != -1 ? location.href.substr(0, location.href.indexOf("#")) : location.href) +
       (location.search.length > 0 ? "?format=gantt&pagesize=1000" : "?format=gantt&pagesize=1000");
 
           if(refresh) {
+
             var schedulerInstance = $('#scheduler').dxScheduler('instance');        
             schedulerInstance.dispose();
           } 
-
-
 
           $.ajax({
             url: url,
             method: 'GET',
             dataType: 'json',
             success: function (response) {
-
-
                 // Extract unique resources from data
                 const uniqueResources = Array.from(new Set(response.rows.map(row => row.resource))).map(resourceText => {
                     return {
@@ -53,7 +51,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                         id: Math.floor(Math.random() * 1000), // Assign random integer IDs
                         color: '#081a45' // Generate a random color
                     };
-                });
+                }).sort((a, b) => a.text.localeCompare(b.text)); // Sort resources alphabetically;
                 
         
                 // Map through the tasks to reference resources by their text and assigned IDs
@@ -113,13 +111,9 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                       minStartDate = new Date(); // Use current date as default
                   }
 
-
                 const screenHeight = window.innerHeight; // Get the height of the screen
                 const schedulerHeightPercentage = 40; // Set the percentage of the screen height you want to use for the scheduler
                 const schedulerHeight = (screenHeight * schedulerHeightPercentage) / 100; // Calculate the height of the scheduler control
-
-                test = tasks;
-
 
                 $('#scheduler').dxScheduler({
                     timeZone: 'America/Los_Angeles',
@@ -146,10 +140,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                     onAppointmentUpdating: function (e) {
                         if (e.oldData.resource !== e.newData.resource) {
                             e.cancel = true;
-                        } else {
-
-
-                        }
+                        } 
                     },
                     onAppointmentClick: function (e) {
                       let reference = e.appointmentData.reference
@@ -193,12 +184,12 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                       schedulerInstance.option("dataSource", tasks)
                       // Preserve the horizontal scroll position after repaint
                       schedulerInstance.repaint()
-                      const viewStartDate = schedulerInstance.option('currentViewData.startDate');
-                      const viewEndDate = schedulerInstance.option('currentViewData.endDate');          
+        
                       // Check if the appointment's start date is within the visible range           
                       // Scroll to the appointment's start date
                       schedulerInstance.scrollTo(appointment.startDate);                     
                       scope.$parent.displayInfoEditable(appointment.original)
+                      
                     },
                         
                     appointmentTemplate(model) { 
@@ -220,6 +211,12 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                   }
                                 
                 }); 
+
+
+                var schedulerInstance = $('#scheduler').dxScheduler('instance');        
+                console.log(lastAppointment)
+                schedulerInstance.scrollTo(lastAppointment.start);                     
+
                 $('#scheduler').on('mouseenter', '.appointment-class', function(event) {
                   // Extract appointment data from the data attribute
                   const appointmentData = $(this).data('appointmentData');
@@ -229,9 +226,9 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                   // Hide the custom tooltip when mouse leaves the appointment
                   hideCustomTooltip();
               });
+
             },
             error: function () {
-
             }
         });
       

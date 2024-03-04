@@ -259,12 +259,12 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
 
 
   /* This is the function the refreshes the directive for the editable gantt. */
-  function reloadEditableGantt() {
+  function reloadEditableGantt(last) {
     var directiveElement = angular.element(document.getElementById('editableGantt'));
     var directiveController = directiveElement.controller('devExtremeSchedulerDrv');
     
-    // Call the directive method
-    directiveController.callDirectiveMethod();
+    // Call the directive reload method
+    directiveController.reload(last);
   }
 
   $scope.reloadEditableGantt = reloadEditableGantt;

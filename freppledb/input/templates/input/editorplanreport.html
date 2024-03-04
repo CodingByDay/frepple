@@ -165,16 +165,11 @@ rect.opplan {
         }));
 
         editorData = tasks
-
-
       }
     });
   });
 
   function saveData(rows, ok_callback) {
-
-
-
       $.ajax({
         url: service_url + 'operationplan/',
         data: JSON.stringify(rows),
@@ -192,11 +187,14 @@ rect.opplan {
     
   }
 
-
+  var lastAppointment = {}
   // This is only for testing purposes, not the most correct or efficient way to do this.
 
   function saveDataEditable() {
-    var op = angular.element('#controller').scope().operationplan
+ 
+    let op = angular.element('#controller').scope().operationplan
+    lastAppointment = op
+
     if(Object.keys(op).length > 1) {
         // Working logic .. Compare this operation plan with the data from the api to know whether to ignore it or not.
         let id = op.owner
@@ -230,16 +228,14 @@ rect.opplan {
           // Transform this into the appropriate array structure
           let update = convertToObjectStructure(op, original.original.id)
           
-
           $.ajax({
             url: service_url + 'operationplan/',
             data: JSON.stringify(update),
             type: "POST",
             headers: { "Authorization": "Bearer " + service_token },
             contentType: "application/json",
-            success: function () {
-              
-              angular.element('#controller').scope().reloadEditableGantt()              // for now
+            success: function () {      
+              angular.element('#controller').scope().reloadEditableGantt(lastAppointment)              // for now
             },
             error: ajaxerror
         });
@@ -249,13 +245,16 @@ rect.opplan {
   }
 
   function convertToObjectStructure(obj, id) {
+
     // Initialize an empty array to store the results
     const resultArray = [];
         // Extract the required properties and create a new object
         const newObj = {
             "resources": obj.loadplans.map(load => [load.resource.name, "1"]), // Extract resource names and create nested arrays
             "id": id, // Convert the first element to a string
-            "operationplan__reference": obj.reference
+            "operationplan__reference": obj.reference,
+            "start": obj.start,
+            "end": obj.end
         };
         // Push the new object to the result array
         resultArray.push(newObj);
@@ -361,7 +360,6 @@ rect.opplan {
 
 
   function changeMode(mode) {
-
     angular.element("#controller").scope().setMode("editable-gantt")
   }
 
