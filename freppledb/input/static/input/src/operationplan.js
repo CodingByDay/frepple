@@ -41,6 +41,7 @@ function OperationPlanFactory($http, getURLprefix, Operation, Location, Item) {
 
   //REST API GET
   function get(callback) {
+    alert("yrd")
     var operplan = this;
     if (operplan.id === undefined)
       return operplan;

@@ -227,7 +227,7 @@ rect.opplan {
         } else {
           // Transform this into the appropriate array structure
           let update = convertToObjectStructure(op, original.original.id)
-          
+   
           $.ajax({
             url: service_url + 'operationplan/',
             data: JSON.stringify(update),
@@ -235,6 +235,7 @@ rect.opplan {
             headers: { "Authorization": "Bearer " + service_token },
             contentType: "application/json",
             success: function () {      
+     
               angular.element('#controller').scope().reloadEditableGantt(lastAppointment)              // for now
             },
             error: ajaxerror

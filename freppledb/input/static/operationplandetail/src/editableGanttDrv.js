@@ -205,8 +205,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                       // Store the appointment data as a data attribute on the appointment element
                       const appointmentElement = $(`<div class='appointment-class' title = '' style='width:100%;border: ${borderStyle};height:100%;background: ${color}'></div>`);
                       appointmentElement.data('appointmentData', appointment); // Store appointment data
-                      appointmentElement.appendTo('#scheduler'); // Append appointment element to scheduler
-                  
+                      appointmentElement.appendTo('#scheduler'); // Append appointment element to scheduler                 
                       return appointmentElement;
                   }
                                 
@@ -214,7 +213,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
 
 
                 var schedulerInstance = $('#scheduler').dxScheduler('instance');        
-                console.log(lastAppointment)
+
                 schedulerInstance.scrollTo(lastAppointment.start);                     
 
                 $('#scheduler').on('mouseenter', '.appointment-class', function(event) {
