@@ -256,6 +256,21 @@ function operationplanCtrl($scope, $http, OperationPlan, PreferenceSvc) {
   $scope.zoom = zoom;
 
 
+
+
+  /* This is the function */
+  function reloadEditableGantt() {
+    alert('Please select')
+    var directiveElement = angular.element(document.getElementById('editableGantt'));
+    var directiveController = directiveElement.controller('devExtremeSchedulerDrv');
+    
+    // Call the directive method
+    directiveController.callDirectiveMethod();
+
+  }
+
+  $scope.reloadEditableGantt = reloadEditableGantt;
+
   function displayInfoEditable(row) {
 
 

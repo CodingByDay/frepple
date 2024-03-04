@@ -238,8 +238,8 @@ rect.opplan {
             headers: { "Authorization": "Bearer " + service_token },
             contentType: "application/json",
             success: function () {
-              location.reload();
-              // for now
+              
+              angular.element('#controller').scope().reloadEditableGantt()              // for now
             },
             error: ajaxerror
         });
@@ -641,8 +641,8 @@ loadComplete: function(data) {
 <div id="content-main" class="col-md-12" style="min-height: 150px; margin-top: 0.7em">
 
 <dev-extreme-scheduler-drv 
-displayInfoEditable="displayInfoEditable"
-
+  displayInfoEditable="displayInfoEditable"
+  id="editableGantt"
 >
 
 

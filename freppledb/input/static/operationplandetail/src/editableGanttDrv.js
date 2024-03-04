@@ -11,6 +11,13 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
           displayInfoEditable: '&',
           edited: '&'
           },
+          controller: function($scope) {
+            // Expose the method on the directive's controller
+            this.callDirectiveMethod = function() {
+              alert("Link")
+
+            };
+        },
         templateUrl: '/static/operationplandetail/editableGantt.html', // Template for the scheduler
         link: linkfunc // Link function for directive logic
     };
@@ -21,9 +28,8 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
     
 
 
-    function linkfunc($scope, $elem, attrs) {
+    function linkfunc(scope, elem, attrs) {
    
-
 
 
       $(document).ready(function() {
@@ -31,7 +37,6 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
         $('#scheduler').on('mouseenter', '.appointment-class', function(event) {
             // Extract appointment data from the data attribute
             const appointmentData = $(this).data('appointmentData');
-    
             // Show the custom tooltip with appointment details
             showCustomTooltip(appointmentData, event.pageX, event.pageY);
         }).on('mouseleave', '.appointment-class', function() {
@@ -72,7 +77,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
     }
 
       // A place to handle the updating of the data and component rendering
-      $scope.$watch('tasks', function () {
+      scope.$watch('tasks', function () {
       });
 
       function createTooltip(data) {
@@ -142,11 +147,11 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
 
     function findOperationPlan(ref) {
         if (ref === null) return null;
-        return $scope.ganttoperationplans.rows ?
-            $scope.ganttoperationplans.rows.find(e => { return e.operationplan__reference == ref; }) :
+        return scope.ganttoperationplans.rows ?
+            scope.ganttoperationplans.rows.find(e => { return e.operationplan__reference == ref; }) :
             null;
         }
-        $scope.findOperationPlan = findOperationPlan;
+        scope.findOperationPlan = findOperationPlan;
 
 
 
@@ -224,9 +229,9 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                         [x.color, x.inventory_status] = formatInventoryStatus(x);
                       }
 
-                      $scope.calendarevents = response.rows;
-                      $scope.totalevents = response.records;
-                      $scope.tasks = tasks
+                      scope.calendarevents = response.rows;
+                      scope.totalevents = response.records;
+                      scope.tasks = tasks
 
                       var minStartDate;
                       const tasksFromApril2024 = tasks.filter(task => task.startDate >= new Date(2024, 3, 1)); // Month is 0-indexed, so April is 3                     
@@ -270,7 +275,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                                 e.cancel = true;
                             } else {
 
-                              console.log(upload)
+
                             }
                         },
 
@@ -333,7 +338,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                           // Scroll to the appointment's start date
                           schedulerInstance.scrollTo(appointment.startDate);
                           
-                          $scope.$parent.displayInfoEditable(appointment.original)
+                          scope.$parent.displayInfoEditable(appointment.original)
 
 
 
@@ -370,7 +375,7 @@ function devExtremeSchedulerDrv($window, gettextCatalog, OperationPlan, Preferen
                                 event.stopPropagation();
                             });
                            
-                            $scope.$parent.displayInfoEditable(data.appointmentData.original);
+                            scope.$parent.displayInfoEditable(data.appointmentData.original);
                             return tooltip;
                         }, */
                       
