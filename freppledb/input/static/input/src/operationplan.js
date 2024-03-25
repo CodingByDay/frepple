@@ -39,9 +39,8 @@ function OperationPlanFactory($http, getURLprefix, Operation, Location, Item) {
     angular.extend(this, data);
   }
 
-  //REST API GET
+  // REST API GET
   function get(callback) {
-    alert("yrd")
     var operplan = this;
     if (operplan.id === undefined)
       return operplan;

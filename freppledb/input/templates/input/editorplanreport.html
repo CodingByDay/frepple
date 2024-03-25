@@ -170,6 +170,11 @@ rect.opplan {
   });
 
   function saveData(rows, ok_callback) {
+
+    
+
+
+
       $.ajax({
         url: service_url + 'operationplan/',
         data: JSON.stringify(rows),
@@ -227,7 +232,6 @@ rect.opplan {
         } else {
           // Transform this into the appropriate array structure
           let update = convertToObjectStructure(op, original.original.id)
-   
           $.ajax({
             url: service_url + 'operationplan/',
             data: JSON.stringify(update),
@@ -235,8 +239,7 @@ rect.opplan {
             headers: { "Authorization": "Bearer " + service_token },
             contentType: "application/json",
             success: function () {      
-     
-              angular.element('#controller').scope().reloadEditableGantt(lastAppointment)              // for now
+               angular.element('#controller').scope().reloadEditableGantt(lastAppointment)              // for now
             },
             error: ajaxerror
         });
@@ -260,8 +263,12 @@ rect.opplan {
         // Push the new object to the result array
         resultArray.push(newObj);
     // Return the result array
-    return resultArray;
+    return resultArray; 
 }
+
+
+
+
   function extraPreference() {
     return {
       "height": Math.floor($("#content-main").height()),
