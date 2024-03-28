@@ -8,11 +8,12 @@
   "private": true,
   "dependencies": {
     "angular-gettext": "^2.3.8",
-    "sass": "^1.70.0"
+    "liftoff": "^5.0.0",
+    "sass": "^1.72.0"
   },
   "devDependencies": {
     "bootstrap": "^5.2.3",
-    "grunt": ">=1.3.0",
+    "grunt": "^1.6.1",
     "grunt-angular-gettext": ">1.0",
     "grunt-contrib-clean": "^2.0.0",
     "grunt-contrib-concat": "^1.0.1",
