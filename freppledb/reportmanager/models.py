@@ -23,7 +23,7 @@
 
 from django.conf import settings
 from django.db import models, DEFAULT_DB_ALIAS
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 
 from freppledb.common.models import AuditModel, User, MultiDBManager
 from freppledb.common.report import create_connection
@@ -64,9 +64,8 @@ class SQLReport(AuditModel):
                     sqlrole = settings.DATABASES[db].get("SQL_ROLE", "report_role")
                     if sqlrole:
                         cursor.execute("set role %s" % (sqlrole,))
-                    # The query is wrapped in a dummy filter, to avoid executing the
-                    # inner real query. It still generates the list of all columns.
-                    cursor.execute("select * from (%s) as Q where false" % self.sql)
+                    # The query is limited to 1 row. We just need the column names at this point.
+                    cursor.execute("select * from (%s) as Q limit 1" % self.sql)
                     if self.id:
                         cols = []
                         seq = 1

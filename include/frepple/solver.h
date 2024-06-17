@@ -127,8 +127,6 @@ class SolverCreate : public Solver {
 
   bool create_deliveries = true;
 
-  bool allowSplits = true;
-
   bool rotateResources = true;
 
   // Used to indent the logfile in a readable way
@@ -342,7 +340,6 @@ class SolverCreate : public Solver {
     create_deliveries = other.create_deliveries;
     administrativeleadtime = other.administrativeleadtime;
     minimumdelay = other.minimumdelay;
-    allowSplits = other.allowSplits;
     rotateResources = other.rotateResources;
     iteration_threshold = other.iteration_threshold;
     iteration_accuracy = other.iteration_accuracy;
@@ -354,7 +351,6 @@ class SolverCreate : public Solver {
     userexit_buffer = other.userexit_buffer;
     userexit_resource = other.userexit_resource;
     userexit_operation = other.userexit_operation;
-    planSafetyStockFirst = other.planSafetyStockFirst;
     erasePreviousFirst = other.erasePreviousFirst;
   }
 
@@ -365,7 +361,6 @@ class SolverCreate : public Solver {
     create_deliveries = other.create_deliveries;
     administrativeleadtime = other.administrativeleadtime;
     minimumdelay = other.minimumdelay;
-    allowSplits = other.allowSplits;
     rotateResources = other.rotateResources;
     iteration_threshold = other.iteration_threshold;
     iteration_accuracy = other.iteration_accuracy;
@@ -377,7 +372,6 @@ class SolverCreate : public Solver {
     userexit_buffer = other.userexit_buffer;
     userexit_resource = other.userexit_resource;
     userexit_operation = other.userexit_operation;
-    planSafetyStockFirst = other.planSafetyStockFirst;
     erasePreviousFirst = other.erasePreviousFirst;
     return *this;
   }
@@ -599,17 +593,9 @@ class SolverCreate : public Solver {
 
   void setRotateResources(bool b) { rotateResources = b; }
 
-  bool getAllowSplits() const { return allowSplits; }
-
-  void setAllowSplits(bool b) { allowSplits = b; }
-
   bool getPropagate() const { return propagate; }
 
   void setPropagate(bool b) { propagate = b; }
-
-  bool getPlanSafetyStockFirst() const { return planSafetyStockFirst; }
-
-  void setPlanSafetyStockFirst(bool b) { planSafetyStockFirst = b; }
 
   Duration getAdministrativeLeadTime() const { return administrativeleadtime; }
 
@@ -655,13 +641,8 @@ class SolverCreate : public Solver {
                              &Cls::getMinimumDelay, &Cls::setMinimumDelay);
     m->addDurationField<Cls>(Tags::autofence, &Cls::getAutoFence,
                              &Cls::setAutoFence);
-    m->addBoolField<Cls>(SolverCreate::tag_allowsplits, &Cls::getAllowSplits,
-                         &Cls::setAllowSplits);
     m->addBoolField<Cls>(SolverCreate::tag_rotateresources,
                          &Cls::getRotateResources, &Cls::setRotateResources);
-    m->addBoolField<Cls>(SolverCreate::tag_planSafetyStockFirst,
-                         &Cls::getPlanSafetyStockFirst,
-                         &Cls::setPlanSafetyStockFirst);
     m->addBoolField<Cls>(SolverCreate::tag_erasePreviousFirst,
                          &Cls::getErasePreviousFirst,
                          &Cls::setErasePreviousFirst);
@@ -683,9 +664,7 @@ class SolverCreate : public Solver {
   static const Keyword tag_lazydelay;
   static const Keyword tag_createdeliveries;
   static const Keyword tag_minimumdelay;
-  static const Keyword tag_allowsplits;
   static const Keyword tag_rotateresources;
-  static const Keyword tag_planSafetyStockFirst;
   static const Keyword tag_administrativeleadtime;
   static const Keyword tag_erasePreviousFirst;
   static const Keyword tag_iterationmax;
@@ -770,26 +749,6 @@ class SolverCreate : public Solver {
    * value is not used.
    */
   PythonFunction userexit_operation;
-
-  /* A flag that determines how we plan safety stock.<br/>
-   *
-   * By default the flag is FALSE and we get the following behavior:
-   *  - When planning demands, we already try to replenish towards the
-   *    safety stock level.
-   *  - After planning all demands, we do another loop over all buffers
-   *    to replenish to the safety stock level. This will replenish eg
-   *    buffers without any (direct or indirect) demand on them.
-   *
-   * If the flag is set to TRUE, replenishing to the safety stock level
-   * is more important than planning the demand on time. We get the
-   * following behavior:
-   *  - Before planning any demand, we try to replenish any buffer to its
-   *    safety stock level.
-   *    Buffers closer to the end item demand are replenished first.
-   *  - When planning demands, we try to replenish towards the safety
-   *    stock level.
-   */
-  bool planSafetyStockFirst = false;
 
   /* Flag to specify whether we erase the previous plan first or not. */
   bool erasePreviousFirst = true;
@@ -880,13 +839,12 @@ class SolverCreate : public Solver {
     friend class SolverCreate;
 
    public:
-    static void runme(void* args) {
+    static void runme(void* arg1, int arg2, void* arg3) {
       CommandManager mgr;
-      SolverCreate::SolverData* x =
-          static_cast<SolverCreate::SolverData*>(args);
-      x->setCommandManager(&mgr);
-      x->commit();
-      delete x;
+      auto x = SolverData(static_cast<SolverCreate*>(arg1), arg2,
+                          static_cast<deque<Demand*>*>(arg3));
+      x.setCommandManager(&mgr);
+      x.commit();
     }
 
     /* Return the solver. */
@@ -945,10 +903,12 @@ class SolverCreate : public Solver {
     /* Auxilary method to replenish safety stock in all buffers of a
      * cluster. This method is only intended to be called from the
      * commit() method.
-     * @see SolverCreate::planSafetyStockFirst
-     * @see SolverCreate::SolverData::commit
      */
     void solveSafetyStock(SolverCreate*);
+
+    void maskTemporaryShortages();
+
+    void unmaskTemporaryShortages();
 
     /* Pointer to the command manager. */
     CommandManager* mgr = nullptr;
@@ -972,6 +932,8 @@ class SolverCreate : public Solver {
 
     /* Stack of solver status information. */
     State statestack[MAXSTATES];
+
+    vector<OperationPlan*> maskedShortages;
 
     /* Count the number of asks. */
     unsigned long iteration_count = 0;

@@ -31,6 +31,7 @@ from time import time, sleep
 from warnings import warn
 
 from django.db import connections, transaction, DEFAULT_DB_ALIAS
+from django.db.models import Case, When, Value, IntegerField, Q
 from django.utils.translation import gettext_lazy as _
 
 from .models import Forecast
@@ -43,6 +44,111 @@ from freppledb.input.models import Item, Customer, Location
 
 
 logger = logging.getLogger(__name__)
+
+default_forecast_parameters = {
+    "day": {
+        "forecast.Croston_initialAlfa": "0.1",
+        "forecast.Croston_maxAlfa": "0.3",
+        "forecast.Croston_minAlfa": "0.03",
+        "forecast.Croston_minIntermittence": "0.33",
+        "forecast.DoubleExponential_dampenTrend": "0.95",
+        "forecast.DoubleExponential_initialAlfa": "0.2",
+        "forecast.DoubleExponential_initialGamma": "0.2",
+        "forecast.DoubleExponential_maxAlfa": "0.3",
+        "forecast.DoubleExponential_maxGamma": "0.3",
+        "forecast.DoubleExponential_minAlfa": "0.02",
+        "forecast.DoubleExponential_minGamma": "0.05",
+        "forecast.Iterations": "15",
+        "forecast.MovingAverage_order": "21",
+        "forecast.Seasonal_dampenTrend": "0.9",
+        "forecast.Seasonal_initialAlfa": "0.2",
+        "forecast.Seasonal_initialBeta": "0.2",
+        "forecast.Seasonal_maxAlfa": "0.3",
+        "forecast.Seasonal_maxBeta": "0.3",
+        "forecast.Seasonal_maxPeriod": "65",
+        "forecast.Seasonal_minAlfa": "0.02",
+        "forecast.Seasonal_minBeta": "0.2",
+        "forecast.Seasonal_gamma": "0.05",
+        "forecast.Seasonal_minPeriod": "3",
+        "forecast.Seasonal_minAutocorrelation": "0.45",
+        "forecast.Seasonal_maxAutocorrelation": "0.55",
+        "forecast.Skip": "0",
+        "forecast.SingleExponential_initialAlfa": "0.2",
+        "forecast.SingleExponential_maxAlfa": "0.3",
+        "forecast.SingleExponential_minAlfa": "0.03",
+        "forecast.SmapeAlfa": "0.95",
+        "forecast.Outlier_maxDeviation": "2",
+        "forecast.DeadAfterInactivity": "365",
+    },
+    "week": {
+        "forecast.Croston_initialAlfa": "0.1",
+        "forecast.Croston_maxAlfa": "0.3",
+        "forecast.Croston_minAlfa": "0.03",
+        "forecast.Croston_minIntermittence": "0.33",
+        "forecast.DoubleExponential_dampenTrend": "0.95",
+        "forecast.DoubleExponential_initialAlfa": "0.2",
+        "forecast.DoubleExponential_initialGamma": "0.2",
+        "forecast.DoubleExponential_maxAlfa": "0.3",
+        "forecast.DoubleExponential_maxGamma": "0.3",
+        "forecast.DoubleExponential_minAlfa": "0.02",
+        "forecast.DoubleExponential_minGamma": "0.05",
+        "forecast.Iterations": "15",
+        "forecast.MovingAverage_order": "5",
+        "forecast.Seasonal_dampenTrend": "0.9",
+        "forecast.Seasonal_initialAlfa": "0.2",
+        "forecast.Seasonal_initialBeta": "0.2",
+        "forecast.Seasonal_maxAlfa": "0.3",
+        "forecast.Seasonal_maxBeta": "0.3",
+        "forecast.Seasonal_maxPeriod": "65",
+        "forecast.Seasonal_minAlfa": "0.02",
+        "forecast.Seasonal_minBeta": "0.2",
+        "forecast.Seasonal_gamma": "0.05",
+        "forecast.Seasonal_minPeriod": "3",
+        "forecast.Seasonal_minAutocorrelation": "0.45",
+        "forecast.Seasonal_maxAutocorrelation": "0.55",
+        "forecast.Skip": "0",
+        "forecast.SingleExponential_initialAlfa": "0.2",
+        "forecast.SingleExponential_maxAlfa": "0.3",
+        "forecast.SingleExponential_minAlfa": "0.03",
+        "forecast.SmapeAlfa": "0.95",
+        "forecast.Outlier_maxDeviation": "2",
+        "forecast.DeadAfterInactivity": "365",
+    },
+    "month": {
+        "forecast.Croston_initialAlfa": "0.1",
+        "forecast.Croston_maxAlfa": "0.8",
+        "forecast.Croston_minAlfa": "0.03",
+        "forecast.Croston_minIntermittence": "0.33",
+        "forecast.DoubleExponential_dampenTrend": "0.8",
+        "forecast.DoubleExponential_initialAlfa": "0.2",
+        "forecast.DoubleExponential_initialGamma": "0.2",
+        "forecast.DoubleExponential_maxAlfa": "0.6",
+        "forecast.DoubleExponential_maxGamma": "0.6",
+        "forecast.DoubleExponential_minAlfa": "0.02",
+        "forecast.DoubleExponential_minGamma": "0.05",
+        "forecast.Iterations": "15",
+        "forecast.MovingAverage_order": "5",
+        "forecast.Seasonal_dampenTrend": "0.8",
+        "forecast.Seasonal_initialAlfa": "0.2",
+        "forecast.Seasonal_initialBeta": "0.2",
+        "forecast.Seasonal_maxAlfa": "0.5",
+        "forecast.Seasonal_maxBeta": "0.5",
+        "forecast.Seasonal_maxPeriod": "14",
+        "forecast.Seasonal_minAlfa": "0.02",
+        "forecast.Seasonal_minBeta": "0.2",
+        "forecast.Seasonal_gamma": "0.05",
+        "forecast.Seasonal_minPeriod": "2",
+        "forecast.Seasonal_minAutocorrelation": "0.5",
+        "forecast.Seasonal_maxAutocorrelation": "0.8",
+        "forecast.Skip": "0",
+        "forecast.SingleExponential_initialAlfa": "0.2",
+        "forecast.SingleExponential_maxAlfa": "0.6",
+        "forecast.SingleExponential_minAlfa": "0.03",
+        "forecast.SmapeAlfa": "0.95",
+        "forecast.Outlier_maxDeviation": "2",
+        "forecast.DeadAfterInactivity": "365",
+    },
+}
 
 
 @PlanTaskRegistry.register
@@ -820,11 +926,11 @@ class LoadForecast(LoadTask):
         )
         with connections[database].cursor() as cursor:
             cursor.execute(
-                "select extract(day from %s - min(startdate)) from forecastplan",
+                "select greatest(0,extract(day from %s - min(startdate))) from forecastplan",
                 (frepple.settings.current.date(),),
             )
             oldest = cursor.fetchone()[0]
-            if oldest and oldest < horizon_history:
+            if oldest is not None and oldest < horizon_history:
                 horizon_history = oldest
 
         cnt = 0
@@ -922,9 +1028,11 @@ class ExportStaticForecast(PlanTask):
                     i.maxlateness,
                     i.category,
                     i.subcategory,
-                    i.operation.name
-                    if i.operation and not i.operation.hidden
-                    else None,
+                    (
+                        i.operation.name
+                        if i.operation and not i.operation.hidden
+                        else None
+                    ),
                     i.methods,
                     i.method,
                     i.source,
@@ -987,46 +1095,91 @@ def createForecastSolver(db, task=None):
     # Initialize the solver
     horizon_future = None
     calendar = None
+    loglevel = None
     try:
         kw = {}
         for param in (
-            Parameter.objects.all()
+            Parameter.objects.annotate(
+                custom_order=Case(
+                    When(name="forecast.calendar", then=Value(1)),
+                    When(name="forecast.loglevel", then=Value(2)),
+                    When(
+                        ~Q(name="forecast.calendar") & ~Q(name="forecast.loglevel"),
+                        then=Value(3),
+                    ),
+                    output_field=IntegerField(),
+                )
+            )
+            .all()
             .using(db)
             .filter(name__startswith="forecast.")
             .exclude(name="forecast.populateForecastTable")
             .exclude(name="forecast.runnetting")
+            .order_by("custom_order")
         ):
+            parameter_value = None
+            if calendar and param.value.strip().lower() == "default":
+                parameter_value = default_forecast_parameters.get(calendar, {}).get(
+                    param.name, None
+                )
+
+            if parameter_value is None:
+                parameter_value = param.value
+
+            if (
+                calendar
+                and loglevel
+                and param.name in default_forecast_parameters.get(calendar)
+            ):
+                logger.info("%s=%s" % (param.name, parameter_value))
+
+            if calendar:
+                default_forecast_parameters_copy.pop(param.name, None)
+
             key = param.name[9:]
             if key == "Horizon_future":
                 try:
-                    horizon_future = int(param.value)
+                    horizon_future = int(parameter_value)
                 except Exception:
                     logger.error('Incorrect parameter "forecast.Horizon_future"')
                     return None
             elif key == "Horizon_history":
                 try:
-                    int(param.value)
+                    int(parameter_value)
                 except Exception:
                     logger.error('Incorrect parameter "forecast.Horizon_history"')
                     return None
             elif key in ("DueWithinBucket",):
                 try:
-                    kw[key] = param.value
+                    kw[key] = parameter_value
                 except Exception:
                     logger.error('Incorrect parameter "forecast.%s"' % key)
             elif key == "calendar":
                 try:
-                    kw[key] = frepple.calendar(name=param.value, action="C")
+                    kw[key] = frepple.calendar(name=parameter_value, action="C")
                 except Exception:
                     logger.warning("Parameter forecast.calendar not configured.")
                     return None
-                calendar = param.value
+                calendar = (
+                    parameter_value
+                    if parameter_value in default_forecast_parameters
+                    else "month"
+                )
+                default_forecast_parameters_copy = default_forecast_parameters[
+                    calendar
+                ].copy()
             elif key == "Net_PastDemand":
-                kw[key] = (param.value.lower() == "true") if param.value else False
+                kw[key] = (
+                    (parameter_value.lower() == "true") if parameter_value else False
+                )
             elif key == "AverageNoDataDays":
-                kw[key] = (param.value.lower() == "true") if param.value else True
+                kw[key] = (
+                    (parameter_value.lower() == "true") if parameter_value else True
+                )
             elif key == "Net_IgnoreLocation":
-                kw[key] = (param.value.lower() == "true") if param.value else False
+                kw[key] = (
+                    (parameter_value.lower() == "true") if parameter_value else False
+                )
             elif key in (
                 "Iterations",
                 "loglevel",
@@ -1037,19 +1190,39 @@ def createForecastSolver(db, task=None):
                 "DeadAfterInactivity",
             ):
                 try:
-                    kw[key] = int(param.value)
+                    kw[key] = int(parameter_value)
+                    if key == "loglevel":
+                        loglevel = int(parameter_value)
                 except Exception:
                     logger.error('Incorrect parameter "forecast.%s"' % key)
+
             elif key in ("Net_NetEarly", "Net_NetLate"):
                 try:
-                    kw[key] = int(param.value) * 86400
+                    kw[key] = int(parameter_value) * 86400
                 except Exception:
                     logger.error('Incorrect parameter "forecast.%s"' % key)
             else:
                 try:
-                    kw[key] = float(param.value)
+                    kw[key] = float(parameter_value)
                 except Exception:
                     logger.error('Incorrect parameter "forecast.%s"' % key)
+
+        # Some default parameters are missing in the parameter table
+        for key_with_prefix, val in default_forecast_parameters_copy.items():
+            key = key_with_prefix[9:]
+            if key in ("MovingAverage_order", "DeadAfterInactivity"):
+                try:
+                    kw[key] = int(val)
+                except Exception:
+                    logger.error('Incorrect parameter "forecast.%s"' % key)
+            else:
+                try:
+                    kw[key] = float(val)
+                except Exception:
+                    logger.error('Incorrect parameter "forecast.%s"' % key)
+
+            if calendar and loglevel:
+                logger.info("%s=%s [missing in parameters]" % (key, val))
 
         # Check whether we have forecast buckets to cover the complete forecasting horizon
         if horizon_future and calendar:
@@ -1066,6 +1239,7 @@ def createForecastSolver(db, task=None):
                 logger.warning(
                     "Bucket dates table doesn't cover the complete forecasting horizon"
                 )
+
         return frepple.solver_forecast(**kw)
     except Exception as e:
         logger.warning("No forecasting solver can be created: %s", e)

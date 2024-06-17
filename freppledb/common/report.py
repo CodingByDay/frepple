@@ -83,7 +83,7 @@ from django.utils.dateparse import parse_duration, parse_time
 from django.utils.decorators import method_decorator
 from django.utils.encoding import smart_str, force_str
 from django.utils.html import escape
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 from django.utils.formats import get_format, date_format
 from django.utils.text import capfirst, get_text_list, format_lazy
 from django.contrib.contenttypes.models import ContentType
@@ -154,7 +154,15 @@ class IsChildOfLookup(Lookup):
 
 
 def create_connection(alias=DEFAULT_DB_ALIAS):
-    connections.configure_settings({alias: settings.DATABASES[alias]})
+    if alias == DEFAULT_DB_ALIAS:
+        connections.configure_settings({alias: settings.DATABASES[alias]})
+    else:
+        connections.configure_settings(
+            {
+                DEFAULT_DB_ALIAS: settings.DATABASES[DEFAULT_DB_ALIAS],
+                alias: settings.DATABASES[alias],
+            }
+        )
     db = connections.databases[alias]
     backend = load_backend(db["ENGINE"])
     return backend.DatabaseWrapper(db, alias)
@@ -408,8 +416,8 @@ class GridFieldBool(GridField):
 class GridFieldLastModified(GridField):
     formatter = "date"
     extra = (
-        '"formatoptions":{"srcformat":"Y-m-d H:i:s","newformat":"%s"}'
-        % settings.DATETIME_FORMAT
+        '"formatoptions":{"srcformat":"Y-m-d H:i:s","newformat":"%s H:i:s"}'
+        % settings.DATE_FORMAT
     )
     searchoptions = '{"sopt":["eq","ne","lt","le","gt","ge","win"],"searchhidden":true}'
     title = _("last modified")
@@ -424,6 +432,10 @@ class GridFieldJSON(GridField):
 
 
 class GridFieldLocalDateTime(GridFieldDateTime):
+    extra = (
+        '"formatoptions":{"srcformat":"Y-m-d H:i:s","newformat":"%s H:i:s"}'
+        % settings.DATE_FORMAT
+    )
     pass
 
 
@@ -1323,24 +1335,34 @@ class GridReport(View):
                 return query
             elif len(cls.default_sort) > 6:
                 return query.order_by(
-                    request.rows[cls.default_sort[0]].field_name
-                    if cls.default_sort[1] == "asc"
-                    else ("-%s" % request.rows[cls.default_sort[0]].field_name),
-                    request.rows[cls.default_sort[2]].field_name
-                    if cls.default_sort[3] == "asc"
-                    else ("-%s" % request.rows[cls.default_sort[2]].field_name),
-                    request.rows[cls.default_sort[4]].field_name
-                    if cls.default_sort[5] == "asc"
-                    else ("-%s" % request.rows[cls.default_sort[4]].field_name),
+                    (
+                        request.rows[cls.default_sort[0]].field_name
+                        if cls.default_sort[1] == "asc"
+                        else ("-%s" % request.rows[cls.default_sort[0]].field_name)
+                    ),
+                    (
+                        request.rows[cls.default_sort[2]].field_name
+                        if cls.default_sort[3] == "asc"
+                        else ("-%s" % request.rows[cls.default_sort[2]].field_name)
+                    ),
+                    (
+                        request.rows[cls.default_sort[4]].field_name
+                        if cls.default_sort[5] == "asc"
+                        else ("-%s" % request.rows[cls.default_sort[4]].field_name)
+                    ),
                 )
             elif len(cls.default_sort) >= 4:
                 return query.order_by(
-                    request.rows[cls.default_sort[0]].field_name
-                    if cls.default_sort[1] == "asc"
-                    else ("-%s" % request.rows[cls.default_sort[0]].field_name),
-                    request.rows[cls.default_sort[2]].field_name
-                    if cls.default_sort[3] == "asc"
-                    else ("-%s" % request.rows[cls.default_sort[2]].field_name),
+                    (
+                        request.rows[cls.default_sort[0]].field_name
+                        if cls.default_sort[1] == "asc"
+                        else ("-%s" % request.rows[cls.default_sort[0]].field_name)
+                    ),
+                    (
+                        request.rows[cls.default_sort[2]].field_name
+                        if cls.default_sort[3] == "asc"
+                        else ("-%s" % request.rows[cls.default_sort[2]].field_name)
+                    ),
                 )
             elif len(cls.default_sort) >= 2:
                 return query.order_by(
@@ -1702,9 +1724,11 @@ class GridReport(View):
                         scenario_permissions.append(
                             [
                                 scenario.name,
-                                scenario.description
-                                if scenario.description
-                                else scenario.name,
+                                (
+                                    scenario.description
+                                    if scenario.description
+                                    else scenario.name
+                                ),
                                 1 if request.database == original_database else 0,
                             ]
                         )
@@ -1802,10 +1826,12 @@ class GridReport(View):
                 page = 1
             context = {
                 "reportclass": cls,
-                "title": _("%(title)s for %(entity)s")
-                % {"title": force_str(cls.title), "entity": force_str(args[0])}
-                if args and args[0]
-                else cls.title,
+                "title": (
+                    _("%(title)s for %(entity)s")
+                    % {"title": force_str(cls.title), "entity": force_str(args[0])}
+                    if args and args[0]
+                    else cls.title
+                ),
                 "post_title": cls.post_title,
                 "preferences": request.prefs,
                 "reportkey": reportkey,
@@ -1901,10 +1927,9 @@ class GridReport(View):
                 title = cls.title
             else:
                 title = cls.model._meta.verbose_name_plural if cls.model else cls.title
-            response[
-                "Content-Disposition"
-            ] = "attachment; filename*=utf-8''%s.xlsx" % urllib.parse.quote(
-                force_str(title)
+            response["Content-Disposition"] = (
+                "attachment; filename*=utf-8''%s.xlsx"
+                % urllib.parse.quote(force_str(title))
             )
             response["Cache-Control"] = "no-cache, no-store"
             return response
@@ -1931,10 +1956,9 @@ class GridReport(View):
                 title = cls.title
             else:
                 title = cls.model._meta.verbose_name_plural if cls.model else cls.title
-            response[
-                "Content-Disposition"
-            ] = "attachment; filename*=utf-8''%s.csv" % urllib.parse.quote(
-                force_str(title)
+            response["Content-Disposition"] = (
+                "attachment; filename*=utf-8''%s.csv"
+                % urllib.parse.quote(force_str(title))
             )
             response["Cache-Control"] = "no-cache, no-store"
             return response
@@ -2018,8 +2042,8 @@ class GridReport(View):
                         elif isinstance(r, GridFieldChoice):
                             if v is None:
                                 fields[f] = None
-                            elif v in r.choices:
-                                fields[f] = v
+                            elif v in [i[1] for i in r.choices]:
+                                fields[f] = [x for (x, y) in r.choices if y == v][0]
                             else:
                                 ok = False
                                 resp.write(
@@ -2555,10 +2579,12 @@ class GridReport(View):
             # Records are committed. Launch notification generator now.
             NotificationFactory.launchWorker(
                 database=request.database,
-                url="%s://%s"
-                % ("https" if request.is_secure() else "http", request.get_host())
-                if request
-                else None,
+                url=(
+                    "%s://%s"
+                    % ("https" if request.is_secure() else "http", request.get_host())
+                    if request
+                    else None
+                ),
             )
         except GeneratorExit:
             logging.warning("Connection Aborted")
@@ -2664,9 +2690,11 @@ class GridReport(View):
                                 yield '<tr><td class="sr-only">%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s: %s</td></tr>' % (
                                     cls.model._meta.verbose_name,
                                     error[1] if error[1] else "",
-                                    "%s%s" % (rowprefix, error[2] or "")
-                                    if rowprefix or error[2]
-                                    else "",
+                                    (
+                                        "%s%s" % (rowprefix, error[2] or "")
+                                        if rowprefix or error[2]
+                                        else ""
+                                    ),
                                     error[3] if error[3] else "",
                                     capfirst(_("error")),
                                     error[4],
@@ -2676,9 +2704,11 @@ class GridReport(View):
                                 yield '<tr><td class="sr-only">%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s: %s</td></tr>' % (
                                     cls.model._meta.verbose_name,
                                     error[1] if error[1] else "",
-                                    "%s%s" % (rowprefix, error[2] or "")
-                                    if rowprefix or error[2]
-                                    else "",
+                                    (
+                                        "%s%s" % (rowprefix, error[2] or "")
+                                        if rowprefix or error[2]
+                                        else ""
+                                    ),
                                     error[3] if error[3] else "",
                                     capfirst(_("warning")),
                                     error[4],
@@ -2689,9 +2719,11 @@ class GridReport(View):
                                     "danger" if numerrors > 0 else "success",
                                     cls.model._meta.verbose_name,
                                     error[1] if error[1] else "",
-                                    "%s%s" % (rowprefix, error[2] or "")
-                                    if rowprefix or error[2]
-                                    else "",
+                                    (
+                                        "%s%s" % (rowprefix, error[2] or "")
+                                        if rowprefix or error[2]
+                                        else ""
+                                    ),
                                     error[3] if error[3] else "",
                                     error[4],
                                 )
@@ -2704,10 +2736,12 @@ class GridReport(View):
             # Records are committed. Launch notification generator now.
             NotificationFactory.launchWorker(
                 database=request.database,
-                url="%s://%s"
-                % ("https" if request.is_secure() else "http", request.get_host())
-                if request
-                else None,
+                url=(
+                    "%s://%s"
+                    % ("https" if request.is_secure() else "http", request.get_host())
+                    if request
+                    else None
+                ),
             )
         except GeneratorExit:
             logger.warning("Connection Aborted")
@@ -2988,13 +3022,13 @@ class GridReport(View):
         return models.Q(
             **{
                 "%slft__gte"
-                % ("%s__" % reportrow.model.__name__.lower() if prefix else ""): o.lft
-                if parentExists
-                else -1,
+                % ("%s__" % reportrow.model.__name__.lower() if prefix else ""): (
+                    o.lft if parentExists else -1
+                ),
                 "%slft__lte"
-                % ("%s__" % reportrow.model.__name__.lower() if prefix else ""): o.rght
-                if parentExists
-                else -1,
+                % ("%s__" % reportrow.model.__name__.lower() if prefix else ""): (
+                    o.rght if parentExists else -1
+                ),
             }
         )
 
@@ -3434,7 +3468,7 @@ class GridPivot(GridReport):
                 if not f[1]
             ]
         else:
-            myrows = [f for f in request.rows if f.name and not f.hidden]
+            myrows = [f for f in request.rows if f.name and not f.hidden and not f.initially_hidden]
         if request.prefs and "crosses" in request.prefs and not allColumns:
             mycrosses = [
                 request.crosses[f]
@@ -3541,13 +3575,15 @@ class GridPivot(GridReport):
                             )
                             fields.extend(
                                 [
-                                    force_str(
-                                        cls._localize(row[f[0]], decimal_separator),
-                                        encoding=settings.CSV_CHARSET,
-                                        errors="ignore",
+                                    (
+                                        force_str(
+                                            cls._localize(row[f[0]], decimal_separator),
+                                            encoding=settings.CSV_CHARSET,
+                                            errors="ignore",
+                                        )
+                                        if row[f[0]] is not None
+                                        else ""
                                     )
-                                    if row[f[0]] is not None
-                                    else ""
                                     for f in mycrosses
                                 ]
                             )
@@ -3574,15 +3610,17 @@ class GridPivot(GridReport):
                             )
                             fields.extend(
                                 [
-                                    force_str(
-                                        cls._localize(
-                                            getattr(row, f[0]), decimal_separator
-                                        ),
-                                        encoding=settings.CSV_CHARSET,
-                                        errors="ignore",
+                                    (
+                                        force_str(
+                                            cls._localize(
+                                                getattr(row, f[0]), decimal_separator
+                                            ),
+                                            encoding=settings.CSV_CHARSET,
+                                            errors="ignore",
+                                        )
+                                        if getattr(row, f[0]) is not None
+                                        else ""
                                     )
-                                    if getattr(row, f[0]) is not None
-                                    else ""
                                     for f in mycrosses
                                 ]
                             )
@@ -3639,15 +3677,17 @@ class GridPivot(GridReport):
                                 )
                                 fields.extend(
                                     [
-                                        force_str(
-                                            cls._localize(
-                                                bucket[cross[0]], decimal_separator
-                                            ),
-                                            encoding=settings.CSV_CHARSET,
-                                            errors="ignore",
+                                        (
+                                            force_str(
+                                                cls._localize(
+                                                    bucket[cross[0]], decimal_separator
+                                                ),
+                                                encoding=settings.CSV_CHARSET,
+                                                errors="ignore",
+                                            )
+                                            if bucket[cross[0]] is not None
+                                            else ""
                                         )
-                                        if bucket[cross[0]] is not None
-                                        else ""
                                         for bucket in row_of_buckets
                                     ]
                                 )
@@ -3895,7 +3935,7 @@ class GridPivot(GridReport):
                     cell.comment = comment
                 fields.append(cell)
         else:
-            cell = WriteOnlyCell(ws, value=capfirst(_("data field")))
+            cell = WriteOnlyCell(ws, value=capfirst(force_str(_("data field"))))
             cell.style = "readlonlyheaderstyle"
             fields.append(cell)
             for b in request.report_bucketlist:
@@ -3904,7 +3944,7 @@ class GridPivot(GridReport):
                 fields.append(cell)
 
         if len(scenario_list) > 1:
-            cell = WriteOnlyCell(ws, value=capfirst(_("scenario")))
+            cell = WriteOnlyCell(ws, value=capfirst(force_str(_("scenario"))))
             cell.style = "readlonlyheaderstyle"
             fields.insert(0, cell)
 
@@ -4008,14 +4048,16 @@ class GridPivot(GridReport):
                                     ws,
                                     value=_getCellValue(
                                         (
-                                            capfirst(
-                                                cross[1]["title"](request)
-                                                if callable(cross[1]["title"])
-                                                else cross[1]["title"]
+                                            (
+                                                capfirst(
+                                                    cross[1]["title"](request)
+                                                    if callable(cross[1]["title"])
+                                                    else cross[1]["title"]
+                                                )
                                             )
-                                        )
-                                        if "title" in cross[1]
-                                        else capfirst(cross[0]),
+                                            if "title" in cross[1]
+                                            else capfirst(cross[0])
+                                        ),
                                         excel_duration_in_days=excel_duration_in_days,
                                     ),
                                 )
@@ -4190,3 +4232,14 @@ def _getCellValue(
             _buildMaskedNames(model, exportConfig)
         # Return the mapped value
         return exportConfig[modelname].get(data, "unknown")
+
+
+def sizeof_fmt(num):
+    """
+    Function to convert from bytes to human readable format.
+    """
+    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
+        if abs(num) < 1024.0:
+            return "%3.0f %sB" % (num, unit)
+        num /= 1024.0
+    return "%.0f %sB" % (num, "Yi")

@@ -452,9 +452,10 @@ def getWizardSteps(request, mode):
            type: 'POST',
            url: "'''
             + request.prefix
-            + """/execute/api/loaddata/",
+            + """/api/common/parameter/",
            data: {
-             fixture: 'parameters_' + $(this).attr("data-forecastbucketsize") + '_forecast'
+             name: "forecast.calendar",
+             value: $(this).attr("data-forecastbucketsize")
              }
            });
        });
@@ -2022,6 +2023,8 @@ class QuickStartForecast(View):
         history = request.POST["history"].split()
         cal = Parameter.getValue("forecast.calendar", request.database, "month")
         currentdate = getCurrentDate(request.database, lastplan=True).date()
+        if not Bucket.objects.all().using(request.database).exists():
+            management.call_command("createbuckets", database=request.database, task=-1)
         buckets = list(
             BucketDetail.objects.filter(bucket__name=cal, enddate__lte=currentdate)
             .order_by("-enddate")

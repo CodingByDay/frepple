@@ -2859,7 +2859,9 @@ bool TimeLine<type>::Event::operator<(const Event& fl2) const {
         return o2 ? true : false;
     } else
       return getEventType() > fl2.getEventType();
-  } else if (fabs(getQuantity() - fl2.getQuantity()) > ROUNDING_ERROR)
+  } else if (getEventType() != fl2.getEventType())
+    return getEventType() > fl2.getEventType();
+  else if (fabs(getQuantity() - fl2.getQuantity()) > ROUNDING_ERROR)
     return getQuantity() > fl2.getQuantity();
   else {
     OperationPlan* op1 = getOperationPlan();
@@ -3314,6 +3316,14 @@ class Operation : public HasName<Operation>,
     if (fence != t) setChanged();
     fence = t;
   }
+
+  /* Update the release fence, given a certain date.
+   * This method will internally convert the date into a duration (considering
+   * the available time on the operation).
+   */
+  void setFence(Date);
+
+  static PyObject* setFencePython(PyObject* self, PyObject* args);
 
   /* Return the search mode. */
   SearchMode getSearch() const { return search; }
@@ -5267,7 +5277,7 @@ class Buffer : public HasHierarchy<Buffer>,
                                       &Cls::getMinimumCalendar,
                                       &Cls::setMinimumCalendar);
     m->addDoubleField<Cls>(Tags::maximum, &Cls::getMaximum, &Cls::setMaximum,
-                           default_max);
+                           0);
     m->addPointerField<Cls, Calendar>(Tags::maximum_calendar,
                                       &Cls::getMaximumCalendar,
                                       &Cls::setMaximumCalendar);
@@ -5296,12 +5306,6 @@ class Buffer : public HasHierarchy<Buffer>,
   void setIPFlag(bool b) { ip_data = b; }
 
  private:
-  /* A constant defining the default max inventory target.\\
-   * Theoretically we should set this to DBL_MAX, but then the results
-   * are not portable across platforms.
-   */
-  static const double default_max;
-
   /* This models the dynamic part of the plan, representing all planned
    * material flows on this buffer. */
   flowplanlist flowplans;
@@ -5334,9 +5338,8 @@ class Buffer : public HasHierarchy<Buffer>,
 
   /* Maximum inventory target.
    * If a maximum calendar is specified this field is ignored.
-   * @see max_cal
    */
-  double max_val = default_max;
+  double max_val = 0;
 
   /* Points to a calendar to store the minimum inventory level.
    * The default value is nullptr, resulting in a constant minimum level
@@ -8688,12 +8691,6 @@ class Plan : public Plannable, public Object {
     OperationDelivery::setDeliveryDuration(l);
   }
 
-  /* Return the calendar to which operationplans are aligned. */
-  Calendar* getCalendar() const { return cal; }
-
-  /* Set a calendar to align operationplans to. */
-  void setCalendar(Calendar* c) { cal = c; }
-
   /* Returns the description of the plan. */
   const string& getDescription() const { return descr; }
 
@@ -8737,7 +8734,7 @@ class Plan : public Plannable, public Object {
   /* Initialize the class. */
   static int initialize();
 
-  virtual void updateProblems(){};
+  virtual void updateProblems() {};
 
   /* This method basically solves the whole planning problem. */
   virtual void solve(Solver& s, void* v = nullptr) const { s.solve(this, v); }
@@ -8810,8 +8807,6 @@ class Plan : public Plannable, public Object {
     m->addUnsignedLongField(Tags::id, &Plan::getOperationPlanCounterMin,
                             &Plan::setOperationPlanCounterMin, 0UL,
                             DONT_SERIALIZE);
-    m->addPointerField<Cls, Calendar>(Tags::calendar, &Cls::getCalendar,
-                                      &Cls::setCalendar, DONT_SERIALIZE);
     m->addBoolField<Plan>(
         Tags::completed_allow_future, &Plan::getCompletedAllowFuture,
         &Plan::setCompletedAllowFuture, BOOL_FALSE, DONT_SERIALIZE);

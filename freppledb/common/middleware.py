@@ -23,6 +23,7 @@
 
 from datetime import timedelta, datetime
 import base64
+import ipaddress
 import jwt
 import re
 import threading
@@ -75,8 +76,8 @@ class HTTPAuthenticationMiddleware:
                     authmethod = None
                 if authmethod == "basic":
                     # Basic authentication
-                    auth = base64.b64decode(auth[1]).decode("iso-8859-1").partition(":")
-                    user = authenticate(username=auth[0], password=auth[2])
+                    auth = base64.b64decode(auth[1]).decode("iso-8859-1").split(":", 1)
+                    user = authenticate(username=auth[0], password=auth[1])
                     if user and user.is_active:
                         # Active user
                         request.api = True  # TODO I think this is no longer used
@@ -399,4 +400,27 @@ class AutoLoginAsAdminUser:
                             pass
             except User.DoesNotExist:
                 pass
+        return self.get_response(request)
+
+
+class AllowedIpMiddleware:
+    """
+    Checks that the IP address of the request is allowed in the
+    settings.ALLOWED_IPS variable.
+    """
+
+    def __init__(self, get_response):
+        # One-time initialisation
+        self.get_response = get_response
+        self.allowed_ips = [
+            ipaddress.ip_network(ip) for ip in getattr(settings, "ALLOWED_IPS", [])
+        ]
+
+    def __call__(self, request):
+        if self.allowed_ips:
+            address = ipaddress.ip_address(request.META["REMOTE_ADDR"])
+            for ip in self.allowed_ips:
+                if address in ip:
+                    return self.get_response(request)
+            return HttpResponseForbidden("<h1>Unauthorized access</h1>")
         return self.get_response(request)

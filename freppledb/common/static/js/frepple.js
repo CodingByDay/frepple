@@ -533,7 +533,10 @@ jQuery.extend($.fn.fmatter, {
     for (var i = 0; i < count; i++) {
       if (result != '')
         result += ', ';
-      result += '<span><span class="listdetailkey">' + $.jgrid.htmlEncode(cellvalue[i][0])
+      result += '<span><span class="listdetailkey"';
+      if (cellvalue[i].length > 2)
+        result += ' data-extra="' + $.jgrid.htmlEncode(cellvalue[i][2]) + '"';
+      result += '>' + $.jgrid.htmlEncode(cellvalue[i][0])
         + "</span><a href=\"" + url_prefix + "/detail/" + options.colModel.role
         + "/" + admin_escape(cellvalue[i][0])
         + "/\" onclick='event.stopPropagation()'><span class='ps-2 fa fa-caret-right' role='"
@@ -598,7 +601,7 @@ jQuery.extend($.fn.fmatter.listdetail, {
   unformat: function (cellvalue, options, cell) {
     var o = [];
     $('.listdetailkey', $(cell)).each(function (idx, val) {
-      o.push([$(val).text(), $(val).parent().next("span").text()]);
+      o.push([$(val).text(), $(val).parent().next("span").text(), $(val).attr("data-extra")]);
     });
     return o;
   }
@@ -639,7 +642,7 @@ var grid = {
   formatNumber: function (nData, maxdecimals = 6) {
     // Number formatting function copied from free-jqgrid.
     // Adapted to show a max number of decimal places.
-    if (typeof (nData) === 'undefined')
+    if (typeof (nData) === 'undefined' || nData === '')
       return '';
     var isNumber = $.fmatter.isNumber;
     if (!isNumber(nData))
@@ -1287,8 +1290,7 @@ var grid = {
     $('#copybutton').on('click', function () {
       // should be up to date but let's recompute it.
       update_datasource_url();
-      $('#urladdress').select();
-      document.execCommand('copy');
+      navigator.clipboard.writeText($('#urladdress').val());
     });
 
     //Compute the power query url to display
@@ -2939,11 +2941,7 @@ function import_show(title, paragraph, multiple, fxhr, initialDropped, buttonlab
     $("#animatedcog").css('visibility', 'visible');
     $('#uploadform').css('display', 'none');
     $('#copytoclipboard').on('click', function () {
-      var sometextcontent = document.createRange();
-      sometextcontent.selectNode(document.getElementById("uploadResponse"));
-      window.getSelection().removeAllRanges();
-      window.getSelection().addRange(sometextcontent);
-      document.execCommand('copy');
+      navigator.clipboard.writeText($("#uploadResponse").prop("innerText"));
     });
     $('#cancelimportbutton').show().on('click', function () {
       var theclone = $("#uploadResponse").clone();
@@ -3336,16 +3334,16 @@ var gantt = {
     $(el).html(result.join(''));
   },
 
-  redraw: function (el = "#jqgh_grid_operationplans") {
+  redraw: function () {
     // Determine the conversion between svg units and the screen
     var scale = (horizonend.getTime() - horizonstart.getTime())
       / (viewend.getTime() - viewstart.getTime())
-      * $(el).width() / 10000;
+      * $("#jqgh_grid_operationplans").width() / 10000;
     $('.transformer').each(function () {
       var layers = $(this).attr("title");
       $(this).attr("transform", "scale(" + scale + ",1) translate(0," + ((layers - 1) * gantt.rowsize + 3) + ")");
     });
-    gantt.header(el);
+    gantt.header("#jqgh_grid_operationplans");
   },
 
   scroll: function (event) {

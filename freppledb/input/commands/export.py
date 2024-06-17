@@ -1698,6 +1698,8 @@ class exportBuffers(PlanTask):
                     round(i.onhand, 8),
                     round(i.minimum, 8),
                     i.minimum_calendar.name if i.minimum_calendar else None,
+                    round(i.maximum, 8),
+                    i.maximum_calendar.name if i.maximum_calendar else None,
                     i.__class__.__name__[7:],
                     i.category,
                     i.subcategory,
@@ -1713,15 +1715,19 @@ class exportBuffers(PlanTask):
                 cursor,
                 """
                 insert into buffer
-                (item_id,location_id,batch,description,onhand,minimum,minimum_calendar_id,
+                (item_id,location_id,batch,description,onhand,
+                minimum,minimum_calendar_id,
+                maximum,maximum_calendar_id,
                 type,category,subcategory,source,lastmodified%s)
-                values(%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s%s)
+                values(%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s%s)
                 on conflict (location_id, item_id, batch)
                 do update set
                   description=excluded.description,
                   onhand=excluded.onhand,
                   minimum=excluded.minimum,
                   minimum_calendar_id=excluded.minimum_calendar_id,
+                  maximum=excluded.maximum,
+                  maximum_calendar_id=excluded.maximum_calendar_id,
                   type=excluded.type,
                   category=excluded.category,
                   subcategory=excluded.subcategory,

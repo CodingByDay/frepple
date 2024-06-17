@@ -22,6 +22,7 @@
 #
 from datetime import datetime
 from importlib import import_module
+from importlib.util import find_spec
 import inspect
 import json
 import logging
@@ -162,7 +163,7 @@ class HierarchyModel(models.Model):
             updated = True
             while updated:
                 updated = False
-                for i in bad.keys():
+                for i in list(bad.keys()):
                     ok = True
                     for j, k in bad.items():
                         if k == i:
@@ -789,9 +790,11 @@ class Comment(models.Model):
             req = getattr(_thread_locals, "request", None)
             NotificationFactory.launchWorker(
                 database=using,
-                url="%s://%s" % ("https" if req.is_secure() else "http", req.get_host())
-                if req
-                else None,
+                url=(
+                    "%s://%s" % ("https" if req.is_secure() else "http", req.get_host())
+                    if req
+                    else None
+                ),
             )
         return tmp
 
@@ -1597,9 +1600,9 @@ class Attribute(AuditModel):
         if os.access(wsgi, os.W_OK):
             Path(wsgi).touch()
         else:
-            import freppledb.wsgi
-
-            wsgi = freppledb.wsgi.__file__
+            wsgi = os.path.join(
+                os.path.split(find_spec("freppledb").origin)[0], "wsgi.py"
+            )
             if os.access(wsgi, os.W_OK):
                 Path(wsgi).touch()
 

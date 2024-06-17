@@ -28,7 +28,7 @@ from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.exceptions import FieldDoesNotExist
 from django.db import connections
-from django.db.models import Q
+from django.db.models import Q, F
 from django.db.models.expressions import RawSQL
 from django.db.models.fields import CharField
 from django.http import HttpResponse, Http404
@@ -1378,11 +1378,7 @@ class PathReport(GridReport):
                 "duration_per": None,
                 "quantity": 1,
                 "buffers": None,
-                "parent": (
-                    reportclass.operation_dict[previousOperation]
-                    if previousOperation
-                    else None
-                ),
+                "parent": reportclass.operation_dict.get(previousOperation, None),
                 "leaf": "false",
                 "expanded": "true",
                 "numsuboperations": reportclass.suboperations_count_dict[i[11]],
@@ -1431,14 +1427,8 @@ class PathReport(GridReport):
                 "duration_per": None,
                 "quantity": 1,
                 "buffers": None,
-                "parent": (
-                    reportclass.operation_dict[i[11]]
-                    if i[11]
-                    else (
-                        reportclass.operation_dict[previousOperation]
-                        if previousOperation
-                        else None
-                    )
+                "parent": reportclass.operation_dict.get(
+                    i[11], reportclass.operation_dict.get(previousOperation, None)
                 ),
                 "leaf": "false",
                 "expanded": "true",
@@ -1504,14 +1494,8 @@ class PathReport(GridReport):
                     if i[4]
                     else tuple([("%s @ %s" % (i[17], i[1]), 1)]) if i[17] else None
                 ),
-                "parent": (
-                    reportclass.operation_dict[i[8]]
-                    if i[8]
-                    else (
-                        reportclass.operation_dict[previousOperation]
-                        if previousOperation
-                        else None
-                    )
+                "parent": reportclass.operation_dict.get(
+                    i[8], reportclass.operation_dict.get(previousOperation, None)
                 ),
                 "leaf": "false",
                 "expanded": "true",
@@ -1854,7 +1838,13 @@ class OperationPlanDetail(View):
                 x
                 for x in OperationPlanMaterial.objects.all()
                 .using(request.database)
-                .filter(operationplan__reference__in=ids)
+                .filter(Q(operationplan_id__in=ids) | Q(operationplan__owner__in=ids))
+                .annotate(
+                    consume_or_produce=RawSQL(
+                        "sign(operationplanmaterial.quantity)", ()
+                    )
+                )
+                .order_by("consume_or_produce", "item_id")
                 .values(
                     "operationplan_id",
                     "item_id",
@@ -1862,19 +1852,21 @@ class OperationPlanDetail(View):
                     "flowdate",
                     "quantity",
                     "item__description",
+                    "operationplan__owner__reference",
                 )
             ]
             opplanrscs = [
                 x
                 for x in OperationPlanResource.objects.all()
                 .using(request.database)
-                .filter(operationplan__reference__in=ids)
-                .order_by("resource__owner", "resource_id")
+                .filter(Q(operationplan_id__in=ids) | Q(operationplan__owner__in=ids))
+                .order_by(F("resource__owner").desc(nulls_last=True), "resource_id")
                 .values(
                     "operationplan_id",
                     "quantity",
                     "resource_id",
                     "operationplan__startdate",
+                    "operationplan__owner__reference",
                 )
             ]
         except Exception as e:
@@ -2000,7 +1992,9 @@ class OperationPlanDetail(View):
                                                     "name": rec[0],
                                                     "description": rec[1],
                                                 },
-                                                "due": rec[2].strftime("%Y-%m-%d"),
+                                                "due": rec[2].strftime(
+                                                    settings.DATE_INPUT_FORMATS[0]
+                                                ),
                                                 "forecast": True,
                                             },
                                             "quantity": q,
@@ -2033,10 +2027,15 @@ class OperationPlanDetail(View):
                             select a.item_id, b.item_id
                             from operationmaterial a
                             inner join operationmaterial b on a.operation_id = b.operation_id and a.name = b.name
-                            where a.operation_id = %s
+                            inner join operation
+                               on a.operation_id = operation.name
+                            where (operation.name = %s or operation.owner_id = %s)
                             and a.id != b.id
                             """,
-                            (opplan.operation.name,),
+                            (
+                                opplan.operation.name,
+                                opplan.operation.name,
+                            ),
                         )
                         for i in cursor.fetchall():
                             if i[0] not in alts:
@@ -2044,7 +2043,10 @@ class OperationPlanDetail(View):
                             alts[i[0]].add(i[1])
                     firstmat = True
                     for m in opplanmats:
-                        if m["operationplan_id"] != opplan.reference:
+                        if opplan.reference not in (
+                            m["operationplan_id"],
+                            m["operationplan__owner__reference"],
+                        ):
                             continue
                         if firstmat:
                             firstmat = False
@@ -2057,6 +2059,7 @@ class OperationPlanDetail(View):
                                 "item": m["item_id"],
                                 "description": m["item__description"],
                             },
+                            "reference": m["operationplan_id"],
                         }
                         # List matching alternates
                         if m["item_id"] in alts:
@@ -2087,14 +2090,16 @@ class OperationPlanDetail(View):
                             inner join resource alt_res_children
                                on alt_res_children.lft between alt_res.lft and alt_res.rght
                                and alt_res_children.rght = alt_res_children.lft + 1
+                            inner join operation
+                               on operationresource.operation_id = operation.name
                             where (operationresource.skill_id is null or exists (
                                select 1 from resourceskill
                                where resourceskill.resource_id = alt_res_children.name
                                and resourceskill.skill_id = alt_opres.skill_id
                                ))
-                            and operationresource.operation_id = %s
+                            and (operation.owner_id = %s or operation.name = %s)
                             """,
-                            (opplan.operation.name,),
+                            (opplan.operation.name, opplan.operation.name),
                         )
                         for i in cursor.fetchall():
                             if i[0] not in alts:
@@ -2102,7 +2107,10 @@ class OperationPlanDetail(View):
                             alts[i[0]].add(i[1])
                     firstres = True
                     for m in opplanrscs:
-                        if m["operationplan_id"] != opplan.reference:
+                        if opplan.reference not in (
+                            m["operationplan_id"],
+                            m["operationplan__owner__reference"],
+                        ):
                             continue
                         if firstres:
                             firstres = False
@@ -2113,6 +2121,7 @@ class OperationPlanDetail(View):
                             ),
                             "quantity": float(m["quantity"]),
                             "resource": {"name": m["resource_id"]},
+                            "reference": m["operationplan_id"],
                         }
                         # List matching alternates
                         for a in alts.values():

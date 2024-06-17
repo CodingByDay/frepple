@@ -87,9 +87,6 @@
         <button class="btn btn-sm btn-primary" data-ng-click="showCustomizeGrid()" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{'Customize'|translate}}">
           <span class="fa fa-wrench"></span>
         </button>
-        <button class="btn btn-sm d-none d-md-inline-block btn-primary" onclick="window.open('https://frepple.com/docs/' + version + '/user-interface/plan-analysis/forecast-editor.html')" data-bs-toggle="tooltip" data-bs-placement="top" title="{{'Help'|translate}}">
-          <span class="fa fa-question"></span>
-        </button>
       </form>
     </div>
   </div>
@@ -309,7 +306,7 @@
 			</div>
 		</div>
 		<div class="row mb-3" data-ng-show="showtab=='forecast'">
-      <div class="col-lg-8 col-md-12" style="max-width: 900px">
+      <div class="col-lg-8 col-md-12 mb-3" style="max-width: 900px">
 				<div class="card">
 					<div class="card-header">
 						<h5 class="card-title text-capitalize mb-0" data-translate>edit</h5>
@@ -359,14 +356,14 @@
 								</td>
 							</tr>
 							</table>
-						  <div class="col-12">
+						  <!-- <div class="col-12">
 							<label for="comment">Comment:</label>
 							<textarea class="form-control" rows="3" id="comment" ng-model="edit_comment"></textarea>
-							</div>
+							</div> -->
 					</div>
 				</div>
 			</div>
-		<div class="col-md-4 col-md-12" style="max-width: 400px">
+		<div class="col-md-4 col-md-12 mb-3" style="max-width: 400px">
         <div class="card">
           <div class="card-header">
             <h5 class="card-title mb-0 text-capitalize" data-translate>parameters</h5>

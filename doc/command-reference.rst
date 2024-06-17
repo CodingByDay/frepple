@@ -25,6 +25,7 @@ This section provides an overview of the available actions:
   * :ref:`importfromfolder`
   * :ref:`runwebservice`
   * :ref:`scenario_copy`
+  * :ref:`measure_copy`
   * :ref:`empty`
   * :ref:`odoo_import`
   * :ref:`odoo_export`
@@ -136,8 +137,9 @@ based on a predefined schedule.
 
 Optionally, a email can be sent out upon failure or success of the execution.
 
-The automated running of a task depends on the availability of the Linux at-command. This feature
-isn't active in the frepple docker container, so the automated scheduling functionality is disabled there.
+The start time of a scheduled task is saved in the database with a fixed UTC offset.
+As a consequence, planners living in countries where daylight saving time (DST) applies
+will notice a one-hour difference for the scheduled task start depending on whether DST is active or not.
 
 .. tabs::
 
@@ -422,7 +424,10 @@ command is more an exception.
 Scenario management
 -------------------
 
-This option allows a user to either create copies of a dataset into a
+Scenarios are isolated databases that allow working with multiple datasets.
+See :doc:`/user-interface/what-if-scenarios` for an quick introduction.
+
+This action allows a user to either create copies of a dataset into a
 what-if scenario or promote the data from a scenario into *Production* database.
 
 When the data is successfully copied, the status changes from 'Free'
@@ -473,6 +478,36 @@ upper right hand corner, can also be updated here.
 
         # To promote a scenario named scenario1 into Production (where "default" is the Production name):
         POST /execute/api/scenario_copy/?promote=1&source=scenario1&destination=default
+
+.. _measure_copy:
+
+Measure management
+-------------------
+
+This option allows a user to copy a measure into another measure.
+
+The destination measure can be either a new measure or an existing measure (that will then be overwritten).
+
+
+.. tabs::
+
+   .. tab:: Execution screen
+
+      .. image:: /user-interface/_images/execution-measures.png
+         :alt: Execution screen - Measure Management
+
+   .. tab:: Command line
+
+      .. code-block:: bash
+
+         frepplectl measure_copy source_measure destination_measure
+
+
+   .. tab:: Web API
+
+      .. code-block:: bash
+
+         POST /execute/api/measure_copy/?source=source_measure&destination=destination_measure
 
 .. _backup:
 
@@ -654,6 +689,10 @@ Generate time buckets
 
 Many output reports are displaying the plan results aggregated into time
 buckets. These time buckets are defined with the tables dates and bucket dates.
+
+For all reports to work correctly and avoid all ambiguity you need to assure
+the expressions generate a unique name for each bucket. For instance, just using
+"%y" as day name won't work.
 
 This tasks allows you to populate these tables in an easy way with buckets
 with daily, weekly, monthly, quarterly and yearly granularity. Existing bucket

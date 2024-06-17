@@ -16,13 +16,6 @@ application.
 ==================================== =======================================================================
 Parameter                            Description
 ==================================== =======================================================================
-allowsplits                          | When set to true, a sales order or forecast is
-                                       allowed to be planned in multiple manufacturing orders. An order of
-                                       eg 100 pieces can be planned with 2 manufacturing of 50 pieces.
-                                     | When the parameter is set to false (default value), this splitting is disabled. This
-                                       will result in a plan with less manufacturing orders. The plan
-                                       generation will be considerably faster, but can have additional
-                                       delivery delays of the customer orders and forecasts.
 currentdate                          | Current date of the plan, preferred format is YYYY-MM-DD HH:MM:SS
                                        but most known formats to represent a date and/or time are accepted.
                                      | When the parameter is set to "today", we use today 00:00 / midnight
@@ -68,13 +61,6 @@ plan.minimalBeforeCurrentConstraints | By default the "why short or late" list f
                                      | When setting this option to true, we will limit the list to show only
                                        the most constraining operation. This make the list easier to interpret
                                        by users.
-plan.calendar                        | Name of a calendar to align the end date of new manufacturing orders,
-                                       purchase orders, distribution orders and delivery orders with.
-                                     | When this parameter is used, the plan results are effectively grouped
-                                       in the time buckets defined in this calendar.
-                                     | This feature is typically used for medium and long term plans.
-                                     | Such plans are reviewed in monthly or weekly buckets rather than at
-                                       individual dates.
 plan.loglevel                        | Controls the verbosity of the planning log file.
                                      | Accepted values are 0 (silent – default), 1 (minimal) and 2 (verbose).
 plan.minimumdelay                    | Specifies a minimum delay the algorithm applies when the requested
@@ -83,8 +69,6 @@ plan.minimumdelay                    | Specifies a minimum delay the algorithm a
                                        planning run is taking a long time and the log file shows that demands
                                        take many iterations to be planned - where the requested delivery
                                        date for each iteration is advancing only in tiny increments.
-plan.planSafetyStockFirst            | Controls whether safety stock is planned before or after the demand.
-                                     | Accepted values are false (default) and true.
 plan.fixBrokenSupplyPath             | When set to true (which is the default), frepple will scan for
                                        items that can't be replenished any longer with purchase orders,
                                        distribution orders or manufacturing orders.
@@ -131,9 +115,9 @@ WIP.produce_full_quantity            | Controls how material is produced from pa
 
 **Demand forecasting parameters**
 
-The recommended default parameters for the demand forecasting module are different for weekly and
-monthly time buckets. The datasets parameters_month_forecast and parameters_week_forecast allow
-you to reset the defaults values applicable to your configuration.
+The recommended default parameters for the demand forecasting module are different for daily, weekly and
+monthly time buckets. The parameters with a value "default" in the parameters screen can get a different
+value depending on the configured time bucket.
 
 ==================================================== ===========================================================================
 Parameter                                            Description

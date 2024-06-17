@@ -345,6 +345,15 @@ class OperationResourceList(GridReport):
             formatter="detail",
             extra='"role":"input/location"',
         ),
+        GridFieldText(
+            "resource__available",
+            editable=False,
+            initially_hidden=True,
+            title=format_lazy("{} - {}", _("resource"), _("available")),
+            field_name="resource__available__name",
+            formatter="detail",
+            extra='"role":"input/calendar"',
+        ),
     )
 
 
@@ -1651,6 +1660,7 @@ class ManufacturingOrderList(OperationPlanMixin):
             format_lazy("{} - {}", _("item"), _("subcategory"))
         )
         ctx = super().extra_context(request, *args, **kwargs)
+        ctx["noautofilter"] = "noautofilter" in request.GET
         if args and args[0]:
             request.session["lasttab"] = "plandetail"
             paths = request.path.split("/")
@@ -1904,13 +1914,20 @@ class ManufacturingOrderList(OperationPlanMixin):
                 )
 
         q = reportclass.operationplanExtraBasequery(q, request)
+
+        if request.prefs and "noautofilter" not in request.GET:
+            if not request.prefs.get("showTop", True):
+                q = q.exclude(owner__isnull=True)
+            if not request.prefs.get("showChildren", True):
+                q = q.exclude(owner__isnull=False)
+
         return q.annotate(
             material=RawSQL(
-                "(select json_agg(json_build_array(item_id, quantity)) from (select item_id, round(quantity,2) quantity from operationplanmaterial where operationplan.reference = operationplanmaterial.operationplan_id  order by quantity limit 10) mat)",
+                "(select json_agg(json_build_array(item_id, quantity, operationplan_id)) from (select operationplanmaterial.item_id, round(operationplanmaterial.quantity,2) quantity, operationplanmaterial.operationplan_id from operationplanmaterial inner join operationplan opplan2 on opplan2.reference = operationplanmaterial.operationplan_id where operationplan.reference = opplan2.reference or operationplan.reference = opplan2.owner_id order by quantity limit 10) mat)",
                 [],
             ),
             resource=RawSQL(
-                "(select json_agg(json_build_array(resource_id, quantity)) from (select resource_id, round(quantity,2) quantity from operationplanresource where operationplan.reference = operationplanresource.operationplan_id  order by quantity desc limit 10) res)",
+                "(select json_agg(json_build_array(resource_id, quantity, operationplan_id)) from (select operationplanresource.resource_id, round(operationplanresource.quantity,2) quantity, operationplanresource.operationplan_id from operationplanresource inner join operationplan opplan2 on opplan2.reference = operationplanresource.operationplan_id where operationplan.reference = opplan2.reference or operationplan.reference = opplan2.owner_id order by quantity desc limit 10) res)",
                 [],
             ),
             setup=RawSQL(

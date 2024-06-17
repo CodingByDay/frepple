@@ -752,9 +752,9 @@ class OverviewReport(GridPivot):
                     "mode_past": m.mode_past,
                     "formatter": m.formatter,
                     "editable": m.mode_future == "edit" or m.mode_past == "edit",
-                    "defaultvalue": float(m.defaultvalue)
-                    if m.defaultvalue is not None
-                    else 0,
+                    "defaultvalue": (
+                        float(m.defaultvalue) if m.defaultvalue is not None else 0
+                    ),
                     "initially_hidden": m.initially_hidden,
                     "visible": m.mode_future != "hide" or m.mode_past != "hide",
                 },
@@ -947,11 +947,13 @@ class OverviewReport(GridPivot):
             reportclass.attr_sql,
             ",\n".join(
                 [
-                    "coalesce(sum((forecastplan.value->>'%s')::numeric),0) as %s"
-                    % (m.name, m.name)
-                    if m.defaultvalue != -1
-                    else "sum((forecastplan.value->>'%s')::numeric) as %s"
-                    % (m.name, m.name)
+                    (
+                        "coalesce(sum((forecastplan.value->>'%s')::numeric),0) as %s"
+                        % (m.name, m.name)
+                        if m.defaultvalue != -1
+                        else "sum((forecastplan.value->>'%s')::numeric) as %s"
+                        % (m.name, m.name)
+                    )
                     for m in request.measures
                     if not m.computed
                 ]
@@ -1049,9 +1051,7 @@ class OverviewReport(GridPivot):
                             res[m.name] = (
                                 float(row[idx])
                                 if row[idx] is not None
-                                else m.defaultvalue
-                                if m.defaultvalue != -1
-                                else None
+                                else m.defaultvalue if m.defaultvalue != -1 else None
                             )
                             idx += 1
 
@@ -1178,6 +1178,8 @@ class ConstraintReport(BaseReport):
 
 
 class ForecastEditor:
+    help_url = "user-interface/plan-analysis/forecast-editor.html"
+
     @staticmethod
     def getMeasure(request):
         measurename = request.GET.get("measure", None)
@@ -1713,11 +1715,13 @@ class ForecastEditor:
               """ % (
             ",\n".join(
                 [
-                    "coalesce(sum((forecastplan.value->>'%s')::numeric),0) as %s"
-                    % (m.name, m.name)
-                    if not m.defaultvalue
-                    else "sum((forecastplan.value->>'%s')::numeric) as %s"
-                    % (m.name, m.name)
+                    (
+                        "coalesce(sum((forecastplan.value->>'%s')::numeric),0) as %s"
+                        % (m.name, m.name)
+                        if not m.defaultvalue
+                        else "sum((forecastplan.value->>'%s')::numeric) as %s"
+                        % (m.name, m.name)
+                    )
                     for m in request.measures
                     if not m.computed
                 ]
@@ -1819,23 +1823,64 @@ class ForecastEditor:
         customer_type = ContentType.objects.get_for_model(Customer)
         item_type = ContentType.objects.get_for_model(Item)
         location_type = ContentType.objects.get_for_model(Location)
+        item_obj = (
+            Item.objects.only("lft", "rght").using(request.database).get(name=item)
+        )
+        location_obj = (
+            Location.objects.only("lft", "rght")
+            .using(request.database)
+            .get(name=location)
+        )
+        customer_obj = (
+            Customer.objects.only("lft", "rght")
+            .using(request.database)
+            .get(name=customer)
+        )
+
         comments = (
             Comment.objects.using(request.database)
             .filter(
-                Q(content_type=customer_type.id, object_pk=customer)
-                | Q(content_type=item_type.id, object_pk=item)
-                | Q(content_type=location_type.id, object_pk=location)
+                Q(
+                    content_type=customer_type.id,
+                    object_pk__in=[
+                        i["name"]
+                        for i in Customer.objects.using(request.database)
+                        .filter(lft__gte=customer_obj.lft)
+                        .filter(lft__lt=customer_obj.rght)
+                        .values("name")
+                    ],
+                )
+                | Q(
+                    content_type=item_type.id,
+                    object_pk__in=[
+                        i["name"]
+                        for i in Item.objects.using(request.database)
+                        .filter(lft__gte=item_obj.lft)
+                        .filter(lft__lt=item_obj.rght)
+                        .values("name")
+                    ],
+                )
+                | Q(
+                    content_type=location_type.id,
+                    object_pk__in=[
+                        i["name"]
+                        for i in Location.objects.using(request.database)
+                        .filter(lft__gte=location_obj.lft)
+                        .filter(lft__lt=location_obj.rght)
+                        .values("name")
+                    ],
+                )
             )
             .order_by("-lastmodified")
         )
         result_comment = []
         for i in comments:
             if i.content_type == customer_type:
-                t = "customer"
+                t = "customer %s" % (i.object_pk,)
             elif i.content_type == item_type:
-                t = "item"
+                t = "item %s" % (i.object_pk,)
             else:
-                t = "location"
+                t = "location %s" % (i.object_pk,)
             result_comment.append(
                 {
                     "user": "%s (%s)" % (i.user.username, i.user.get_full_name()),
@@ -2018,7 +2063,7 @@ class ForecastEditor:
         if request.user.horizonbuckets and request.user.horizonbuckets in bucketlevels:
             # User selected value is valid
             bucketName = request.user.horizonbuckets
-        else:
+        elif bucketlevels:
             # Default to the most detailed allowed view
             bucketName = bucketlevels[0]
             request.user.horizonbuckets = bucketlevels[0]
@@ -2088,6 +2133,7 @@ class ForecastEditor:
                 "currentbucket": currentbucket,
                 "currentdate": currentdate.strftime("%Y-%m-%d"),
                 "measures": json.dumps(measures),
+                "reportclass": ForecastEditor,
             }
         )
         return render(

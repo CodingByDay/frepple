@@ -29,6 +29,7 @@ import os.path
 from pathlib import Path
 import re
 
+from django.conf import settings
 from django.core import management
 from django.core.paginator import Paginator
 from django.http import (
@@ -36,6 +37,10 @@ from django.http import (
     HttpResponseNotAllowed,
     HttpResponseForbidden,
     HttpResponseNotFound,
+    Http404,
+    HttpResponseRedirect,
+    HttpResponse,
+    HttpResponseServerError,
 )
 from django.shortcuts import render
 from django.contrib import messages
@@ -59,13 +64,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.text import capfirst
 from django.contrib.auth.models import Group
 from django.utils import translation
-from django.conf import settings
-from django.http import (
-    Http404,
-    HttpResponseRedirect,
-    HttpResponse,
-    HttpResponseServerError,
-)
+
 from django.shortcuts import render
 from django.views import static
 from django.views.decorators.csrf import csrf_protect
@@ -170,12 +169,14 @@ class AppsView(View):
         if not request.user.is_superuser:
             return HttpResponseForbidden("Only superusers can update apps")
         try:
-            data = json.loads(request.body.decode(request.encoding))
+            data = json.loads(
+                request.body.decode(request.encoding or settings.DEFAULT_CHARSET)
+            )
             reportclass.updateApp(**data)
             return HttpResponse(content="OK")
         except Exception as e:
             logger.error("Error updating app: %s" % e)
-            return HttpResponseServerError("Error updating app: %s" % e)
+            return HttpResponseServerError("Error updating app")
 
     @classmethod
     def updateApp(reportclass, app=None, action=None, **kwargs):
@@ -555,7 +556,9 @@ def saveSettings(request):
     ):
         raise Http404("Only ajax post requests allowed")
     try:
-        data = json.loads(request.body.decode(request.encoding))
+        data = json.loads(
+            request.body.decode(request.encoding or settings.DEFAULT_CHARSET)
+        )
         for key, value in data.items():
             request.user.setPreference(key, value, database=request.database)
         return HttpResponse(content="OK")
@@ -1004,6 +1007,10 @@ def sendStaticFile(request, *args, headers=None):
         response = static.serve(
             request, args[-1], document_root=os.path.join(*args[:-1])
         )
+    if response.headers.get("Content-Encoding", None) == "gzip":
+        # Avoid that gzipped files are decompressed automatically by browsers
+        del response.headers["Content-Encoding"]
+        response.headers["Content-Type"] = "application/gzip"
     if headers:
         for k, v in headers.items():
             response[k] = v

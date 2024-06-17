@@ -224,9 +224,9 @@ class ManufacturingOrderWidget(Widget):
     def args(self):
         return "?%s" % urlencode({"fence1": self.fence1, "fence2": self.fence2})
 
-    javascript = """
+    javascript = r"""
     var margin_y = 70;  // Width allocated for the Y-axis
-    var margin_x = 60;  // Height allocated for the X-axis
+
     var svg = d3.select("#mo_chart");
     var svgrectangle = document.getElementById("mo_chart").getBoundingClientRect();
 
@@ -239,10 +239,14 @@ class ManufacturingOrderWidget(Widget):
     var max_value = 0.0;
     var max_units = 0.0;
     var max_count = 0.0;
+    var max_length = 0;
     var nth = Math.ceil($("#mo_overview").find("tr").length / (svgrectangle['width'] - margin_y) * 30);
     var myticks = [];
+
     $("#mo_overview").find("tr").each(function(idx) {
       var name = $(this).children('td').first();
+      if (name.text().length > max_length)
+            max_length = name.text().length;
       var count = name.next();
       var units = count.next();
       var value = units.next();
@@ -257,13 +261,25 @@ class ManufacturingOrderWidget(Widget):
       if (idx %% nth == 0) myticks.push(name.text());
       });
 
+    var margin_x = 9*max_length;  // Height allocated for the X-axis depends on x-axis titles
+
+    // List of groups
+    var allGroup = ["value", "unit"]
+
+    // add the options to the button
+    d3.select("#mo_selectButton")
+      .selectAll('myOptions')
+     	.data(allGroup)
+      .enter()
+    	.append('option')
+      .text(function (d) { return d; }) // text showed in the menu
+      .attr("value", function (d) { return d; }) // corresponding value returned by the button
+
     // Define axis domains
     var x = d3.scale.ordinal()
       .domain(domain_x)
       .rangeRoundBands([0, svgrectangle['width'] - margin_y - 10], 0);
-    var y_value = d3.scale.linear()
-      .range([svgrectangle['height'] - margin_x - 10, 0])
-      .domain([0, max_value + 5]);
+
     var y_count = d3.scale.linear()
       .range([svgrectangle['height'] - margin_x - 10, 0])
       .domain([0, max_count + 5]);
@@ -281,51 +297,71 @@ class ManufacturingOrderWidget(Widget):
       .attr("dy", "-.25em")
       .attr("transform", "rotate(-90)" );
 
-    // Draw y-axis
-    var yAxis = d3.svg.axis().scale(y_value)
-        .orient("left")
-        .ticks(5)
-        .tickFormat(d3.format("s"));
-    svg.append("g")
-      .attr("transform", "translate(" + margin_y + ", 10 )")
-      .attr("class", "y axis")
-      .call(yAxis);
-
     // get position of the first tick in the graph
     var tickposition = 0;
     if (typeof $("#xAxisMO").children()[0].attributes !== 'undefined') {
-      tickposition = parseInt($("#xAxisMO").children()[0].attributes.transform.value.slice(10));
+    tickposition = parseInt($("#xAxisMO").children()[0].attributes.transform.value.slice(10));
     }
 
-    // Draw rectangles
-    svg.selectAll("g>rect")
-     .data(data)
-     .enter()
-     .append("g")
-     .append("rect")
-      .attr("x",function(d, i) {return tickposition + i*x.rangeBand() - x.rangeBand()/2 + margin_y;})
-      .attr("y",function(d, i) {return svgrectangle['height'] - margin_x - (y_value(0) - y_value(d[3]));})
-      .attr("height", function(d, i) {return y_value(0) - y_value(d[3]);})
-      .attr("width", x.rangeBand())
-      .attr('fill', '#828915')
-      .on("mouseover", function(d) {
-        graph.showTooltip(d[0] + '<br>'+ numberWithCommas(d[1]) + " MOs / " + numberWithCommas(d[2]) + ' %s / ' + currency[0] + ' ' + numberWithCommas(d[3]) + currency[1] );
-        $("#tooltip").css('background-color','black').css('color','white');
-        })
-      .on("mousemove", graph.moveTooltip)
-      .on("mouseout", graph.hideTooltip)
-      .on("click", function(d) {
-	          if (d3.event.defaultPrevented || y_value(d[3]) == 0)
-	            return;
-	          d3.select("#tooltip").style('display', 'none');
+    function draw() {
+        var y_value = d3.scale.linear()
+      .range([svgrectangle['height'] - margin_x - 10, 0])
+      .domain([0,
+       (d3.select("#mo_selectButton").property("value") == "value" ? max_value:max_units)
+         + 5]);
 
-	          window.location = url_prefix
-	            + "/data/input/manufacturingorder/"
-	            + "?noautofilter&startdate__gte=" + d[4]
-	            + "&startdate__lt=" + d[5];
+        // Draw y-axis
+        var yAxis = d3.svg.axis().scale(y_value)
+            .orient("left")
+            .ticks(Math.min(Math.floor((svgrectangle['height'] - 10 - margin_x) / 20), 5))
+            .tickFormat(d3.format("s"));
+        svg.append("g")
+        .attr("transform", "translate(" + margin_y + ", 10 )")
+        .attr("class", "y axis")
+        .attr("id","mo_yaxis")
+        .call(yAxis);
 
-	          d3.event.stopPropagation();
-	        });
+        // Draw rectangles
+        svg.selectAll("g>rect")
+        .data(data)
+        .enter()
+        .append("g")
+        .append("rect")
+        .attr("id","mo_bar")
+        .attr("x",function(d, i) {return tickposition + i*x.rangeBand() - x.rangeBand()/2 + margin_y;})
+        .attr("y",function(d, i) {return svgrectangle['height'] - margin_x - (y_value(0) -
+        (d3.select("#mo_selectButton").property("value") == "value" ? y_value(d[3]):y_value(d[2])));})
+        .attr("height", function(d, i) {return y_value(0) -
+        (d3.select("#mo_selectButton").property("value") == "value" ? y_value(d[3]):y_value(d[2]));})
+        .attr("width", x.rangeBand())
+        .attr('fill', '#828915')
+        .on("mouseover", function(d) {
+            graph.showTooltip(d[0] + '<br>'+ numberWithCommas(d[1]) + " MOs / " + numberWithCommas(d[2]) + ' %s / ' + currency[0] + ' ' + numberWithCommas(d[3]) + currency[1] );
+            $("#tooltip").css('background-color','black').css('color','white');
+            })
+        .on("mousemove", graph.moveTooltip)
+        .on("mouseout", graph.hideTooltip)
+        .on("click", function(d) {
+                if (d3.event.defaultPrevented || y_value(d[3]) == 0)
+                    return;
+                d3.select("#tooltip").style('display', 'none');
+
+                window.location = url_prefix
+                    + "/data/input/manufacturingorder/"
+                    + "?noautofilter&startdate__gte=" + d[4]
+                    + "&startdate__lt=" + d[5];
+
+                d3.event.stopPropagation();
+                });
+    }
+    draw();
+
+    // When the button is changed, update data and redraw()
+    d3.select("#mo_selectButton").on("change", function(d) {
+        d3.selectAll('#mo_yaxis').remove();
+        d3.selectAll('#mo_bar').remove();
+        draw();
+    })
 
     """ % force_str(
         _("units")
@@ -416,7 +452,8 @@ class ManufacturingOrderWidget(Widget):
             ),
         )
         result = [
-            '<svg class="chart" id="mo_chart" style="width:100%; height: 150px;"></svg>',
+            '<select class="form-select form-select-sm d-inline-block w-auto" id="mo_selectButton"></select>',
+            '<svg class="chart  mb-2" id="mo_chart" style="width:100%; height: 170px;"></svg>',
             '<table id="mo_overview" style="display: none">',
         ]
         for rec in cursor.fetchall():
@@ -427,7 +464,7 @@ class ManufacturingOrderWidget(Widget):
                 )
             elif rec[0] == 1 and rec[3] > 0:
                 result.append(
-                    '</table><div class="row"><div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/manufacturingorder/?noautofilter&sord=asc&sidx=startdate&amp;status__in=confirmed,approved" role="button" class="btn btn-success btn-sm">%s</a></h2><small>%s</small></div>'
+                    '</table><div class="row"><div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/manufacturingorder/?noautofilter&sord=asc&sidx=startdate&amp;status__in=confirmed,approved" role="button" class="btn btn-primary btn-sm">%s</a></h2><small>%s</small></div>'
                     % (
                         f"{rec[3]:,}",
                         f"{rec[4]:,}",
@@ -445,7 +482,7 @@ class ManufacturingOrderWidget(Widget):
             elif rec[0] == 2 and fence1 and rec[3] > 0:
                 limit_fence1 = current + timedelta(days=fence1)
                 result.append(
-                    '<div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/manufacturingorder/?noautofilter&sord=asc&sidx=startdate&startdate__lte=%s&amp;status=proposed" role="button" class="btn btn-success btn-sm">%s</a></h2><small>%s</small></div>'
+                    '<div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/manufacturingorder/?noautofilter&sord=asc&sidx=startdate&startdate__lte=%s&amp;status=proposed" role="button" class="btn btn-primary btn-sm">%s</a></h2><small>%s</small></div>'
                     % (
                         f"{rec[3]:,}",
                         f"{rec[4]:,}",
@@ -465,7 +502,7 @@ class ManufacturingOrderWidget(Widget):
             elif rec[0] == 3 and fence2 and rec[3] > 0:
                 limit_fence2 = current + timedelta(days=fence2)
                 result.append(
-                    '<div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/manufacturingorder/?noautofilter&sord=asc&sidx=startdate&startdate__lte=%s&amp;status=proposed" rol="button" class="btn btn-success btn-sm">%s</a></h2><small>%s</small></div>'
+                    '<div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/manufacturingorder/?noautofilter&sord=asc&sidx=startdate&startdate__lte=%s&amp;status=proposed" rol="button" class="btn btn-primary btn-sm">%s</a></h2><small>%s</small></div>'
                     % (
                         f"{rec[3]:,}",
                         f"{rec[4]:,}",
@@ -503,9 +540,8 @@ class DistributionOrderWidget(Widget):
     def args(self):
         return "?%s" % urlencode({"fence1": self.fence1, "fence2": self.fence2})
 
-    javascript = """
+    javascript = r"""
     var margin_y = 70;  // Width allocated for the Y-axis
-    var margin_x = 60;  // Height allocated for the X-axis
     var svg = d3.select("#do_chart");
     var svgrectangle = document.getElementById("do_chart").getBoundingClientRect();
 
@@ -518,10 +554,15 @@ class DistributionOrderWidget(Widget):
     var max_value = 0.0;
     var max_units = 0.0;
     var max_count = 0.0;
+    var max_length = 0;
+
     var nth = Math.ceil($("#do_overview").find("tr").length / (svgrectangle['width'] - margin_y) * 30);
     var myticks = [];
+
     $("#do_overview").find("tr").each(function(idx) {
       var name = $(this).children('td').first();
+      if (name.text().length > max_length)
+            max_length = name.text().length;
       var count = name.next();
       var units = count.next();
       var value = units.next();
@@ -536,13 +577,26 @@ class DistributionOrderWidget(Widget):
       if (idx %% nth == 0) myticks.push(name.text());
       });
 
+    var margin_x = 9*max_length;  // Height allocated for the X-axis depends on x-axis titles
+
+    // List of groups
+    var allGroup = ["value", "unit"]
+
+    // add the options to the button
+    d3.select("#do_selectButton")
+      .selectAll('myOptions')
+     	.data(allGroup)
+      .enter()
+    	.append('option')
+      .text(function (d) { return d; }) // text showed in the menu
+      .attr("value", function (d) { return d; }) // corresponding value returned by the button
+
+
     // Define axis domains
     var x = d3.scale.ordinal()
       .domain(domain_x)
       .rangeRoundBands([0, svgrectangle['width'] - margin_y - 10], 0);
-    var y_value = d3.scale.linear()
-      .range([svgrectangle['height'] - margin_x - 10, 0])
-      .domain([0, max_value + 5]);
+
     var y_count = d3.scale.linear()
       .range([svgrectangle['height'] - margin_x - 10, 0])
       .domain([0, max_count + 5]);
@@ -560,15 +614,7 @@ class DistributionOrderWidget(Widget):
       .attr("dy", "-.25em")
       .attr("transform", "rotate(-90)" );
 
-    // Draw y-axis
-    var yAxis = d3.svg.axis().scale(y_value)
-        .orient("left")
-        .ticks(5)
-        .tickFormat(d3.format("s"));
-    svg.append("g")
-      .attr("transform", "translate(" + margin_y + ", 10 )")
-      .attr("class", "y axis")
-      .call(yAxis);
+
 
     // get position of the first tick in the graph
     var tickposition = 0;
@@ -576,35 +622,67 @@ class DistributionOrderWidget(Widget):
       tickposition = parseInt($("#xAxisDO").children()[0].attributes.transform.value.slice(10));
     }
 
-    // Draw rectangles
-    svg.selectAll("g>rect")
-     .data(data)
-     .enter()
-     .append("g")
-     .append("rect")
-      .attr("x",function(d, i) {return tickposition + i*x.rangeBand() - x.rangeBand()/2 + margin_y;})
-      .attr("y",function(d, i) {return svgrectangle['height'] - margin_x - (y_value(0) - y_value(d[3]));})
-      .attr("height", function(d, i) {return y_value(0) - y_value(d[3]);})
-      .attr("width", x.rangeBand())
-      .attr('fill', '#828915')
-      .on("mouseover", function(d) {
-        graph.showTooltip(d[0] + '<br>'+ numberWithCommas(d[1]) + " DOs / " + numberWithCommas(d[2]) + ' %s / ' + currency[0] + ' ' + numberWithCommas(d[3]) + currency[1] );
-        $("#tooltip").css('background-color','black').css('color','white');
-        })
-      .on("mousemove", graph.moveTooltip)
-      .on("mouseout", graph.hideTooltip)
-      .on("click", function(d) {
-	          if (d3.event.defaultPrevented || y_value(d[3]) == 0)
-	            return;
-	          d3.select("#tooltip").style('display', 'none');
+    function draw() {
+        var y_value = d3.scale.linear()
+         .range([svgrectangle['height'] - margin_x - 10, 0])
+         .domain([0,
+         (d3.select("#do_selectButton").property("value") == "value" ? max_value:max_units)
+         + 5]);
 
-	          window.location = url_prefix
-	            + "/data/input/distributionorder/"
-	            + "?noautofilter&startdate__gte=" + d[4]
-	            + "&startdate__lt=" + d[5];
+        // Draw y-axis
+        var yAxis = d3.svg.axis().scale(y_value)
+        .orient("left")
+        .ticks(Math.min(Math.floor((svgrectangle['height'] - 10 - margin_x) / 20), 5))
+        .tickFormat(d3.format("s"));
+        svg.append("g")
+        .attr("transform", "translate(" + margin_y + ", 10 )")
+         .attr("class", "y axis")
+         .attr("id","do_yaxis")
+         .call(yAxis);
 
-	          d3.event.stopPropagation();
-	        });
+        // Draw rectangles
+        svg.selectAll("g>rect")
+        .data(data)
+        .enter()
+        .append("g")
+        .append("rect")
+        .attr("id","do_bar")
+        .attr("x",function(d, i) {return tickposition + i*x.rangeBand() - x.rangeBand()/2 + margin_y;})
+        .attr("y",function(d, i) {return svgrectangle['height'] - margin_x - (y_value(0) -
+        (d3.select("#do_selectButton").property("value") == "value" ? y_value(d[3]):y_value(d[2]))
+        );})
+        .attr("height", function(d, i) {return y_value(0) -
+        (d3.select("#do_selectButton").property("value") == "value" ? y_value(d[3]):y_value(d[2]))
+        ;})
+        .attr("width", x.rangeBand())
+        .attr('fill', '#828915')
+        .on("mouseover", function(d) {
+            graph.showTooltip(d[0] + '<br>'+ numberWithCommas(d[1]) + " DOs / " + numberWithCommas(d[2]) + ' %s / ' + currency[0] + ' ' + numberWithCommas(d[3]) + currency[1] );
+            $("#tooltip").css('background-color','black').css('color','white');
+            })
+        .on("mousemove", graph.moveTooltip)
+        .on("mouseout", graph.hideTooltip)
+        .on("click", function(d) {
+                if (d3.event.defaultPrevented || y_value(d[3]) == 0)
+                    return;
+                d3.select("#tooltip").style('display', 'none');
+
+                window.location = url_prefix
+                    + "/data/input/distributionorder/"
+                    + "?noautofilter&startdate__gte=" + d[4]
+                    + "&startdate__lt=" + d[5];
+
+                d3.event.stopPropagation();
+                });
+    }
+    draw();
+
+    // When the button is changed, update data and redraw()
+    d3.select("#do_selectButton").on("change", function(d) {
+        d3.selectAll('#do_yaxis').remove();
+        d3.selectAll('#do_bar').remove();
+        draw();
+    })
 
     """ % force_str(
         _("units")
@@ -690,7 +768,8 @@ class DistributionOrderWidget(Widget):
             ),
         )
         result = [
-            '<svg class="chart" id="do_chart" style="width:100%; height: 150px;"></svg>',
+            '<select class="form-select form-select-sm d-inline-block w-auto" id="do_selectButton"></select>',
+            '<svg class="chart mb-2" id="do_chart" style="width:100%; height: 170px;"></svg>',
             '<table id="do_overview" style="display: none">',
         ]
         for rec in cursor.fetchall():
@@ -701,7 +780,7 @@ class DistributionOrderWidget(Widget):
                 )
             elif rec[0] == 1 and rec[3] > 0:
                 result.append(
-                    '</table><div class="row"><div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/distributionorder/?noautofilter&sord=asc&sidx=startdate&amp;status__in=confirmed,approved" class="btn btn-success btn-sm">%s</a></h2><small>%s</small></div>'
+                    '</table><div class="row"><div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/distributionorder/?noautofilter&sord=asc&sidx=startdate&amp;status__in=confirmed,approved" class="btn btn-primary btn-sm">%s</a></h2><small>%s</small></div>'
                     % (
                         f"{rec[3]:,}",
                         f"{rec[4]:,}",
@@ -719,7 +798,7 @@ class DistributionOrderWidget(Widget):
             elif rec[0] == 2 and fence1 and rec[3] > 0:
                 limit_fence1 = current + timedelta(days=fence1)
                 result.append(
-                    '<div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/distributionorder/?noautofilter&sord=asc&sidx=startdate&startdate__lte=%s&amp;status=proposed" class="btn btn-success btn-sm">%s</a></h2><small>%s</small></div>'
+                    '<div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/distributionorder/?noautofilter&sord=asc&sidx=startdate&startdate__lte=%s&amp;status=proposed" class="btn btn-primary btn-sm">%s</a></h2><small>%s</small></div>'
                     % (
                         f"{rec[3]:,}",
                         f"{rec[4]:,}",
@@ -739,7 +818,7 @@ class DistributionOrderWidget(Widget):
             elif rec[0] == 3 and fence2 and rec[3] > 0:
                 limit_fence2 = current + timedelta(days=fence2)
                 result.append(
-                    '<div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href=%s/data/input/distributionorder/?noautofilter&sord=asc&sidx=startdate&startdate__lte=%s&amp;status=proposed" class="btn btn-success btn-sm">%s</a></h2><small>%s</small></div>'
+                    '<div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href=%s/data/input/distributionorder/?noautofilter&sord=asc&sidx=startdate&startdate__lte=%s&amp;status=proposed" class="btn btn-primary btn-sm">%s</a></h2><small>%s</small></div>'
                     % (
                         f"{rec[3]:,}",
                         f"{rec[4]:,}",
@@ -787,9 +866,8 @@ class PurchaseOrderWidget(Widget):
         else:
             return "?%s" % urlencode({"fence1": self.fence1, "fence2": self.fence2})
 
-    javascript = """
+    javascript = r"""
     var margin_y = 70;  // Width allocated for the Y-axis
-    var margin_x = 60;  // Height allocated for the X-axis
     var svg = d3.select("#po_chart");
     var svgrectangle = document.getElementById("po_chart").getBoundingClientRect();
 
@@ -802,10 +880,14 @@ class PurchaseOrderWidget(Widget):
     var max_value = 0.0;
     var max_units = 0.0;
     var max_count = 0.0;
+    var max_length = 0;
     var nth = Math.ceil($("#po_overview").find("tr").length / (svgrectangle['width'] - margin_y) * 30);
     var myticks = [];
+
     $("#po_overview").find("tr").each(function(idx) {
       var name = $(this).children('td').first();
+      if (name.text().length > max_length)
+            max_length = name.text().length;
       var count = name.next();
       var units = count.next()
       var value = units.next()
@@ -820,13 +902,25 @@ class PurchaseOrderWidget(Widget):
       if (idx %% nth == 0) myticks.push(name.text());
       });
 
+    var margin_x = 9*max_length;  // Height allocated for the X-axis depends on x-axis titles
+
+    // List of groups
+    var allGroup = ["value", "unit"]
+
+    // add the options to the button
+    d3.select("#po_selectButton")
+      .selectAll('myOptions')
+     	.data(allGroup)
+      .enter()
+    	.append('option')
+      .text(function (d) { return d; }) // text showed in the menu
+      .attr("value", function (d) { return d; }) // corresponding value returned by the button
+
     // Define axis domains
     var x = d3.scale.ordinal()
       .domain(domain_x)
       .rangeRoundBands([0, svgrectangle['width'] - margin_y - 10], 0);
-    var y_value = d3.scale.linear()
-      .range([svgrectangle['height'] - margin_x - 10, 0])
-      .domain([0, max_value + 5]);
+
     var y_count = d3.scale.linear()
       .range([svgrectangle['height'] - margin_x - 10, 0])
       .domain([0, max_count + 5]);
@@ -844,54 +938,74 @@ class PurchaseOrderWidget(Widget):
       .attr("dy", "-.25em")
       .attr("transform", "rotate(-90)" );
 
-    // Draw y-axis
-    var yAxis = d3.svg.axis().scale(y_value)
-        .orient("left")
-        .ticks(5)
-        .tickFormat(d3.format("s"));
-    svg.append("g")
-      .attr("transform", "translate(" + margin_y + ", 10 )")
-      .attr("class", "y axis")
-      .call(yAxis);
-
     // get position of the first tick in the graph
     var tickposition = 0;
-    var thistarget = $("#xAxisPO").children()[0].attributes;
-    if (typeof thistarget !== 'undefined') {
-      if (typeof thistarget.transform !== 'undefined'){
-        tickposition = parseInt(thistarget.transform.value.slice(10));
-      }
+    if (typeof $("#xAxisPO").children()[0].attributes !== 'undefined') {
+      tickposition = parseInt($("#xAxisPO").children()[0].attributes.transform.value.slice(10));
     }
 
-    // Draw rectangles
-    svg.selectAll("g>rect")
-     .data(data)
-     .enter()
-     .append("g")
-     .append("rect")
-      .attr("x",function(d, i) {return tickposition + i*x.rangeBand() - x.rangeBand()/2 + margin_y;})
-      .attr("y",function(d, i) {return svgrectangle['height'] - margin_x - (y_value(0) - y_value(d[3]));})
-      .attr("height", function(d, i) {return y_value(0) - y_value(d[3]);})
-      .attr("width", x.rangeBand())
-      .attr('fill', '#828915')
-      .on("mouseover", function(d) {
-        graph.showTooltip(d[0] + '<br>'+ numberWithCommas(d[1]) + " POs / " + numberWithCommas(d[2]) + ' %s / ' + currency[0] + ' ' + numberWithCommas(d[3]) + currency[1] );
-        $("#tooltip").css('background-color','black').css('color','white');
-        })
-      .on("mousemove", graph.moveTooltip)
-      .on("mouseout", graph.hideTooltip)
-      .on("click", function(d) {
-	          if (d3.event.defaultPrevented || y_value(d[3]) == 0)
-	            return;
-	          d3.select("#tooltip").style('display', 'none');
+    function draw() {
 
-	          window.location = url_prefix
-	            + "/data/input/purchaseorder/"
-	            + "?noautofilter&startdate__gte=" + d[4]
-	            + "&startdate__lt=" + d[5];
+        var y_value = d3.scale.linear()
+        .range([svgrectangle['height'] - margin_x - 10, 0])
+        .domain([0,
+         (d3.select("#po_selectButton").property("value") == "value" ? max_value:max_units)
+           + 5]);
 
-	          d3.event.stopPropagation();
-	        });
+        // Draw y-axis
+         var yAxis = d3.svg.axis().scale(y_value)
+        .orient("left")
+        .ticks(Math.min(Math.floor((svgrectangle['height'] - 10 - margin_x) / 20), 5))
+        .tickFormat(d3.format("s"));
+         svg.append("g")
+        .attr("transform", "translate(" + margin_y + ", 10 )")
+        .attr("class", "y axis")
+        .attr("id","po_yaxis")
+        .call(yAxis);
+
+        // Draw rectangles
+        svg.selectAll("g>rect")
+        .data(data)
+        .enter()
+        .append("g")
+        .append("rect")
+        .attr("id","po_bar")
+        .attr("x",function(d, i) {return tickposition + i*x.rangeBand() - x.rangeBand()/2 + margin_y;})
+        .attr("y",function(d, i) {return svgrectangle['height'] - margin_x - (y_value(0) -
+        (d3.select("#po_selectButton").property("value") == "value" ? y_value(d[3]):y_value(d[2]))
+        );})
+        .attr("height", function(d, i) {return y_value(0) -
+        (d3.select("#po_selectButton").property("value") == "value" ? y_value(d[3]):y_value(d[2]))
+        ;})
+        .attr("width", x.rangeBand())
+        .attr('fill', '#828915')
+        .on("mouseover", function(d) {
+            graph.showTooltip(d[0] + '<br>'+ numberWithCommas(d[1]) + " POs / " + numberWithCommas(d[2]) + ' %s / ' + currency[0] + ' ' + numberWithCommas(d[3]) + currency[1] );
+            $("#tooltip").css('background-color','black').css('color','white');
+            })
+        .on("mousemove", graph.moveTooltip)
+        .on("mouseout", graph.hideTooltip)
+        .on("click", function(d) {
+                if (d3.event.defaultPrevented || y_value(d[3]) == 0)
+                    return;
+                d3.select("#tooltip").style('display', 'none');
+
+                window.location = url_prefix
+                    + "/data/input/purchaseorder/"
+                    + "?noautofilter&startdate__gte=" + d[4]
+                    + "&startdate__lt=" + d[5];
+
+                d3.event.stopPropagation();
+                });
+    }
+    draw();
+
+    // When the button is changed, update data and redraw()
+    d3.select("#po_selectButton").on("change", function(d) {
+        d3.selectAll('#po_yaxis').remove();
+        d3.selectAll('#po_bar').remove();
+        draw();
+    })
 
     """ % force_str(
         _("units")
@@ -1036,7 +1150,8 @@ class PurchaseOrderWidget(Widget):
                 ),
             )
         result = [
-            '<svg class="chart" id="po_chart" style="width:100%; height: 150px;"></svg>',
+            '<select class="form-select form-select-sm d-inline-block w-auto" id="po_selectButton"></select>',
+            '<svg class="chart mb-2" id="po_chart" style="width:100%; height: 170px;"></svg>',
             '<table id="po_overview" style="display: none">',
         ]
         for rec in cursor.fetchall():
@@ -1047,7 +1162,7 @@ class PurchaseOrderWidget(Widget):
                 )
             elif rec[0] == 1 and rec[3] > 0:
                 result.append(
-                    '</table><div class="row"><div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/purchaseorder/?noautofilter&sord=asc&sidx=startdate&amp;status__in=confirmed,approved" class="btn btn-success btn-sm">%s</a></h2><small>%s</small></div>'
+                    '</table><div class="row"><div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/purchaseorder/?noautofilter&sord=asc&sidx=startdate&amp;status__in=confirmed,approved" class="btn btn-primary btn-sm">%s</a></h2><small>%s</small></div>'
                     % (
                         f"{rec[3]:,}",
                         f"{rec[4]:,}",
@@ -1065,7 +1180,7 @@ class PurchaseOrderWidget(Widget):
             elif rec[0] == 2 and fence1 and rec[3] > 0:
                 limit_fence1 = current + timedelta(days=fence1)
                 result.append(
-                    '<div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/purchaseorder/?noautofilter&sord=asc&sidx=startdate&startdate__lte=%s&amp;status=proposed" class="btn btn-success btn-sm">%s</a></h2><small>%s</small></div>'
+                    '<div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/purchaseorder/?noautofilter&sord=asc&sidx=startdate&startdate__lte=%s&amp;status=proposed" class="btn btn-primary btn-sm">%s</a></h2><small>%s</small></div>'
                     % (
                         f"{rec[3]:,}",
                         f"{rec[4]:,}",
@@ -1085,7 +1200,7 @@ class PurchaseOrderWidget(Widget):
             elif rec[0] == 3 and fence2 and rec[3] > 0:
                 limit_fence2 = current + timedelta(days=fence2)
                 result.append(
-                    '<div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/purchaseorder/?noautofilter&sord=asc&sidx=startdate&startdate__lte=%s&amp;status=proposed" class="btn btn-success btn-sm">%s</a></h2><small>%s</small></div>'
+                    '<div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/purchaseorder/?noautofilter&sord=asc&sidx=startdate&startdate__lte=%s&amp;status=proposed" class="btn btn-primary btn-sm">%s</a></h2><small>%s</small></div>'
                     % (
                         f"{rec[3]:,}",
                         f"{rec[4]:,}",
@@ -1104,7 +1219,7 @@ class PurchaseOrderWidget(Widget):
                 )
             elif rec[0] == 4 and rec[3] > 0:
                 result.append(
-                    '<div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/purchaseorder/?noautofilter&sord=asc&sidx=enddate&enddate__lte=%s&amp;status__in=confirmed,approved" class="btn btn-success btn-sm">%s</a></h2><small>%s</small></div>'
+                    '<div class="col"><h2>%s / %s %s / %s%s%s&nbsp;<a href="%s/data/input/purchaseorder/?noautofilter&sord=asc&sidx=enddate&enddate__lte=%s&amp;status__in=confirmed,approved" class="btn btn-primary btn-sm">%s</a></h2><small>%s</small></div>'
                     % (
                         f"{rec[3]:,}",
                         f"{rec[4]:,}",
@@ -1691,11 +1806,10 @@ class InventoryByLocationWidget(Widget):
       .style("text-anchor", "end")
       .attr("transform","rotate(90 " + (x_width/2) + " " + y_zero + ")  ");
 
-
     // Draw the Y-axis
     var yAxis = d3.svg.axis()
       .scale(y)
-      .ticks(4)
+      .ticks(Math.min(Math.floor((svgrectangle['height'] - 20) / 20), 8))
       .orient("left")
       .tickFormat(d3.format("s"));
     d3.select("#invByLoc")
@@ -1783,7 +1897,7 @@ class InventoryByItemWidget(Widget):
     // Draw the Y-axis
     var yAxis = d3.svg.axis()
       .scale(y)
-      .ticks(4)
+      .ticks(Math.min(Math.floor((svgrectangle['height'] - 20) / 20), 8))
       .orient("left")
       .tickFormat(d3.format("s"));
     d3.select("#invByItem")

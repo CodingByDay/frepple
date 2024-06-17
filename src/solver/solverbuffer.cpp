@@ -133,6 +133,7 @@ void SolverCreate::solve(const Buffer* b, void* v) {
           ? 0
           : b->getFlowPlans().rbegin()->getCumulativeProduced();
   double current_minimum(0.0);
+  double current_maximum(0.0);
   double unconfirmed_supply(0.0);
   bool firstmsg1 = true;
   bool firstmsg2 = true;
@@ -166,6 +167,11 @@ void SolverCreate::solve(const Buffer* b, void* v) {
       double theOnHand = prev->getOnhand();
       double theDelta = theOnHand - current_minimum + shortage;
 
+      if (current_maximum > ROUNDING_ERROR && theDelta < -ROUNDING_ERROR &&
+          current_maximum > current_minimum) {
+        theDelta -= current_maximum - current_minimum;
+      }
+
       // Evaluate the situation at the last flowplan before the date change.
       // Is there a shortage at that date?
       // We have different ways to resolve it:
@@ -178,18 +184,21 @@ void SolverCreate::solve(const Buffer* b, void* v) {
       bool supply_exists_already = false;
       if (theDelta < -ROUNDING_ERROR && autofence && !data->coordination_run) {
         // Solution zero: wait for confirmed supply that is already existing
-        auto free_stock = b->getOnHand(Date::infiniteFuture);
+        auto free_stock = b->getOnHand(Date::infiniteFuture) -
+                          b->getFlowPlans().getMin(Date::infiniteFuture);
         if (free_stock > -ROUNDING_ERROR) {
           for (Buffer::flowplanlist::const_iterator scanner = cur;
                scanner != b->getFlowPlans().end() &&
                scanner->getDate() <
-                   max(theDate, Plan::instance().getCurrent()) + autofence;
+                   max(requested_date, Plan::instance().getCurrent()) +
+                       autofence;
                ++scanner) {
             if (scanner->getQuantity() <= 0 ||
                 scanner->getDate() <= requested_date)
               continue;
             auto tmp = scanner->getOperationPlan();
-            if (tmp && (tmp->getConfirmed() || tmp->getApproved())) {
+            if (tmp && (tmp->getConfirmed() || tmp->getApproved()) &&
+                !tmp->getOperation()->getName().starts_with("Correction")) {
               if (free_stock > -ROUNDING_ERROR) {
                 // Existing supply covers the complete requirement
                 if (firstmsg1 && data->logConstraints && data->constraints)
@@ -219,7 +228,7 @@ void SolverCreate::solve(const Buffer* b, void* v) {
         if (!supply_exists_already && !data->coordination_run) {
           auto fence_free = b->getOnHand(
               max(theDate, Plan::instance().getCurrent()) + autofence,
-              Date::infiniteFuture, true, false, false);
+              Date::infiniteFuture, true, true, false);
           if (theDelta < fence_free && fence_free < 0 &&
               theDelta < -ROUNDING_ERROR &&
               fabs(fence_free - theDelta) > ROUNDING_ERROR) {
@@ -247,8 +256,9 @@ void SolverCreate::solve(const Buffer* b, void* v) {
                   scanner->getDate() <= requested_date)
                 continue;
               auto tmp = scanner->getOperationPlan();
-              if (tmp && (tmp->getConfirmed() || tmp->getApproved())) {
-                if (firstmsg1 && data->logConstraints && data->constraints)
+              if (tmp && (tmp->getConfirmed() || tmp->getApproved()
+                && !tmp->getOperation()->getName().starts_with("Correction")) {
+        if (firstmsg1 && data->logConstraints && data->constraints)
                   data->constraints->push(
                       ProblemAwaitSupply::metadata, generic_buffer, theDate,
                       scanner->getDate(), theDelta);
@@ -328,7 +338,8 @@ void SolverCreate::solve(const Buffer* b, void* v) {
                   scanner->getDate() < requested_date)
                 continue;
               auto tmp = scanner->getOperationPlan();
-              if (tmp && (tmp->getConfirmed() || tmp->getApproved())) {
+              if (tmp && (tmp->getConfirmed() || tmp->getApproved()) &&
+                  !tmp->getOperation()->getName().starts_with("Correction")) {
                 if (firstmsg3 && data->logConstraints && data->constraints)
                   data->constraints->push(ProblemAwaitSupply::metadata, b,
                                           theDate, scanner->getDate(),
@@ -459,9 +470,7 @@ void SolverCreate::solve(const Buffer* b, void* v) {
             // When solving for safety stock or when the parameter allowsplit is
             // set to false we need to get a single replenishing operationplan.
             if (data->state->a_qty > ROUNDING_ERROR &&
-                data->state->a_qty < -theDelta - ROUNDING_ERROR &&
-                ((getAllowSplits() && !data->safety_stock_planning) ||
-                 data->hitMaxSize))
+                data->state->a_qty < -theDelta - ROUNDING_ERROR)
               theDelta += data->state->a_qty;
             else
               loop = false;
@@ -517,13 +526,11 @@ void SolverCreate::solve(const Buffer* b, void* v) {
     // Note that these limits can be updated only after the processing of the
     // date change in the statement above. Otherwise the code above would
     // already use the new value before the intended date.
-    // If the flag getPlanSafetyStockFirst is set, then we need to replenish
-    // up to the minimum quantity. If it is not set (which is the default)
-    // then we only replenish up to 0.
     if (cur->getEventType() == 3 &&
         (!data->buffer_solve_shortages_only || data->safety_stock_planning) &&
         !getShortagesOnly())
       current_minimum = cur->getMin();
+    if (cur->getEventType() == 4) current_maximum = cur->getMax();
 
     // Update the pointer to the previous flowplan.
     prev = &*cur;
@@ -666,10 +673,10 @@ void SolverCreate::solveSafetyStock(const Buffer* b, void* v) {
   // Scan the complete horizon
   Date currentDate;
   const TimeLine<FlowPlan>::Event* prev = nullptr;
-  double shortage(0.0);
-  double current_minimum(0.0);
+  double shortage = 0.0;
+  double current_minimum = 0.0;
+  double current_maximum = 0.0;
   auto cur = b->getFlowPlans().begin();
-  Calendar* alignment_cal = Plan::instance().getCalendar();
   while (true) {
     // Iterator has now changed to a new date or we have arrived at the end.
     // If multiple flows are at the same moment in time, we are not interested
@@ -682,33 +689,22 @@ void SolverCreate::solveSafetyStock(const Buffer* b, void* v) {
       double theDelta = theOnHand - current_minimum + shortage;
       bool loop = true;
 
-      if (alignment_cal) {
-        // Adjust the requirement quantity to meet the full requirements of
-        // the current plan.calendar bucket.
-        Calendar::EventIterator bckt_end(alignment_cal, prev->getDate(), true);
-        ++bckt_end;
-        auto tmp_current_minimum = current_minimum;
-        for (Buffer::flowplanlist::const_iterator f(prev);
-             f != b->getFlowPlans().end() && f->getDate() < bckt_end.getDate();
-             ++f) {
-          if (f->getEventType() == 3 && !shortagesonly)
-            tmp_current_minimum = f->getMin();
-          if (f->isLastOnDate()) {
-            auto tmp = f->getOnhand() - tmp_current_minimum + shortage;
-            if (tmp < theDelta) theDelta = tmp;
-          }
-        }
-      }
-
       // Evaluate the situation at the last flowplan before the date change.
       // Is there a shortage at that date?
       Date nextAskDate;
-      int loopcounter = 30;  // Performance protection
+      int loopcounter =
+          max(HasLevel::getNumberOfLevels() * 2, 30);  // Performance protection
       if (theDelta && b->getProducingOperation() &&
           b->getProducingOperation()->getSizeMaximum()) {
-        double tmp =
-            -theDelta / b->getProducingOperation()->getSizeMaximum() + 30;
+        double tmp = -theDelta / b->getProducingOperation()->getSizeMaximum() +
+                     loopcounter;
         if (tmp > loopcounter) loopcounter = static_cast<unsigned int>(tmp);
+      }
+
+      // Round up the requirement to the max level
+      if (current_maximum > ROUNDING_ERROR && theDelta < -ROUNDING_ERROR &&
+          current_maximum > current_minimum) {
+        theDelta -= current_maximum - current_minimum;
       }
 
       Duration repeat_early;
@@ -820,6 +816,9 @@ void SolverCreate::solveSafetyStock(const Buffer* b, void* v) {
         } else
           break;
       } while (--loopcounter > 0);
+      if (loopcounter <= 0)
+        logger << indentlevel << "  Warning: Hitting the max number of retries"
+               << endl;
       if (b->getIPFlag())
         data->hitMaxEarly = prev_hitMaxEarly;
       else if (!data->state->a_qty && data->hitMaxEarly == Duration(-1L))
@@ -837,6 +836,7 @@ void SolverCreate::solveSafetyStock(const Buffer* b, void* v) {
     // already use the new value before the intended date.
     if (cur->getEventType() == 3 && !shortagesonly)
       current_minimum = cur->getMin();
+    if (cur->getEventType() == 4) current_maximum = cur->getMax();
 
     // Update the pointer to the previous flowplan.
     prev = &*cur;

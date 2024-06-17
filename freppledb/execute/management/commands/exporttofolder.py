@@ -24,22 +24,27 @@
 import os
 import errno
 import gzip
+import importlib
 import logging
 
 from datetime import datetime
 from time import localtime, strftime
 from django.conf import settings
-from django.db import connections, DEFAULT_DB_ALIAS
 from django.core.management.base import BaseCommand, CommandError
+from django.db import DEFAULT_DB_ALIAS
+from django.db.models import Q
 from django.template.loader import render_to_string
 from django.test import RequestFactory
+from django.utils.encoding import force_str
+from django.utils.text import capfirst
 from django.utils.translation import gettext_lazy as _
 
+import freppledb
 from freppledb.common.middleware import _thread_locals
 from freppledb.common.models import User
-from freppledb.common.report import GridReport
+from freppledb.common.report import GridReport, create_connection, sizeof_fmt
 from freppledb import __version__
-from freppledb.execute.models import Task
+from freppledb.execute.models import Task, DataExport
 from freppledb.output.views import resource
 from freppledb.output.views import buffer
 
@@ -57,12 +62,8 @@ class Command(BaseCommand):
 
     requires_system_checks = []
 
-    # Any sql statements that should be executed before the export
-    pre_sql_statements = ()
-
-    # Any SQL statements that should be executed before the export
-    post_sql_statements = ()
-
+    # The "statements" variable is only used during a transition period
+    # to give customers the time to migrate their legacy custom configuration.
     statements = [
         {
             "filename": "purchaseorder.csv.gz",
@@ -210,6 +211,30 @@ class Command(BaseCommand):
             help="Task identifier (generated automatically if not provided)",
         )
 
+    @classmethod
+    def getExports(cls, database):
+        if cls.statements == Command.statements:
+            return list(DataExport.objects.all().using(database).order_by("name"))
+        else:
+            # Migrate old customized hardcode export on the fly
+            tmp = []
+            for r in cls.statements:
+                if "sql" in r:
+                    x = DataExport(name=r["filename"], sql=r["sql"])
+                    x.no_wrapper = True
+                elif "report" in r:
+                    x = DataExport(
+                        name=r["filename"],
+                        report="%s.%s" % (r["report"].__module__, r["report"].__name__),
+                        arguments=r.get("data", None),
+                    )
+                    if x.arguments:
+                        x.arguments.pop("format", None)
+                else:
+                    raise Exception("Unknown export format")
+                tmp.append(x)
+            return tmp
+
     def handle(self, *args, **options):
         # Pick up the options
         now = datetime.now()
@@ -269,6 +294,8 @@ class Command(BaseCommand):
                 task.status = "0%"
                 task.started = now
                 task.logfile = logfile
+                if not self.user and task.user:
+                    self.user = task.user
             else:
                 task = Task(
                     name="exporttofolder",
@@ -308,113 +335,118 @@ class Command(BaseCommand):
                             raise
 
                 logger.info("Started export to folder")
-
-                cursor = connections[self.database].cursor()
-
                 task.status = "0%"
                 task.save(using=self.database)
 
                 i = 0
-                cnt = len(self.statements)
+                exports = self.getExports(self.database)
+                cnt = len(exports)
 
-                # Calling all the pre-sql statements
-                idx = 1
-                for stmt in self.pre_sql_statements:
-                    try:
-                        starting = datetime.now()
-                        logger.info("Executing pre-statement %s" % idx)
-                        cursor.execute(stmt)
-                        if cursor.rowcount > 0:
-                            logger.info(
-                                "%s record(s) modified in %s"
-                                % (cursor.rowcount, timesince(starting))
-                            )
-                    except Exception:
-                        errors += 1
-                        logger.error(
-                            "An error occurred when executing statement %s" % idx
-                        )
-                    idx += 1
-
-                for cfg in self.statements:
-                    # Validate filename
-                    filename = cfg.get("filename", None)
-                    if not filename:
-                        raise Exception("Missing filename in export configuration")
-                    folder = cfg.get("folder", None)
-                    if not folder:
-                        raise Exception(
-                            "Missing folder in export configuration for %s" % filename
-                        )
-
+                for cfg in exports:
                     # Report progress
                     starting = datetime.now()
-                    logger.info("Started export of %s" % filename)
+                    logger.info("Started export of %s" % cfg.name)
                     if task:
-                        task.message = "Exporting %s" % filename
+                        task.message = "Exporting %s" % cfg.name
                         task.save(using=self.database)
 
                     # Make sure export folder exists
                     exportFolder = os.path.join(
-                        settings.DATABASES[self.database]["FILEUPLOADFOLDER"], folder
+                        settings.DATABASES[self.database]["FILEUPLOADFOLDER"], "export"
                     )
                     if not os.path.isdir(exportFolder):
                         os.makedirs(exportFolder)
 
                     try:
-                        reportclass = cfg.get("report", None)
-                        sql = cfg.get("sql", None)
-                        if reportclass:
-                            # Export from report class
+                        if cfg.report:
+                            # Export from report class (standard or custom)
 
                             # Create a dummy request
                             factory = RequestFactory()
-                            request = factory.get("/dummy/", cfg.get("data", {}))
+                            request = factory.get("/dummy/", cfg.arguments)
                             if self.user:
                                 request.user = self.user
                             else:
                                 request.user = User.objects.all().get(username="admin")
                             request.database = self.database
                             request.LANGUAGE_CODE = settings.LANGUAGE_CODE
-                            request.prefs = cfg.get("prefs", None)
+
+                            # Identify the report to export
+                            n = cfg.report.rsplit(".", 1)
+                            if n[0] == "freppledb.reportmanager.models.SQLReport":
+                                if "freppledb.reportmanager" in settings.INSTALLED_APPS:
+                                    # Exporting a custom report
+                                    from freppledb.reportmanager.models import SQLReport
+                                    from freppledb.reportmanager.views import (
+                                        ReportManager,
+                                    )
+
+                                    reportclass = ReportManager
+                                    report = SQLReport.objects.using(self.database).get(
+                                        id=int(cfg.report.rsplit(".", 1)[1])
+                                    )
+                                    if (
+                                        not report.public
+                                        and self.user
+                                        and report.user != self.user
+                                    ):
+                                        raise Exception("No access to this report")
+                                    else:
+                                        request.report = report
+                                        args = [report.id]
+                                else:
+                                    # Custom export still exists, but reportmanager app is disabled
+                                    raise Exception(
+                                        "No custom reports can be export. Install the 'reportmanager' app to enable."
+                                    )
+                            else:
+                                # Exporting a standard report
+                                reportclass = getattr(
+                                    importlib.import_module(n[0]), n[1]
+                                )
+                                args = []
 
                             # Initialize the report
                             if hasattr(reportclass, "initialize"):
                                 reportclass.initialize(request)
                             if hasattr(reportclass, "rows"):
                                 if callable(reportclass.rows):
-                                    request.rows = reportclass.rows(request)
+                                    request.rows = reportclass.rows(request, *args)
                                 else:
                                     request.rows = reportclass.rows
                             if hasattr(reportclass, "crosses"):
                                 if callable(reportclass.crosses):
-                                    request.crosses = reportclass.crosses(request)
+                                    request.crosses = reportclass.crosses(
+                                        request, *args
+                                    )
                                 else:
                                     request.crosses = reportclass.crosses
                             if reportclass.hasTimeBuckets:
                                 reportclass.getBuckets(request)
 
                             # Write the report file
-                            if filename.lower().endswith(".gz"):
+                            if cfg.name.lower().endswith(".gz"):
                                 datafile = gzip.open(
-                                    os.path.join(exportFolder, filename), "wb"
+                                    os.path.join(exportFolder, cfg.name), "wb"
                                 )
                             else:
                                 datafile = open(
-                                    os.path.join(exportFolder, filename), "wb"
+                                    os.path.join(exportFolder, cfg.name), "wb"
                                 )
-                            if filename.lower().endswith(".xlsx"):
+                            if cfg.name.lower().endswith(".xlsx"):
                                 reportclass._generate_spreadsheet_data(
                                     request,
                                     [request.database],
                                     datafile,
-                                    **cfg.get("data", {})
+                                    *args,
+                                    **(cfg.arguments or {}),
                                 )
-                            elif filename.lower().endswith(
-                                ".csv"
-                            ) or filename.lower().endswith(".csv.gz"):
+                            elif cfg.name.lower().endswith((".csv", ".csv.gz")):
                                 for r in reportclass._generate_csv_data(
-                                    request, [request.database], **cfg.get("data", {})
+                                    request,
+                                    [request.database],
+                                    *args,
+                                    **(cfg.arguments or {}),
                                 ):
                                     datafile.write(
                                         r.encode(settings.CSV_CHARSET)
@@ -423,55 +455,66 @@ class Command(BaseCommand):
                                     )
                             else:
                                 raise Exception(
-                                    "Unknown output format for %s" % filename
+                                    "Unknown output format for %s" % cfg.name
                                 )
-                        elif sql:
+                        elif cfg.sql:
                             # Exporting using SQL
-                            if filename.lower().endswith(".gz"):
+                            if cfg.name.lower().endswith(".csv.gz"):
                                 datafile = gzip.open(
-                                    os.path.join(exportFolder, filename), "wb"
+                                    os.path.join(exportFolder, cfg.name), "wb"
+                                )
+                            elif cfg.name.lower().endswith(".csv"):
+                                datafile = open(
+                                    os.path.join(exportFolder, cfg.name), "wb"
                                 )
                             else:
-                                datafile = open(
-                                    os.path.join(exportFolder, filename), "wb"
+                                raise Exception(
+                                    "Exports based on an SQL query can only be created in .csv or .csv.gz format"
                                 )
-                            cursor.copy_expert(sql, datafile)
+                            try:
+                                conn = create_connection(self.database)
+                                with conn.cursor() as cursor_sql:
+                                    sqlrole = settings.DATABASES[self.database].get(
+                                        "SQL_ROLE", "report_role"
+                                    )
+                                    if sqlrole:
+                                        cursor_sql.execute("set role %s" % (sqlrole,))
+                                    cursor_sql.copy_expert(
+                                        (
+                                            cfg.sql
+                                            if getattr(cfg, "no_wrapper", False)
+                                            else "COPY(select * from (%s) as t) TO STDOUT WITH CSV HEADER"
+                                            % cfg.sql
+                                        ),
+                                        datafile,
+                                    )
+                            finally:
+                                conn.close()
                         else:
-                            raise Exception("Unknown export type for %s" % filename)
+                            raise Exception("Unknown export type for %s" % cfg.name)
                         datafile.close()
                         i += 1
-
+                    except (ImportError, AttributeError):
+                        # The export configuration can refer to non-existing reports.
+                        # For instance after an app is uninstalled.
+                        errors += 1
+                        logger.error(
+                            "Failed to export %s: Unknown report %s"
+                            % (cfg.name, cfg.report)
+                        )
                     except Exception as e:
                         errors += 1
-                        logger.error("Failed to export %s: %s" % (filename, e))
+                        logger.error("Failed to export %s: %s" % (cfg.name, e))
                         if task:
-                            task.message = "Failed to export %s" % filename
+                            task.message = "Failed to export %s" % cfg.name
 
                     logger.info(
-                        "Finished export of %s in %s" % (filename, timesince(starting))
+                        "Finished export of %s in %s" % (cfg.name, timesince(starting))
                     )
                     task.status = str(int(i / cnt * 100)) + "%"
                     task.save(using=self.database)
 
                 logger.info("Exported %s files" % (cnt - errors))
-
-                idx = 1
-                for stmt in self.post_sql_statements:
-                    try:
-                        starting = datetime.now()
-                        logger.info("Executing post-statement %s" % idx)
-                        cursor.execute(stmt)
-                        if cursor.rowcount > 0:
-                            logger.info(
-                                "%s record(s) modified in %s"
-                                % (cursor.rowcount, timesince(starting))
-                            )
-                    except Exception:
-                        errors += 1
-                        logger.error(
-                            "An error occured when executing statement %s" % idx
-                        )
-                    idx += 1
 
             else:
                 errors += 1
@@ -493,7 +536,10 @@ class Command(BaseCommand):
                     task.message = "Exported %s data files" % (cnt)
                 else:
                     task.status = "Failed"
-                    #  task.message = "Exported %s data files, %s failed" % (cnt-errors, errors)
+                    task.message = "Exported %s data files, %s failed" % (
+                        cnt - errors,
+                        errors,
+                    )
                 task.finished = datetime.now()
                 task.processid = None
                 task.save(using=self.database)
@@ -504,54 +550,71 @@ class Command(BaseCommand):
     index = 1200
     help_url = "command-reference.html#exporttofolder"
 
-    @staticmethod
-    def getHTML(request):
+    @classmethod
+    def getHTML(cls, request):
         if (
             "FILEUPLOADFOLDER" not in settings.DATABASES[request.database]
             or not request.user.is_superuser
         ):
             return None
 
-        # Function to convert from bytes to human readable format
-        def sizeof_fmt(num):
-            for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
-                if abs(num) < 1024.0:
-                    return "%3.0f %sB" % (num, unit)
-                num /= 1024.0
-            return "%.0f %sB" % (num, "Yi")
-
         # List available data files
-        filesexported = []
+        data_exports = cls.getExports(request.database)
         if "FILEUPLOADFOLDER" in settings.DATABASES[request.database]:
             exportfolder = os.path.join(
                 settings.DATABASES[request.database]["FILEUPLOADFOLDER"], "export"
             )
+            tzoffset = GridReport.getTimezoneOffset(request)
             if os.path.isdir(exportfolder):
-                tzoffset = GridReport.getTimezoneOffset(request)
-                for file in os.listdir(exportfolder):
-                    if file.endswith(
-                        (".xlsx", ".xlsm", ".xlsx.gz", ".csv", ".csv.gz", ".log")
-                    ):
-                        filesexported.append(
-                            [
-                                file[:-3] if file.endswith(".csv.gz") else file,
-                                strftime(
-                                    "%Y-%m-%d %H:%M:%S",
-                                    localtime(
-                                        os.stat(
-                                            os.path.join(exportfolder, file)
-                                        ).st_mtime
-                                        + tzoffset.total_seconds()
-                                    ),
-                                ),
-                                sizeof_fmt(
-                                    os.stat(os.path.join(exportfolder, file)).st_size
-                                ),
-                            ]
+                for f in data_exports:
+                    full_file = os.path.join(exportfolder, f.name)
+                    if os.access(full_file, os.R_OK):
+                        stat = os.stat(full_file)
+                        f.timestamp = strftime(
+                            "%Y-%m-%d %H:%M:%S",
+                            localtime(stat.st_mtime + tzoffset.total_seconds()),
                         )
+                        f.size = sizeof_fmt(stat.st_size)
 
+        if "freppledb.reportmanager" in settings.INSTALLED_APPS:
+            from freppledb.reportmanager.models import SQLReport
+
+            customreports = sorted(
+                [
+                    (r.name, r.id)
+                    for r in SQLReport.objects.using(request.database)
+                    .filter(Q(public=True) | Q(user_id=request.user.id))
+                    .only("id", "name")
+                ]
+            )
+        else:
+            customreports = []
+
+        # TODO hard coded list of possible reports should be replaced with a dynamic query
+        reports = [
+            freppledb.output.views.resource.OverviewReport,
+            freppledb.output.views.demand.OverviewReport,
+            freppledb.output.views.buffer.OverviewReport,
+            freppledb.output.views.operation.OverviewReport,
+            freppledb.output.views.operation.DistributionReport,
+            freppledb.output.views.operation.PurchaseReport,
+        ]
+        if "freppledb.forecast" in settings.INSTALLED_APPS:
+            reports.append(freppledb.forecast.views.OverviewReport)
         return render_to_string(
             "commands/exporttofolder.html",
-            {"filesexported": filesexported},
+            {
+                "data_exports": data_exports,
+                "reports": sorted(
+                    [
+                        [
+                            capfirst(force_str(r.title)),
+                            "%s.%s" % (r.__module__, r.__name__),
+                        ]
+                        for r in reports
+                    ]
+                ),
+                "customreports": customreports,
+            },
             request=request,
         )

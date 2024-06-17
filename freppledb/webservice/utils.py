@@ -129,7 +129,9 @@ def createSolvers(loglevel=2, database=DEFAULT_DB_ALIAS):
     global clean_solver, mrp_solver, fcst_solver
 
     try:
-        constraint = int(os.environ["FREPPLE_CONSTRAINT"])
+        from freppledb.execute.management.commands.runplan import parseConstraints
+
+        constraint = parseConstraints(os.environ["FREPPLE_CONSTRAINT"])
     except Exception:
         constraint = 4 + 16 + 32  # Default is with all constraints enabled
     clean_solver = frepple.solver_delete(loglevel=loglevel, constraint=constraint)
@@ -139,17 +141,10 @@ def createSolvers(loglevel=2, database=DEFAULT_DB_ALIAS):
         erasePreviousFirst=False,
         plantype=1,
         lazydelay=int(Parameter.getValue("lazydelay", database, "86400")),
-        allowsplits=(
-            Parameter.getValue("allowsplits", database, "true").lower() == "true"
-        ),
         minimumdelay=int(Parameter.getValue("plan.minimumdelay", database, "3600")),
         rotateresources=(
             Parameter.getValue("plan.rotateResources", database, "true").lower()
             == "true"
-        ),
-        plansafetystockfirst=(
-            Parameter.getValue("plan.planSafetyStockFirst", database, "false").lower()
-            != "false"
         ),
         iterationmax=int(Parameter.getValue("plan.iterationmax", database, "0")),
     )

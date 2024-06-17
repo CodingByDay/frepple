@@ -22,7 +22,7 @@
 #
 
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import psutil
 import shlex
 import subprocess
@@ -40,6 +40,7 @@ from django.template.loader import render_to_string
 import freppledb.common.commands
 from freppledb.common.middleware import _thread_locals
 from freppledb.common.models import User
+from freppledb.common.report import GridReport
 from freppledb.execute.models import Task
 from freppledb import __version__
 
@@ -63,6 +64,8 @@ def parseConstraints(val):
 
 
 def constraintString(val):
+    if val == 0:
+        return "0"
     c = []
     if val & 4:
         c.append("capa")
@@ -166,17 +169,21 @@ class Command(BaseCommand):
         timestamp = now.strftime("%Y%m%d%H%M%S")
         if database == DEFAULT_DB_ALIAS:
             logfile = "frepple-%s%s.log" % (
-                ""
-                if "partition" not in options
-                else "partition%s-" % options["partition"],
+                (
+                    ""
+                    if "partition" not in options
+                    else "partition%s-" % options["partition"]
+                ),
                 timestamp,
             )
         else:
             logfile = "frepple_%s-%s%s.log" % (
                 database,
-                ""
-                if "partition" not in options
-                else "partition%s-" % options["partition"],
+                (
+                    ""
+                    if "partition" not in options
+                    else "partition%s-" % options["partition"]
+                ),
                 timestamp,
             )
 
@@ -410,7 +417,7 @@ class Command(BaseCommand):
             )
             if lastrun and lastrun.arguments:
                 # Copy all settings from the previous run by this user
-                for i in shlex.split(lastrun.arguments):
+                for i in shlex.split(lastrun.arguments or ""):
                     if "=" in i:
                         key, val = i.split("=")
                         key = key.strip("--")
@@ -423,6 +430,13 @@ class Command(BaseCommand):
                                 current_options = val.split(",")
                             except Exception:
                                 pass
+                offset = GridReport.getTimezoneOffset(request)
+                if lastrun.started:
+                    lastrun.started += offset
+                if lastrun.finished:
+                    lastrun.finished += offset
+                if lastrun.submitted:
+                    lastrun.submitted += offset
             return render_to_string(
                 "commands/runplan.html",
                 {

@@ -179,6 +179,7 @@ class checkBuckets(CheckTask):
 class checkBrokenSupplyPath(CheckTask):
     # check for item location combinations in the demand
     # check for item location that are consumed in operation materials
+    # check for item location at origin of item distribution
     # and make sure they can be either manufactured, transported and purchased
     description = "Check broken supply paths"
     sequence = 78
@@ -234,19 +235,31 @@ class checkBrokenSupplyPath(CheckTask):
                     # inserting combinations with no replenishment
                     cursor.execute(
                         """
-                        insert into itemsupplier (supplier_id, item_id, location_id)
-                        (select 'Unknown supplier', item_id, location_id from demand where status in ('open','quote')
+                        with cte as (
+                        select 'Unknown supplier' as supplier_id, item_id, location_id from demand where status in ('open','quote')
                         union
                         select 'Unknown supplier', operationmaterial.item_id, operation.location_id from operationmaterial
                         inner join operation on operation.name = operationmaterial.operation_id
                         where operationmaterial.quantity < 0
                         %s
                         )
-                        except
-                        (select 'Unknown supplier', item.name, location_id from itemdistribution
+                        insert into itemsupplier (supplier_id, item_id, location_id)
+                        (
+                        select * from cte
+                        union
+                        select 'Unknown supplier', item.name, itemdistribution.origin_id from itemdistribution
                         inner join item parentitem on itemdistribution.item_id = parentitem.name
                         inner join item on item.lft between parentitem.lft and parentitem.rght
-                        inner join location on itemdistribution.location_id = location.name
+                            and item.lft = item.rght-1
+                        inner join cte on cte.item_id = itemdistribution.item_id
+                            and cte.location_id = itemdistribution.location_id
+                        where coalesce(itemdistribution.effective_end, %%s) >= %%s
+                        and itemdistribution.priority is distinct from 0
+                        )
+                        except
+                        (select 'Unknown supplier', item.name, itemdistribution.location_id from itemdistribution
+                        inner join item parentitem on itemdistribution.item_id = parentitem.name
+                        inner join item on item.lft between parentitem.lft and parentitem.rght
                         where coalesce(itemdistribution.effective_end, %%s) >= %%s
                         and itemdistribution.priority is distinct from 0
                         union
@@ -284,7 +297,7 @@ class checkBrokenSupplyPath(CheckTask):
                                 else ""
                             ),
                         ),
-                        ((currentdate,) * 10),
+                        ((currentdate,) * 12),
                     )
 
                     if cursor.rowcount == 0:
@@ -322,9 +335,10 @@ class loadParameter(LoadTask):
                     SELECT name, value
                     FROM common_parameter
                     where name in (
-                       'currentdate', 'last_currentdate', 'plan.calendar',
+                       'currentdate', 'last_currentdate',
                        'COMPLETED.allow_future', 'WIP.produce_full_quantity',
-                       'plan.individualPoolResources', 'plan.minimalBeforeCurrentConstraints'
+                       'plan.individualPoolResources', 'plan.minimalBeforeCurrentConstraints',
+                       'plan.autoFenceOperations'
                        )
                     """
                 )
@@ -335,9 +349,6 @@ class loadParameter(LoadTask):
                         current_date = rec[1]
                     elif rec[0] == "last_currentdate":
                         last_current_date = rec[1]
-                    elif rec[0] == "plan.calendar" and rec[1]:
-                        frepple.settings.calendar = frepple.calendar(name=rec[1])
-                        logger.info("Bucketized planning using calendar %s" % rec[1])
                     elif rec[0] == "COMPLETED.allow_future":
                         frepple.settings.completed_allow_future = (
                             str(rec[1]).lower() == "true"
@@ -354,6 +365,8 @@ class loadParameter(LoadTask):
                         frepple.settings.minimalBeforeCurrentConstraints = (
                             str(rec[1]).lower() == "true"
                         )
+                    elif rec[0] == "plan.autoFenceOperations":
+                        frepple.settings.autofence = float(rec[1]) * 86400
                 current_set = False
                 if "loadplan" in os.environ and last_current_date:
                     try:
@@ -1356,7 +1369,9 @@ class loadBuffers(LoadTask):
                   min(category),
                   min(subcategory),
                   min(source),
-                  min(batch)
+                  min(batch),
+                  min(maximum),
+                  min(maximum_calendar_id)
                 from buffer
                 %s
                 group by case
@@ -1406,6 +1421,10 @@ class loadBuffers(LoadTask):
                         b.minimum = i[5]
                     if i[6]:
                         b.minimum_calendar = frepple.calendar(name=i[6])
+                    if i[13]:
+                        b.maximum = i[13]
+                    if i[14]:
+                        b.maximum_calendar = frepple.calendar(name=i[14])
 
                 logger.info(
                     "Loaded %d buffers in %.2f seconds" % (cnt, time() - starttime)
@@ -1903,7 +1922,8 @@ class loadDemand(LoadTask):
         import frepple
 
         if cls.filter:
-            filter_and = "and %s " % cls.filter
+            # Note: extra escaping of % is needed to avoid colliding with query argument
+            filter_and = "and %s " % cls.filter.replace("%", "%%")
         else:
             filter_and = ""
 

@@ -247,8 +247,7 @@ void SolverCreate::solve(const Demand* salesorder, void* v) {
             bool broken_path = data->broken_path;
 
             if (data->state->a_qty < ROUNDING_ERROR && plan_qty > minshipment &&
-                minshipment > 0 && getAllowSplits() &&
-                policy != Demand::POLICY_ALLTOGETHER) {
+                minshipment > 0 && policy != Demand::POLICY_ALLTOGETHER) {
               bool originalLogConstraints = data->logConstraints;
               data->logConstraints = false;
               try {
@@ -400,8 +399,7 @@ void SolverCreate::solve(const Demand* salesorder, void* v) {
                   // shipment quantity was purely based on some onhand.
                   plan_date = next_date;
               } else if (next_date <= copy_plan_date ||
-                         (!getAllowSplits() &&
-                          data->state->a_qty > ROUNDING_ERROR) ||
+                         data->state->a_qty > ROUNDING_ERROR ||
                          (next_date == Date::infiniteFuture &&
                           data->state->a_qty > ROUNDING_ERROR)) {
                 // Oops, we didn't get a proper answer we can use for the next
@@ -643,8 +641,7 @@ void SolverCreate::scanExcess(CommandList* l) {
         auto createcmd = static_cast<CommandCreateOperationPlan*>(&*cmd);
         if (createcmd->getOperationPlan()) {
           if (createcmd->getOperationPlan()->getQuantity() -
-                  createcmd->getOperationPlan()->isExcess(
-                      !getPlanSafetyStockFirst()) <
+                  createcmd->getOperationPlan()->isExcess() <
               ROUNDING_ERROR) {
             if (getLogLevel() > 1)
               logger << "Denying creation of redundant operationplan "
@@ -662,8 +659,7 @@ void SolverCreate::scanExcess(CommandList* l) {
             while (o != OperationPlan::end()) {
               if (createcmd->getOperationPlan()->getEnd() < o->getEnd() &&
                   o->getProposed() &&
-                  (o->getQuantity() - o->isExcess(!getPlanSafetyStockFirst()) <
-                   ROUNDING_ERROR)) {
+                  (o->getQuantity() - o->isExcess() < ROUNDING_ERROR)) {
                 auto tmp = &*o;
                 ++o;
                 if (getLogLevel() > 1)

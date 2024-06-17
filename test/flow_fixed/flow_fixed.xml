@@ -65,6 +65,7 @@
   <demands>
     <demand name="1. order 1">
       <quantity>100</quantity>
+      <minshipment>1</minshipment>
       <due>2013-01-20T00:00:00</due>
       <priority>11</priority>
       <item name="1. end item"/>
@@ -79,6 +80,7 @@
     </demand>
     <demand name="1. order 2">
       <quantity>10</quantity>
+      <minshipment>1</minshipment>
       <due>2013-02-07T00:00:00</due>
       <priority>12</priority>
       <item name="1. end item"/>
@@ -86,6 +88,7 @@
     </demand>
     <demand name="1. order 3">
       <quantity>50</quantity>
+      <minshipment>1</minshipment>
       <due>2013-02-20T00:00:00</due>
       <priority>13</priority>
       <item name="1. end item"/>
@@ -374,12 +377,11 @@
   </demands>
 
 <?python
-# TODO Without setting plansafetystockfirst the test results are different in a strange way
 print("CREATING CONSTRAINED PLAN")
-frepple.solver_mrp(plantype=1, constraints=15, loglevel=2, plansafetystockfirst=True).solve()
+frepple.solver_mrp(plantype=1, constraints=15, loglevel=2).solve()
 frepple.saveplan("output.1.xml")
 print("CREATING UNCONSTRAINED PLAN")
-frepple.solver_mrp(plantype=2, constraints=15, loglevel=2, plansafetystockfirst=True).solve()
+frepple.solver_mrp(plantype=2, constraints=15, loglevel=2).solve()
 frepple.saveplan("output.2.xml")
 ?>
 

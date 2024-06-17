@@ -1,10 +1,159 @@
 Release notes
 -------------
 
-8.5.0 (Upcoming release)
+9.1.0 (Upcoming release)
 ========================
 
-This release is scheduled for end February 2024. You can already check out a `preview <https://demo-preview.frepple.com>`_.
+This release is scheduled for early July. You can already check out a `preview <https://demo-preview.frepple.com>`_.
+
+.. rubric:: Production planning
+
+- | Bug fix: Planning operation dependencies could leave partially planned demands in 9.0.0.
+
+.. rubric:: Demand forecasting
+
+- | Bug fix: Fixes a nasty engine crash in complex multithreading situations.
+
+.. rubric:: User interface
+
+- | When releasing a scenario, the data of that scenario is now deleted to optimize the database
+    disk space.
+
+.. rubric:: Supported operating systems
+
+- | The docker image of 9.0.0 missed the root certificates required for any remote https connection.
+
+.. rubric:: Odoo integration
+
+- | 16, 17: The connector no longer depends on the external jwt python package.
+  | Installing the dependency frequently created trouble or confusion.
+
+9.0.0 (2024-06-01)
+==================
+
+.. rubric:: Production planning
+
+- | The handling of safety stocks by planning algorithm has been enhanced to
+    generate more intuitive and better plans.
+  | This may result in small differences in the plans when migrating to the new
+    release.
+
+- | Buffers have new fields "maximum" and "maximum calendar" that specifies a
+    replenish-up-to stock level.
+
+- | Removed the parameters plan.calendar, allowsplits and plan.planSafetyStockFirst.
+
+- | Bug fix: Unnecessary late deliveries when confirmed replenishment exist far beyond
+    the lead time.
+
+- | Flows of type "transfer" are deprecated.
+  | :doc:`Operation dependencies </model-reference/operation-dependencies>` or
+    :doc:`operation material offsets </model-reference/operation-materials>` are a much cleaner
+    and more performant alternative.
+
+.. rubric:: Demand forecasting
+
+- | Bug fix: "Orders planned" row in forecast editor and forecast report wasn't
+    calculated correctly when orders aren't at the level where the forecast is planned.
+
+- | The parameters for the statistical forecast methods (alfa, beta, gamma...) will have
+    a value set to "default". The planner still has the possibility to update the value with
+    a custom value.
+  | The datasets *parameters_day_forecast, parameters_week_forecast, parameters_month_forecast* are
+    removed.
+
+.. rubric:: Supported operating systems
+
+- | Ubuntu 24 LTS is now the supported operating system.
+  | For all other operating systems a docker container is the way to run frepple.
+
+.. rubric:: User interface
+
+- | The `demand gantt report <user-interface/plan-analysis/demand-gantt-report.html>`_ was updated
+    to display a routing operation before its suboperations.
+
+- | You can now configure frepple to hide the hours, minutes and seconds from
+    all date fields. This is handy when you are not interested in the precise
+    timing within each day of your plan.
+  | A new flag DATE_STYLE_WITH_HOURS has been added to the djangosettings file.
+    It's true by default.
+
+- | Bug fix: Adding custom attributes was broken.
+
+- | Bug fix: The field "end items" in the purchase order and distribution order screen
+    wasn't searchable.
+
+.. rubric:: Odoo integration
+
+- | 15, 16, 17: The shipping policy on odoo sales orders is now mapped.
+  | The connector already had it for a while as an inactive option that was commented out.
+    The default behavior is changing now.
+
+- | 16, 17: Support for Odoo make-to-order products.
+  | Odoo automatically creates the manufacturing orders and purchase orders for
+    such products. The frepple connector respects their links to the source sales order
+    or manufacturing order.
+
+- | 17: Addition of `quoting <erp-integration/odoo-connector/using-the-connector-in-odoo.html#quoting-capabilities>`_ capabilities
+  | An extra button is added to get a promised date for a quote in Odoo.
+  | A new *Frepple Quotes* screen is added to get a promised date for a product.
+  | Many thanks to https://e-powerinternational.com/ for this contribution!
+
+- | 16, 17: Correct handling of locked purchase orders.
+
+- | 16, 17: New mapping for odoo reorder points, which uses the new buffer.maximum field.
+
+- | The "odoo export" command now sends back information on the planned delivery date of every
+    open sales order.
+  | This can be valuable feedback in odoo to the sales team.
+
+.. rubric:: System administration
+
+- | Ability to customize the "export plan results" task.
+  | Until now you had to rely on the standard export logic or write a frepple app to tailor the
+    export to your needs.
+  | Now you can customize the exports from the user interface.
+
+.. rubric:: Documentation
+
+- | A `page <installation-guide/advanced-configuration.html>`_ was added to the
+    installation guide with advanced configuration options.
+  | These topics frequently come up, so let's capture that knowledge.
+
+8.6.0 (2024-04-05)
+==================
+
+.. rubric:: Production planning
+
+- | Enhancements to improve the plan quality in the presence of temporary
+    unresolvable material shortages.
+
+- | The planning algorithm now plans sales orders in status "quote" after
+    "open" sales orders and net forecast. The quotes thus can't steal capacity or
+    material away from regular demand.
+  | In earlier releases quotes were just ordered among the open sales orders and
+    net forecast. Depending on their priority and due date quote can take precedence
+    over regular demand.
+
+- | Bug fix: When the solver runs into a data exception when planning a routing
+    operation, the planning algorithm didn't correctly roll back and clean the plan.
+  | The symptom is an error during the export of the plan.
+
+- | Bug fix: The manufacturing order summary report didn't correctly handle operations
+    with 0 duration.
+
+.. rubric:: Demand forecasting
+
+- | Performance improvements when disaggregating edits in sparse hierarchies.
+
+.. rubric:: User interface
+
+- | Bug fix: The report manager didn't work on scenario databases.
+  | This was correctly a long time already in Enterprise and Cloud Editions, but
+    we missed fixing it on the Community Edition.
+
+8.5.0 (2024-03-02)
+==================
 
 .. rubric:: Production planning
 
@@ -32,6 +181,16 @@ This release is scheduled for end February 2024. You can already check out a `pr
 
 - | Addition of hyperlinks in the network status widget to get detailed information
     on the displayed numbers.
+
+- | The routing suboperations now have the same level in the *upstream/downstream
+    Operations* widgets and in the demand delivery plan. This way, they will all expand/hide
+    in one click.
+
+- | The *forecast widget* was updated not to display too many values on the x-axis. The planner
+    can choose to display the data in different time buckets (month, week, day...).
+
+- | The *manufacturing/distribution/purchase orders widgets* were modified to display clickable
+    bars instead of lines. These widgets display data based on the selected time bucket.
 
 .. rubric:: Odoo integration
 

@@ -22,6 +22,7 @@
 #
 
 from datetime import datetime, timedelta
+import os
 import shlex
 
 from django.db import models
@@ -168,6 +169,15 @@ class ScheduledTask(models.Model):
             offset = int(offset.total_seconds())
         if self.next_run:
             self.next_run += timedelta(seconds=offset)
+        if callable(self.lastrun):
+            self.lastrun = self.lastrun()  # Hack: replacing method with attribute
+        if self.lastrun:
+            if self.lastrun.submitted:
+                self.lastrun.submitted += timedelta(seconds=offset)
+            if self.lastrun.started:
+                self.lastrun.started += timedelta(seconds=offset)
+            if self.lastrun.finished:
+                self.lastrun.finished += timedelta(seconds=offset)
         if self.data and self.data.get("starttime", None) is not None:
             self.data["starttime"] += offset
             if self.data["starttime"] < 0:
@@ -196,4 +206,68 @@ class ScheduledTask(models.Model):
 
     def save(self, *args, **kwargs):
         self.computeNextRun()
+        super().save(*args, **kwargs)
+
+
+class DataExport(models.Model):
+    # Database fields
+    name = models.CharField("name", primary_key=True, max_length=300, db_index=True)
+    sql = models.TextField("sql", null=True, blank=True)
+    report = models.CharField("report", max_length=300, null=True, blank=True)
+    arguments = models.JSONField(null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    def basename(self):
+        if self.name.endswith(".xlsx"):
+            return self.name[:-5]
+        elif self.name.endswith(".csv"):
+            return self.name[:-4]
+        elif self.name.endswith(".csv.gz"):
+            return self.name[:-7]
+        else:
+            return self.name
+
+    def extension(self):
+        if self.name.endswith(".xlsx"):
+            return ".xlsx"
+        elif self.name.endswith(".csv"):
+            return ".csv"
+        elif self.name.endswith(".csv.gz"):
+            return ".csv.gz"
+        else:
+            return ""
+
+    def exporttype(self):
+        if self.sql:
+            return "sql"
+        elif self.report.startswith("freppledb.reportmanager.models.SQLReport."):
+            return "customreport"
+        else:
+            return "report"
+
+    def reportid(self):
+        return (
+            int(self.report[41:])
+            if self.report
+            and self.report.startswith("freppledb.reportmanager.models.SQLReport.")
+            else None
+        )
+
+    class Meta:
+        db_table = "execute_export"
+        verbose_name_plural = "execute_exports"
+        verbose_name = "execute_exports"
+
+    def save(self, *args, **kwargs):
+        name_lower = self.name.lower()
+        if not (
+            name_lower.endswith(".xlsx")
+            or name_lower.endswith(".csv.gz")
+            or name_lower.endswith(".csv")
+        ):
+            raise Exception("Exports must end with .xlsx, .csv or .csv.gz")
+        if os.sep in self.name:
+            raise Exception("Export names can't contain %s" % os.sep)
         super().save(*args, **kwargs)

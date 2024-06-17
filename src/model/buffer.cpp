@@ -35,7 +35,6 @@ Tree utils::HasName<Buffer>::st;
 const MetaCategory* Buffer::metadata;
 const MetaClass *BufferDefault::metadata, *BufferInfinite::metadata,
     *OperationInventory::metadata, *OperationDelivery::metadata;
-const double Buffer::default_max = 1e37;
 OperationFixedTime* Buffer::uninitializedProducing = nullptr;
 Duration OperationDelivery::deliveryduration = 0L;
 
@@ -142,11 +141,16 @@ void Buffer::inspect(const string& msg, const short i) const {
   logger << endl;
 
   double curmin = 0.0;
+  double curmax = 0.0;
   for (auto oo = getFlowPlans().begin(); oo != getFlowPlans().end(); ++oo) {
-    if (oo->getEventType() == 3) curmin = oo->getMin();
+    if (oo->getEventType() == 3)
+      curmin = oo->getMin();
+    else if (oo->getEventType() == 4)
+      curmax = oo->getMax();
     logger << indentstring << "    " << oo->getDate()
            << " qty:" << oo->getQuantity() << ", oh:" << oo->getOnhand();
     if (curmin) logger << ", min:" << curmin;
+    if (curmax) logger << ", max:" << curmax;
     switch (oo->getEventType()) {
       case 1:
         logger << ", " << oo->getOperationPlan() << endl;
@@ -370,7 +374,7 @@ void Buffer::setMinimum(double m) {
     }
 
   // Create new event
-  flowplanlist::EventMinQuantity* newEvent = new flowplanlist::EventMinQuantity(
+  auto newEvent = new flowplanlist::EventMinQuantity(
       Plan::instance().getCurrent(), &flowplans, min_val);
   flowplans.insert(newEvent);
 }
@@ -431,14 +435,22 @@ void Buffer::setMaximum(double m) {
   // Create or update a single timeline max event
   for (auto oo = flowplans.begin(); oo != flowplans.end(); oo++)
     if (oo->getEventType() == 4) {
-      // Update existing event
-      static_cast<flowplanlist::EventMaxQuantity*>(&*oo)->setMax(max_val);
+      if (max_val > ROUNDING_ERROR) {
+        // Update existing event
+        static_cast<flowplanlist::EventMaxQuantity*>(&*oo)->setMax(max_val);
+      } else {
+        // Delete existing event
+        flowplans.erase(&(*oo));
+        delete &(*(oo++));
+      }
       return;
     }
   // Create new event
-  flowplanlist::EventMaxQuantity* newEvent = new flowplanlist::EventMaxQuantity(
-      Date::infinitePast, &flowplans, max_val);
-  flowplans.insert(newEvent);
+  if (max_val > ROUNDING_ERROR) {
+    auto newEvent = new flowplanlist::EventMaxQuantity(
+        Plan::instance().getCurrent(), &flowplans, max_val);
+    flowplans.insert(newEvent);
+  }
 }
 
 void Buffer::setMaximumCalendar(Calendar* cal) {

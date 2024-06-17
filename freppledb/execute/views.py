@@ -85,7 +85,7 @@ from freppledb.common.report import (
     matchesModelName,
 )
 from freppledb.common.views import sendStaticFile
-from .models import Task, ScheduledTask
+from .models import Task, ScheduledTask, DataExport
 from .management.commands.runworker import launchWorker
 from .management.commands.runplan import parseConstraints, constraintString
 from .management.commands.scheduletasks import scheduler
@@ -430,7 +430,7 @@ def wrapTask(request, action):
                     .filter(name="runplan")
                     .order_by("-id")[0]
                 )
-                for i in shlex.split(lastrun.arguments):
+                for i in shlex.split(lastrun.arguments or ""):
                     if "=" in i:
                         key, val = i.split("=")
                         if key == "--constraint":
@@ -993,7 +993,6 @@ class FileManager:
             if os.path.isdir(folder):
                 filelist.append(clean_filename)
             else:
-                logger.error("Failed file deletion: folder does not exist")
                 errorcount += 1
                 fileerrors = fileerrors + " / " + escape(clean_filename)
 
@@ -1003,7 +1002,8 @@ class FileManager:
                 if cleanpath.startswith(folder):
                     os.remove(cleanpath)
             except FileNotFoundError:
-                logger.error("Failed file deletion: file does not exist")
+                # No error message needed
+                pass
             except Exception as e:
                 logger.error("Failed file deletion: %s" % e)
                 errorcount += 1
@@ -1036,12 +1036,8 @@ class FileManager:
                     logger.warning("Failed file download: %s" % filename)
                     return HttpResponseNotFound(force_str(_("Error")))
                 if not os.path.isfile(cleanpath):
-                    if os.path.isfile("%s.gz" % cleanpath):
-                        # File exists in compressed format
-                        clean_filename = "%s.gz" % clean_filename
-                    else:
-                        logger.warning("Failed file download: %s" % filename)
-                        return HttpResponseNotFound(force_str(_("Error")))
+                    logger.warning("Failed file download: %s" % filename)
+                    return HttpResponseNotFound(force_str(_("Error")))
                 return sendStaticFile(
                     request,
                     folder,
@@ -1064,18 +1060,10 @@ class FileManager:
                         if filename.endswith(extensions) and os.access(
                             fullfilename, os.R_OK
                         ):
-                            if filename.endswith(".gz"):
-                                # Put the uncompressed file in the zip file
-                                with gzip.open(fullfilename, "rb") as datafile:
-                                    zf.writestr(
-                                        os.path.basename(filename[:-3]),
-                                        datafile.read(),
-                                    )
-                            else:
-                                zf.write(
-                                    filename=fullfilename,
-                                    arcname=os.path.basename(filename),
-                                )
+                            zf.write(
+                                filename=fullfilename,
+                                arcname=os.path.basename(filename),
+                            )
             response = HttpResponse(b.getvalue(), content_type="application/zip")
             response["Content-Disposition"] = 'attachment; filename="frepple.zip"'
             return response
@@ -1089,7 +1077,9 @@ def scheduletasks(request):
     ) != "XMLHttpRequest" or request.method not in ("POST", "DELETE"):
         return HttpResponseNotAllowed("Only post and delete ajax requests are allowed")
     try:
-        data = json.loads(request.body.decode(request.encoding))
+        data = json.loads(
+            request.body.decode(request.encoding or settings.DEFAULT_CHARSET)
+        )
         oldname = data.get("oldname", None)
         name = data.get("name", None)
         if not name and not oldname:
@@ -1526,3 +1516,142 @@ def importWorkbook(request):
     except Exception as e:
         yield "Import aborted: %s" % e
         logger.error("Exception importing workbook: %s" % e)
+
+
+@staff_member_required
+@never_cache
+def exports(request):
+    if request.headers.get(
+        "x-requested-with"
+    ) != "XMLHttpRequest" or request.method not in ("POST", "DELETE"):
+        return HttpResponseNotAllowed("Only post ajax requests are allowed")
+    if not request.user.is_superuser:
+        return HttpResponseForbidden(force_str(_("Only superusers can do this")))
+
+    try:
+        data = json.loads(
+            request.body.decode(request.encoding or settings.DEFAULT_CHARSET)
+        )
+        errors = []
+        curname = data.get("currentname", None)
+        if data.get("delete", None):
+            deleted = (
+                DataExport.objects.using(request.database)
+                .filter(name=data["delete"])
+                .delete()
+            )
+            if deleted:
+                # Remove the data file for security reasons and to save disk space
+                try:
+                    os.remove(
+                        os.path.join(
+                            settings.DATABASES[request.database]["FILEUPLOADFOLDER"],
+                            "export",
+                            data["delete"],
+                        )
+                    )
+                except FileNotFoundError:
+                    pass
+        elif data.get("name", None) in (None, ".xlsx", ".csv", ".csv.gz"):
+            errors.append("Name can't be blank<br>")
+        else:
+            if not data["name"].endswith((".xlsx", ".csv", ".csv.gz")):
+                errors.append("Export must end with .xlsx, .csv or .csv.gz<br>")
+            elif (
+                data["name"] != curname
+                and DataExport.objects.using(request.database)
+                .filter(name=data["name"])
+                .exists()
+            ):
+                errors.append("Export with this name already exists<br>")
+            elif os.sep in data["name"]:
+                errors.append("Export names can't contain %s" % os.sep)
+            else:
+                t = data.get("type", None)
+                if t == "sql":
+                    s = data.get("sql", None)
+                    if s:
+                        if curname:
+                            DataExport.objects.using(request.database).filter(
+                                name=curname
+                            ).update(name=data["name"], sql=s)
+                        else:
+                            DataExport(name=data["name"], sql=s).save(
+                                using=request.database
+                            )
+                    else:
+                        errors.append("Missing sql query<br>")
+                elif t == "report":
+                    r = data.get("report", None)
+                    if not r or r not in (
+                        "freppledb.output.views.resource.OverviewReport",
+                        "freppledb.output.views.demand.OverviewReport",
+                        "freppledb.output.views.buffer.OverviewReport",
+                        "freppledb.output.views.operation.OverviewReport",
+                        "freppledb.output.views.operation.DistributionReport",
+                        "freppledb.output.views.operation.PurchaseReport",
+                        "freppledb.forecast.views.OverviewReport",
+                    ):
+                        errors.append("Invalid report<br>")
+                    else:
+                        if curname:
+                            DataExport.objects.using(request.database).filter(
+                                name=curname
+                            ).update(
+                                name=data["name"],
+                                report=r,
+                                sql=None,
+                                arguments={
+                                    "buckets": data.get("bucket"),
+                                    "horizontype": True,
+                                    "horizonunit": data.get("horizonbucket", "month"),
+                                    "horizonlength": int(data.get("horizon", 6)),
+                                },
+                            )
+                        else:
+                            DataExport(
+                                name=data["name"],
+                                report=r,
+                                arguments={
+                                    "buckets": data.get("bucket"),
+                                    "horizontype": True,
+                                    "horizonunit": data.get("horizonbucket", "month"),
+                                    "horizonlength": int(data.get("horizon", 6)),
+                                },
+                            ).save(using=request.database)
+                elif t == "customreport":
+                    from freppledb.reportmanager.models import SQLReport
+
+                    r = data.get("report", None)
+                    if (
+                        r
+                        and SQLReport.objects.using(request.database)
+                        .filter(id=r)
+                        .exists()
+                    ):
+                        if curname:
+                            DataExport.objects.using(request.database).filter(
+                                name=curname
+                            ).update(
+                                name=data["name"],
+                                report="freppledb.reportmanager.models.SQLReport.%s"
+                                % r,
+                                sql=None,
+                            )
+                        else:
+                            DataExport(
+                                name=data["name"],
+                                report="freppledb.reportmanager.models.SQLReport.%s"
+                                % r,
+                            ).save(using=request.database)
+                    else:
+                        errors.append("Invalid custom report<br>")
+                else:
+                    errors.append("Unknown export type<br>")
+        if errors:
+            return HttpResponseServerError(content="\n".join(errors))
+        else:
+            return HttpResponse(content="OK")
+    except Exception as e:
+        logger.error("Error updating export: %s" % e)
+        return HttpResponseServerError("Error updating export")

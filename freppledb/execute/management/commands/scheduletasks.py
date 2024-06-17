@@ -135,7 +135,8 @@ class TaskScheduler:
                     created = True
 
         # Reschedule to run this task again at the next date
-        del scheduler.sched[database]
+        if database in scheduler.sched:
+            del scheduler.sched[database]
         scheduler.waitNextEvent(database=database)
 
         # Synchronously run the worker process
@@ -310,7 +311,8 @@ class Command(BaseCommand):
                 else:
                     try:
                         EmailMessage(
-                            subject="FrePPLe successfully executed %s" % schedule.name,
+                            subject="FrePPLe successfully executed %s on %s"
+                            % (schedule.name, database),
                             body="Task %s completed succesfully" % task.id,
                             to=correctedRecipients,
                         ).send()
@@ -372,7 +374,8 @@ class Command(BaseCommand):
                     else:
                         try:
                             EmailMessage(
-                                subject="FrePPLe failed executing %s" % schedule.name,
+                                subject="FrePPLe failed executing %s on %s"
+                                % (schedule.name, database),
                                 body="Task %s failed: %s" % (task.id, e),
                                 to=correctedRecipients,
                             ).send()
@@ -427,8 +430,9 @@ class Command(BaseCommand):
                 except Exception:
                     pass
         commands = [i[1] for i in sorted(commands)]
+        offset = GridReport.getTimezoneOffset(request)
         schedules = [
-            s.adjustForTimezone(GridReport.getTimezoneOffset(request))
+            s.adjustForTimezone(offset)
             for s in ScheduledTask.objects.all()
             .using(request.database)
             .order_by("name")

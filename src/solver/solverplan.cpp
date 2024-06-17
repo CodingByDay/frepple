@@ -36,9 +36,7 @@ const Keyword SolverCreate::tag_createdeliveries("createdeliveries");
 const Keyword SolverCreate::tag_administrativeleadtime(
     "administrativeleadtime");
 const Keyword SolverCreate::tag_minimumdelay("minimumdelay");
-const Keyword SolverCreate::tag_allowsplits("allowsplits");
 const Keyword SolverCreate::tag_rotateresources("rotateresources");
-const Keyword SolverCreate::tag_planSafetyStockFirst("plansafetystockfirst");
 const Keyword SolverCreate::tag_iterationmax("iterationmax");
 const Keyword SolverCreate::tag_resourceiterationmax("resourceiterationmax");
 const Keyword SolverCreate::tag_erasePreviousFirst("erasePreviousFirst");
@@ -167,7 +165,17 @@ bool SolverCreate::isLeadTimeConstrained(const Operation* oper) const {
 }
 
 bool SolverCreate::demand_comparison(const Demand* l1, const Demand* l2) {
-  if (l1->getPriority() != l2->getPriority())
+  if ((l1->getStatus() == Demand::STATUS_QUOTE ||
+       l1->getStatus() == Demand::STATUS_INQUIRY) &&
+      l2->getStatus() != Demand::STATUS_QUOTE &&
+      l2->getStatus() != Demand::STATUS_INQUIRY)
+    return false;
+  else if ((l2->getStatus() == Demand::STATUS_QUOTE ||
+            l2->getStatus() == Demand::STATUS_INQUIRY) &&
+           l1->getStatus() != Demand::STATUS_QUOTE &&
+           l1->getStatus() != Demand::STATUS_INQUIRY)
+    return true;
+  else if (l1->getPriority() != l2->getPriority())
     return l1->getPriority() < l2->getPriority();
   else if (l1->getDue() != l2->getDue())
     return l1->getDue() < l2->getDue();
@@ -244,6 +252,8 @@ void SolverCreate::SolverData::commit() {
   // Message
   if (solver->getLogLevel() > 0)
     logger << "Start solving cluster " << cluster << endl;
+
+  maskTemporaryShortages();
 
   // Solve the planning problem
   try {
@@ -427,16 +437,13 @@ void SolverCreate::SolverData::commit() {
         stable_sort(demands->begin(), demands->end(), demand_comparison);
 
       // Solve for safety stock in buffers.
-      if (solver->getPlanSafetyStockFirst()) {
-        constrainedPlanning = (solver->getPlanType() == 1);
-        solveSafetyStock(solver);
-        buffer_solve_shortages_only = false;
-      } else
-        buffer_solve_shortages_only = true;
+      constrainedPlanning = (solver->getPlanType() == 1);
+      safety_stock_planning = true;
+      solveSafetyStock(solver);
+      buffer_solve_shortages_only = false;
 
       // Loop through the list of all demands in this planning problem
       safety_stock_planning = false;
-      constrainedPlanning = (solver->getPlanType() == 1);
       Demand* curdmd;
       auto iterdmd = demands->begin();
       do {
@@ -522,7 +529,7 @@ void SolverCreate::SolverData::commit() {
       purchase_buffers.clear();
 
       // Solve for safety stock in buffers.
-      if (!solver->getPlanSafetyStockFirst()) solveSafetyStock(solver);
+      // solveSafetyStock(solver);
     }
 
     // Operation batching postprocessing
@@ -559,6 +566,8 @@ void SolverCreate::SolverData::commit() {
     // Clean the list of demands of this cluster
     demands->clear();
   }
+
+  unmaskTemporaryShortages();
 
   // Message
   if (solver->getLogLevel() > 0)
@@ -623,6 +632,66 @@ void SolverCreate::SolverData::solveSafetyStock(SolverCreate* solver) {
   if (getLogLevel() > 0)
     logger << "Finished safety stock replenishment pass" << endl;
   safety_stock_planning = false;
+}
+
+void SolverCreate::SolverData::maskTemporaryShortages() {
+  for (auto& buf : Buffer::all())
+    if ((buf.getCluster() == cluster || cluster == -1) &&
+        !buf.hasType<BufferInfinite>() && buf.getProducingOperation()) {
+      bool manipulated = false;
+      auto fence = Plan::instance().getAutoFence();
+      if (!fence)
+        // Autofence value of 0 doesn't mask any temporary shortages
+        return;
+      Operation* correction = nullptr;
+      for (auto flpln = buf.getFlowPlans().begin();
+           flpln != buf.getFlowPlans().end(); ++flpln) {
+        if (flpln->isLastOnDate() && flpln->getOnhand() < -ROUNDING_ERROR) {
+          // Scan to see the end of the shortage period
+          auto qty = -flpln->getOnhand();
+          Date shortage_ends;
+          for (Buffer::flowplanlist::const_iterator scanner = flpln;
+               scanner != buf.getFlowPlans().end(); ++scanner) {
+            if (scanner->getDate() >
+                max(flpln->getDate(), Plan::instance().getCurrent()) + fence)
+              break;
+            else if (scanner->getOnhand() > -qty && scanner->isLastOnDate()) {
+              shortage_ends = scanner->getDate();
+              break;
+            }
+          }
+
+          // Correct inventory
+          if (shortage_ends) {
+            if (!correction) {
+              correction = new OperationFixedTime();
+              correction->setName("Correction for " + buf.getName());
+              correction->setHidden(true);
+              new FlowEnd(correction, &buf, -1);
+              new FlowStart(correction, &buf, 1);
+            }
+            auto opplan = correction->createOperationPlan(
+                qty, flpln->getDate(), shortage_ends, buf.getBatch());
+            opplan->setConfirmed(true);
+            opplan->setStartAndEnd(flpln->getDate(), shortage_ends);
+            maskedShortages.push_back(opplan);
+            if (getLogLevel() > 0)
+              logger << "Warning: Masking temporary material shortage on '"
+                     << buf.getName() << "' for " << opplan->getQuantity()
+                     << " during " << opplan->getDates() << endl;
+            manipulated = true;
+          }
+        }
+      }
+    }
+}
+
+void SolverCreate::SolverData::unmaskTemporaryShortages() {
+  while (!maskedShortages.empty()) {
+    auto o = maskedShortages.back();
+    maskedShortages.pop_back();
+    delete o;
+  }
 }
 
 void SolverCreate::update_user_exits() {
@@ -718,8 +787,7 @@ void SolverCreate::solve(void* v) {
       tmp = j;
     else
       tmp = cluster;
-    threads.add(SolverData::runme,
-                new SolverData(this, tmp, &(demands_per_cluster[j])));
+    threads.add(SolverData::runme, this, tmp, &(demands_per_cluster[j]));
   }
   // Run the planning command threads and wait for them to exit
   threads.execute();

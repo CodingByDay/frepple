@@ -35,7 +35,7 @@ from django.http import (
 )
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import View
@@ -48,6 +48,7 @@ logger = logging.getLogger(__name__)
 class ExecuteSQL(View):
     template = "executesql/executesql.html"
     reportkey = "executesql.executesql"
+    help_url = "user-interface/executesql.html"
 
     @classmethod
     def has_permission(cls, user):
@@ -61,7 +62,11 @@ class ExecuteSQL(View):
         return render(
             request,
             reportclass.template,
-            {"title": _("Execute SQL"), "reportkey": reportclass.reportkey},
+            {
+                "title": _("Execute SQL"),
+                "reportkey": reportclass.reportkey,
+                "reportclass": ExecuteSQL,
+            },
         )
 
     @method_decorator(staff_member_required)

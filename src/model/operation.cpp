@@ -46,6 +46,8 @@ int Operation::initialize() {
   PythonType& x = FreppleCategory<Operation>::getPythonType();
   x.addMethod("decoupledLeadTime", &getDecoupledLeadTimePython, METH_VARARGS,
               "return the total lead time");
+  x.addMethod("setFence", &setFencePython, METH_VARARGS,
+              "Update the fence based on date");
   return FreppleCategory<Operation>::initialize();
 }
 
@@ -199,6 +201,28 @@ Date Operation::getFence(const OperationPlan* opplan) const {
         .getStart();
   else
     return Plan::instance().getCurrent();
+}
+
+void Operation::setFence(Date d) {
+  Duration tmp;
+  calculateOperationTime(nullptr, Plan::instance().getCurrent(), d, &tmp, true);
+  setFence(tmp);
+}
+
+PyObject* Operation::setFencePython(PyObject* self, PyObject* args) {
+  // Pick up the date argument
+  PyObject* pydate;
+  int ok = PyArg_ParseTuple(args, "O:setFence", &pydate);
+  if (!ok) return nullptr;
+
+  try {
+    PythonData dt(pydate);
+    static_cast<Operation*>(self)->setFence(dt.getDate());
+    return Py_BuildValue("");
+  } catch (...) {
+    PythonType::evalException();
+    return nullptr;
+  }
 }
 
 Duration Operation::getMaxEarly() const {
@@ -542,6 +566,7 @@ unsigned short Operation::collectCalendars(
   if (opplan && opplan->getLoadPlans() != opplan->endLoadPlans()) {
     // Iterate over loadplans
     for (auto g = opplan->getLoadPlans(); g != opplan->endLoadPlans(); ++g) {
+      if (g->getQuantity() > 0) continue;
       Resource* res = g->getResource();
       if (res->getAvailable()) {
         // c) resource
@@ -989,6 +1014,8 @@ OperationPlanState OperationFixedTime::setOperationPlanParameters(
         ((get<1>(setuptime_required) || opplan->getSetupOverride() >= 0L) &&
          setup_duration != setup_wanted_duration)) {
       // Not enough time found for the setup and the operation duration
+      logger << "Warning: Couldn't find available time on operation '" << this
+             << "'" << endl;
       if (!execute)
         return OperationPlanState(production_dates, setup_dates.getEnd(), 0);
       else
@@ -1520,12 +1547,16 @@ OperationPlanState OperationTimePer::setOperationPlanParameters(
                       Duration(double(duration) / efficiency) &&
                   !opplan->getQuantityCompleted())) {
         // Not feasible
+        logger << "Warning: Couldn't find available time on operation '" << this
+               << "'" << endl;
         if (!execute) return OperationPlanState(production_dates, 0.0);
         opplan->setQuantity(0, true, false);
         opplan->clearSetupEvent();
         opplan->setStartAndEnd(d, Date::infiniteFuture);
       } else {
         // Resize the quantity to be feasible
+        logger << "Warning: Couldn't find available time on operation '" << this
+               << "'" << endl;
         double max_q;
         if (opplan->getQuantityCompleted() && production_wanted_duration)
           max_q = opplan->getQuantityRemaining() * production_duration /
