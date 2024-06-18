@@ -940,14 +940,6 @@ freppledb/output/views/operation.py
 freppledb/output/views/pegging.py
 freppledb/output/views/problem.py
 freppledb/output/views/resource.py
-freppledb/pantheonconnector/__init__.py
-freppledb/pantheonconnector/urls.py
-freppledb/pantheonconnector/utils.py
-freppledb/pantheonconnector/views.py
-freppledb/pantheonconnector/management/__init__.py
-freppledb/pantheonconnector/management/commands/__init__.py
-freppledb/pantheonconnector/management/commands/erp2frepple.py
-freppledb/pantheonconnector/management/commands/frepple2erp.py
 freppledb/reportmanager/__init__.py
 freppledb/reportmanager/admin.py
 freppledb/reportmanager/apps.py

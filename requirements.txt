@@ -28,4 +28,7 @@ channels == 4.0.0
 attrs == 23.1.0
 daphne == 4.0.0
 Twisted[tls,http2]
+pyodbc
+adodbapi
 https://github.com/frePPLe/django/tarball/frepple_8.3
+

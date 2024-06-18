@@ -44,10 +44,10 @@ class Command(BaseCommand):
       """
 
     # For the display in the execution screen
-    title = _("Export data to %(erp)s") % {"erp": "erp"}
+    title = _("Export data to %(erp)s") % {"erp": "Pantheon"}
 
     # For the display in the execution screen
-    index = 1500
+    index = 1
 
     requires_system_checks = []
 
@@ -81,7 +81,7 @@ class Command(BaseCommand):
             <td style="vertical-align:top; padding: 15px">
                <button  class="btn btn-primary"  type="submit" value="{% trans "launch"|capfirst %}">{% trans "launch"|capfirst %}</button>
             </td>
-            <td  style="padding: 0px 15px;">{% trans "Export erp data to frePPLe." %}
+            <td  style="padding: 0px 15px;">{% trans "Export Pantheon data to frePPLe." %}
             </td>
           </tr>
         </table>

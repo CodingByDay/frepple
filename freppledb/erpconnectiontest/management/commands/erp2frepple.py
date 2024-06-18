@@ -51,10 +51,10 @@ class Command(BaseCommand):
     # ext = 'cpy'
 
     # For the display in the execution screen
-    title = _("Import data from %(erp)s") % {"erp": "erp"}
+    title = _("Import data from %(erp)s") % {"erp": "Pantheon"}
 
     # For the display in the execution screen
-    index = 1400
+    index = 2
 
     requires_system_checks = []
 
@@ -88,7 +88,7 @@ class Command(BaseCommand):
             <td style="vertical-align:top; padding: 15px">
                <button  class="btn btn-primary"  type="submit" value="{% trans "launch"|capfirst %}">{% trans "launch"|capfirst %}</button>
             </td>
-            <td  style="padding: 0px 15px;">{% trans "Import erp data into frePPLe." %}
+            <td  style="padding: 0px 15px;">{% trans "Import Pantheon data into frePPLe." %}
             </td>
           </tr>
         </table>
