@@ -1,0 +1,23 @@
+In order for the connection to the ms sql server to work properly you need following pip packages:
+
+
+pyodbc
+adodbapi
+
+
+Also you need following Linux Ubuntu packages:
+
+
+sudo apt-get update
+sudo apt-get install -y unixodbc unixodbc-dev
+# Download the Microsoft GPG key
+curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+
+# Register the Microsoft Ubuntu repository
+sudo add-apt-repository "$(curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list)"
+
+# Update the package list again
+sudo apt-get update
+
+# Install the ODBC driver
+sudo apt-get install -y msodbcsql17
