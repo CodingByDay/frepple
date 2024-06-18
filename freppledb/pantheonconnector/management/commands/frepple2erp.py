@@ -69,7 +69,7 @@ class Command(BaseCommand):
 
     @staticmethod
     def getHTML(request):
-        if "freppledb.erpconnection" in settings.INSTALLED_APPS:
+        if "freppledb.pantheonconnector" in settings.INSTALLED_APPS:
             context = RequestContext(request)
 
             template = Template(
