@@ -1,20 +1,15 @@
-
 import pyodbc
-
 from django.db import DEFAULT_DB_ALIAS
 
-def getERPconnection(
-    server='your_sql_server_hostname_or_ip',
-    database_name='acutec',
-    username='acutec',
-    password='acutec',
-    database=DEFAULT_DB_ALIAS
-):
+def getERPconnection(database=DEFAULT_DB_ALIAS):
     """
     Customize this method to connect to the ERP database.
-
-    This implementation uses pyodbc to connect from an Ubuntu machine to an MS SQL Server database.
     """
+
+    server = '172.17.1.77\\CROATIAN,1500'
+    database_name = 'PA_METAL_PRODUCT'
+    username = 'metalweb'
+    password = 'net321tnet!'
 
     # Construct the connection string
     connection_string = (

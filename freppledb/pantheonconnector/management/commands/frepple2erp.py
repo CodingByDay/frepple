@@ -39,6 +39,8 @@ from ...utils import getERPconnection
 
 
 class Command(BaseCommand):
+
+
     help = """
       Update the ERP system with frePPLe planning information.
       """
@@ -97,6 +99,7 @@ class Command(BaseCommand):
         Uploads approved operationplans to the ERP system.
         """
 
+        print("Failed to establish and test database connection.")
         # Select the correct frePPLe scenario database
         self.database = options["database"]
         if self.database not in settings.DATABASES.keys():
