@@ -40,7 +40,6 @@ from ...utils import getERPconnection
 
 class Command(BaseCommand):
 
-
     help = """
       Update the ERP system with frePPLe planning information.
       """

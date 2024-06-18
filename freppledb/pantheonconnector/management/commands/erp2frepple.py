@@ -248,10 +248,11 @@ class Command(BaseCommand):
         print("Start extracting locations to %s" % outfilename)
         self.cursor.execute(
             """
-      select
-        location_id, description, current_timestamp
-      from location
-      """
+
+            select * from uTN_V_Frepple_LocationData
+
+
+            """
         )
         with open(outfilename, "w", newline="") as outfile:
             outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
@@ -266,10 +267,13 @@ class Command(BaseCommand):
         print("Start extracting customers to %s" % outfilename)
         self.cursor.execute(
             """
-      select distinct customer, type, current_timestamp from customer
-      union
-      select 'N/A', null, current_timestamp
-      """
+
+
+            select * from uTN_V_Frepple_CustomerData
+
+
+
+            """
         )
         with open(outfilename, "w", newline="") as outfile:
             outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
@@ -284,10 +288,12 @@ class Command(BaseCommand):
         print("Start extracting items to %s" % outfilename)
         self.cursor.execute(
             """
-      select job, part_number, description, customer, current_timestamp
-      from job
-      where status = 'Active'
-      """
+
+
+            select * from uTN_V_Frepple_ItemData 
+
+
+            """
         )
         with open(outfilename, "w", newline="") as outfile:
             outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
@@ -304,10 +310,12 @@ class Command(BaseCommand):
         print("Start extracting suppliers to %s" % outfilename)
         self.cursor.execute(
             """
-      select vendor, name, current_timestamp
-      from vendor
-      where status = 'Active'
-      """
+
+
+            select * from uTN_V_Frepple_SupplierData 
+
+
+            """
         )
         with open(outfilename, "w", newline="") as outfile:
             outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
@@ -323,14 +331,12 @@ class Command(BaseCommand):
         print("Start extracting resources to %s" % outfilename)
         self.cursor.execute(
             """
-      select work_center, uvtext4, department, machines, 'SHOP', 'default', current_timestamp
-      from work_center
-      where parent_id is null and department <> 'INACTIVE'
-      union all
-      select vendor, name, 'OUTSOURCED', 1, 'SHOP', 'infinite', current_timestamp
-      from vendor
-      where status = 'Active'
-      """
+
+
+            select * from uTN_V_Frepple_ResourcesData 
+
+
+            """
         )
         with open(outfilename, "w", newline="") as outfile:
             outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
@@ -355,15 +361,13 @@ class Command(BaseCommand):
         print("Start extracting demand to %s" % outfilename)
         self.cursor.execute(
             """
-      select
-        job, job, 'SHOP', coalesce(customer, 'N/A'), 'open', order_date,
-        make_quantity - completed_quantity, make_quantity - completed_quantity,
-        description, part_number, 10, current_timestamp
-      from job
-      where status = 'Active'
-      and top_lvl_job = job
-      and make_quantity > completed_quantity
-      """
+
+
+            select * from uTN_V_Frepple_SalesOrderData 
+
+
+            
+            """
         )
         with open(outfilename, "w", newline="") as outfile:
             outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
