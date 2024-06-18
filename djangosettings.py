@@ -233,7 +233,7 @@ INSTALLED_APPS = (
     "freppledb.editor",
         #  Add any project specific apps here
         # "freppledb.odoo",
-        # "freppledb.erpconnection",
+    "freppledb.pantheonconnector",
     "freppledb.wizard",
     "freppledb.input",
     "freppledb.forecast",
@@ -265,6 +265,7 @@ INSTALLABLE_APPS = (
     "freppledb.metrics",
     "freppledb.reportmanager",
     "freppledb.executesql",
+    "freppledb.pantheonconnector",
     "freppledb.debugreport",
     pathlib.Path(os.path.join(FREPPLE_APP, "apps")),
     pathlib.Path(os.path.join(FREPPLE_APP, "freppleapps")),
