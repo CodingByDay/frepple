@@ -82,14 +82,14 @@ class Command(BaseCommand):
             <td style="vertical-align:top; padding: 15px">
                <button  class="btn btn-primary"  type="submit" value="{% trans "launch"|capfirst %}">{% trans "launch"|capfirst %}</button>
             </td>
-            <td  style="padding: 0px 15px;">{% trans "Export Pantheon data to frePPLe." %}
+            <td  style="padding: 0px 15px;">{% trans "Export Frepple data to Pantheon." %}
             </td>
           </tr>
         </table>
         </form>
-           <div style="margin-top: 20px;">
-                    <a href="{{ request.prefix }}/erp/testing2pantheon/" class="btn btn-secondary">{% trans "Testing FrePPLe to Pantheon" %}</a>
-            </div>
+
+
+
       """
             )
             return template.render(context)

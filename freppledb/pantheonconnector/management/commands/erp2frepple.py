@@ -94,9 +94,9 @@ class Command(BaseCommand):
           </tr>
         </table>
         </form>
-            <div style="margin-top: 20px;">
-                    <a href="{{ request.prefix }}/erp/testing2frepple/" class="btn btn-secondary">{% trans "Testing Pantheon to FrePPLe" %}</a>
-            </div>
+          
+        
+
       """
             )
             return template.render(context)
@@ -186,7 +186,7 @@ class Command(BaseCommand):
                 self.task.status = "36%"
                 self.task.save(using=self.database)
 
-                self.extractOperation()
+                '''self.extractOperation()
                 self.task.status = "42%"
                 self.task.save(using=self.database)
 
@@ -230,7 +230,7 @@ class Command(BaseCommand):
 
                 self.extractCalendarBucket()
                 self.task.status = "100%"
-                self.task.save(using=self.database)
+                self.task.save(using=self.database) For testing purposes only 19 june 2024 Janko'''
 
                 self.task.status = "Done"
 
@@ -260,7 +260,7 @@ class Command(BaseCommand):
         )
         with open(outfilename, "w", newline="") as outfile:
             outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
-            outcsv.writerow(["name", "description", "lastmodified"])
+            outcsv.writerow(["name", "description", "lastmodified"])       
             outcsv.writerows(self.cursor.fetchall())
 
     def extractCustomer(self):
