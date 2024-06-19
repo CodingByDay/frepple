@@ -2,8 +2,9 @@ import pyodbc
 from django.db import DEFAULT_DB_ALIAS
 
 def getERPconnection(database=DEFAULT_DB_ALIAS):
+
     """
-    Customize this method to connect to the ERP database.
+    In.Sist d.o.o. 19 june 2024 Janko Jovičić
     """
 
     server = '172.17.1.77\\CROATIAN,1500'

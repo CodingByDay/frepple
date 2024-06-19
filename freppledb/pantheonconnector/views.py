@@ -42,3 +42,14 @@ def Upload(request):
     except Exception as e:
         logger.error("Can't connect to the ERP: %s" % e)
         return HttpResponseServerError("Can't connect to the ERP")
+    
+
+def testing_2_pantheon(request):
+    # Temporary testing logic
+    return HttpResponse("Temporary testing view for ERP testing.")
+
+
+
+def testing_2_frepple(request):
+    # Temporary testing logic
+    return HttpResponse("Temporary testing view for ERP testing.")

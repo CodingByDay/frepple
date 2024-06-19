@@ -87,6 +87,9 @@ class Command(BaseCommand):
           </tr>
         </table>
         </form>
+           <div style="margin-top: 20px;">
+                    <a href="{{ request.prefix }}/erp/testing2pantheon/" class="btn btn-secondary">{% trans "Testing FrePPLe to Pantheon" %}</a>
+            </div>
       """
             )
             return template.render(context)

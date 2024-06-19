@@ -33,5 +33,11 @@ if mode == "WSGI":
 
     rlpatterns = [
         # Model list reports, which override standard admin screens
-        re_path(r"^erp/upload/$", views.Upload, name="erp_upload")
+        re_path(r"^erp/upload/$", views.Upload, name="erp_upload"),
+
+        # Temporary testing URL 19. june 2024 Janko Jovičić
+        re_path(r"^erp/testing2pantheon/", views.testing_2_pantheon, name="erp_testing2pantheon"),
+        re_path(r"^erp/testing2frepple/", views.testing_2_frepple, name="erp_testing2frepple")
+
+
     ]
