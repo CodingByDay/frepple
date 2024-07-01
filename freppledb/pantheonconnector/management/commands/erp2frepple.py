@@ -403,43 +403,8 @@ class Command(BaseCommand):
         print("Start extracting operations to %s" % outfilename)
         self.cursor.execute(
             """
-      select
-        job, description, part_number, null, 'routing', job,
-        'SHOP', null, null, current_timestamp
-      from job
-      where status = 'Active'
-      union all
-      select
-        name, description, category, subcategory, type, item,
-        location, duration, duration_per, lastmodified
-      from (
-      select
-        concat(job.job, ' - ', sequence) as name,
-        null as description, null as category,
-        case when vendor is not null then 'outsourced' else null end as subcategory,
-        case
-          when Run_Method in ('Hrs/Part', 'Min/Part', 'Parts/Hr', 'Sec/Part') then 'time_per'
-          else 'fixed_time'
-          end as type,
-        null as item, 'SHOP' as location,
-        case
-          when Run_Method in ('Hrs/Part', 'Min/Part', 'Parts/Hr', 'Sec/Part') then null
-          else round(run * 3600, 4)
-          end as duration,
-        round(case when run_method = 'Hrs/Part' then run * 3600
-          when run_method = 'Min/Part' then run * 60
-          when run_method = 'Parts/Hr' and run > 0 then 3600 / run
-          when run_method = 'Sec/Part' and run > 0 then run
-          else null end, 4) as duration_per,
-        current_timestamp as lastmodified,
-        row_number() over(partition by job.job, sequence order by sequence desc) as rownumber
-      from job_operation
-      inner join job
-      on job_operation.job = job.job
-      where job.status = 'Active'
-      ) ops
-      where rownumber = 1
-      """
+               select * from uTN_V_Frepple_OperationData 
+            """
         )
         with open(outfilename, "w", newline="") as outfile:
             outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
@@ -467,13 +432,8 @@ class Command(BaseCommand):
         print("Start extracting suboperations to %s" % outfilename)
         self.cursor.execute(
             """
-      select
-        distinct job.job, concat(job.job, ' - ', sequence), sequence, current_timestamp
-      from job_operation
-      inner join job
-      on job_operation.job = job.job
-      where job.status = 'Active'
-      """
+     
+            """
         )
         with open(outfilename, "w", newline="") as outfile:
             outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
@@ -495,18 +455,8 @@ class Command(BaseCommand):
         print("Start extracting operationresource to %s" % outfilename)
         self.cursor.execute(
             """
-      select
-        concat(job.job, ' - ', sequence),
-        coalesce(vendor.vendor, coalesce(work_center.parent_id, work_center.work_center)),
-        1, current_timestamp
-      from job_operation
-      inner join job on job_operation.job = job.job
-      left outer join work_center
-        on job_operation.work_center = work_center.work_center and work_center.department <> 'INACTIVE'
-      left outer join vendor on job_operation.vendor = vendor.vendor and vendor.status = 'Active'
-      where job.status = 'Active'
-        and (vendor.vendor is not null or work_center.work_center is not null)
-      """
+                select * from uTN_V_Frepple_OperationResourcesData
+            """
         )
         with open(outfilename, "w", newline="") as outfile:
             outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
@@ -528,28 +478,8 @@ class Command(BaseCommand):
         print("Start extracting operationmaterial to %s" % outfilename)
         self.cursor.execute(
             """
-      select
-        case when job_operation.sequence is null then parent_job else concat(parent_job, ' - ', sequence) end,
-        component_job, 'start', -relationship_qty, current_timestamp
-      from bill_of_jobs
-      inner join job job_child on job_child.job = component_job
-      inner join job job_parent on job_parent.job = parent_job
-      left outer join job_operation on job_operation.job_operation = bill_of_jobs.job_operation
-      where relationship_type = 'Component'
-        and job_parent.status = 'Active'
-        and job_child.status = 'Active'
-      union all
-      select
-        case when job_max_sequence.max_sequence is null then job.job else concat(job.job, ' - ', max_sequence) end,
-        job.job, 'end', 1, current_timestamp
-      from job
-      left outer join (
-        select job, max(sequence) as max_sequence
-        from job_operation
-        group by job
-      ) job_max_sequence on job_max_sequence.job = job.job
-      where status = 'Active'
-      """
+                select * from uTN_V_Frepple_OperationMaterialData 
+            """
         )
         with open(outfilename, "w", newline="") as outfile:
             outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
@@ -572,14 +502,10 @@ class Command(BaseCommand):
         print("Start extracting buffer to %s" % outfilename)
         self.cursor.execute(
             """
-      select
-        concat(job, ' @ SHOP'), job, 'SHOP',
-        case when completed_quantity > order_quantity then order_quantity else completed_quantity end,
-        current_timestamp
-      from job
-      where status = 'Active'
-        and completed_quantity > 0
-      """
+            
+            select * from uTN_V_Frepple_BufferData
+
+            """
         )
         with open(outfilename, "w", newline="") as outfile:
             outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
