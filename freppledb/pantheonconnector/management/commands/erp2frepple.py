@@ -24,18 +24,20 @@
 import csv
 from datetime import datetime
 import os
-
+from freppledb.input.models import Item
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.db import DEFAULT_DB_ALIAS
 from django.template import Template, RequestContext
 from django.utils.translation import gettext_lazy as _
+from django.utils.timezone import now
 
 from freppledb import __version__
 from freppledb.common.models import User
 from freppledb.execute.models import Task
 
 from ...utils import getERPconnection
+from ...utils import update_or_create_record  # Import the utility function 03.07.2024 Janko Jovičić
 
 
 class Command(BaseCommand):
@@ -162,19 +164,19 @@ class Command(BaseCommand):
 
             # Extract all files
             try:
-                self.extractLocation()
+                '''self.extractLocation()
                 self.task.status = "6%"
                 self.task.save(using=self.database)
 
                 self.extractCustomer()
                 self.task.status = "12%"
-                self.task.save(using=self.database)
+                self.task.save(using=self.database)'''
 
                 self.extractItem()
                 self.task.status = "18%"
                 self.task.save(using=self.database)
 
-                self.extractSupplier()
+                '''self.extractSupplier()
                 self.task.status = "24%"
                 self.task.save(using=self.database)
 
@@ -186,7 +188,7 @@ class Command(BaseCommand):
                 self.task.status = "36%"
                 self.task.save(using=self.database)
 
-                '''self.extractOperation()
+                self.extractOperation()
                 self.task.status = "42%"
                 self.task.save(using=self.database)
 
@@ -204,10 +206,6 @@ class Command(BaseCommand):
                 self.task.status = "60%"
                 self.task.save(using=self.database)
 
-                self.extractItemSupplier()
-                self.task.status = "66%"
-                self.task.save(using=self.database)
-
                 self.extractCalendar()
                 self.task.status = "72%"
                 self.task.save(using=self.database)
@@ -220,9 +218,6 @@ class Command(BaseCommand):
                 self.task.status = "84%"
                 self.task.save(using=self.database)
 
-                self.extractItemSupplier()
-                self.task.status = "90%"
-                self.task.save(using=self.database)
 
                 self.extractCalendar()
                 self.task.status = "96%"
@@ -230,7 +225,7 @@ class Command(BaseCommand):
 
                 self.extractCalendarBucket()
                 self.task.status = "100%"
-                self.task.save(using=self.database) For testing purposes only 19 june 2024 Janko'''
+                self.task.save(using=self.database) '''
 
                 self.task.status = "Done"
 
@@ -254,8 +249,7 @@ class Command(BaseCommand):
             """
 
             select * from uTN_V_Frepple_LocationData
-
-
+                    
             """
         )
         with open(outfilename, "w", newline="") as outfile:
@@ -290,21 +284,35 @@ class Command(BaseCommand):
         """
         outfilename = os.path.join(self.destination, "item.%s" % self.ext)
         print("Start extracting items to %s" % outfilename)
+        
         self.cursor.execute(
             """
-
-
-            select * from uTN_V_Frepple_ItemData 
-
-
+            SELECT *
+            FROM uTN_V_Frepple_ItemData
             """
         )
-        with open(outfilename, "w", newline="") as outfile:
-            outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
-            outcsv.writerow(
-                ["name", "subcategory", "description", "category", "lastmodified"]
-            )
-            outcsv.writerows(self.cursor.fetchall())
+        
+        rows = self.cursor.fetchall()
+        
+        for row in rows:
+            name, subcategory, description, category, lastmodified = row
+            
+            lookup_fields = {'name': name}
+            data = {
+                'subcategory': subcategory,
+                'description': description,
+                'category': category,
+                'lastmodified': lastmodified or now()
+            }
+            
+            item, created = update_or_create_record(Item, lookup_fields, data)
+            
+            if created:
+                print(f"Created new item: {name}")
+            else:
+                print(f"Updated existing item: {name}")
+        
+        print("Finished extracting items.")
 
     def extractSupplier(self):
         """
@@ -424,7 +432,7 @@ class Command(BaseCommand):
             )
             outcsv.writerows(self.cursor.fetchall())
 
-    def extractSuboperation(self):
+    '''def extractSuboperation(self):
         """
         Map JobBOSS joboperations into frePPLe suboperations.
         """
@@ -445,7 +453,7 @@ class Command(BaseCommand):
                     "lastmodified",
                 ]
             )
-            outcsv.writerows(self.cursor.fetchall())
+            outcsv.writerows(self.cursor.fetchall())'''
 
     def extractOperationResource(self):
         """
@@ -520,11 +528,7 @@ class Command(BaseCommand):
             )
             outcsv.writerows(self.cursor.fetchall())
 
-    def extractItemSupplier(self):
-        """
-        Extract the purchasing parameters for each item from its suppliers.
-        """
-        pass
+
 
     def extractCalendar(self):
         """
@@ -534,8 +538,8 @@ class Command(BaseCommand):
         print("Start extracting calendar to %s" % outfilename)
         self.cursor.execute(
             """
-      select 'Working hours', current_timestamp
-      """
+      select * from uTN_V_Frepple_CalendarData
+            """
         )
         with open(outfilename, "w", newline="") as outfile:
             outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
@@ -543,4 +547,27 @@ class Command(BaseCommand):
             outcsv.writerows(self.cursor.fetchall())
 
     def extractCalendarBucket(self):
-        pass
+        """
+        Extract working hours calendars from the ERP system.
+        """
+        outfilename = os.path.join(self.destination, "calendar.%s" % self.ext)
+        print("Start extracting calendar to %s" % outfilename)
+        self.cursor.execute(
+            """
+        select * from uTN_V_Frepple_CalendarBucketsData
+            """
+        )
+        with open(outfilename, "w", newline="") as outfile:
+            outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
+            outcsv.writerow(
+                [
+                    "value",
+                    "start%s" % self.fk,
+                    "end%s" % self.fk,
+                    "priority%s" % self.fk,
+                    "days",
+                    "starttime",
+                    "endtime",
+                ]
+
+            )

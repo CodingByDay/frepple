@@ -2794,6 +2794,7 @@ function containsObject(obj, list) {
   return false;
 }
 
+
 function showModal(id, dispose = true, options = null) {
   var el = document.getElementById(id);
   if (dispose) {
@@ -2817,6 +2818,8 @@ function hideModal(id) {
 //----------------------------------------------------------------------------
 
 function import_show(title, paragraph, multiple, fxhr, initialDropped, buttonlabel) {
+
+
   var xhr = { abort: function () { } };
 
   hideModal('timebuckets');
@@ -2924,6 +2927,7 @@ function import_show(title, paragraph, multiple, fxhr, initialDropped, buttonlab
     );
   };
   $('#importbutton').on('click', function () {
+
     if ($("#csv_file").val() === "" && !filesdropped) {
       return;
     }
@@ -2972,7 +2976,10 @@ function import_show(title, paragraph, multiple, fxhr, initialDropped, buttonlab
       });
     }
 
-    // Upload the files
+    var requestUrl = typeof (url) != 'undefined' ? url : '';
+    console.log('Request URL:', requestUrl);
+    
+    // Upload the files PANTHEON MILESTONE
     xhr = $.ajax(
       Object.assign({
         type: 'post',
@@ -2980,6 +2987,7 @@ function import_show(title, paragraph, multiple, fxhr, initialDropped, buttonlab
         cache: false,
         data: filesdata,
         success: function (data) {
+          
           var el = $('#uploadResponse');
           el.html(data);
           if (el.attr('data-scrolled') !== "true") {

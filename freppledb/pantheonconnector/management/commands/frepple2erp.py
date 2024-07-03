@@ -171,6 +171,7 @@ class Command(BaseCommand):
                     #  - safety stock (Enterprise Edition only)
                     #  - reorder quantities (Enterprise Edition only)
                     #  - forecast (Enterprise Edition only)
+                    
                     self.task.status = "Done"
                 finally:
                     self.cursor_erp.close()

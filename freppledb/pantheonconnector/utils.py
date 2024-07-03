@@ -1,5 +1,8 @@
 import pyodbc
 from django.db import DEFAULT_DB_ALIAS
+from django.db import transaction
+
+
 
 def getERPconnection(database=DEFAULT_DB_ALIAS):
 
@@ -29,3 +32,19 @@ def getERPconnection(database=DEFAULT_DB_ALIAS):
     except Exception as e:
         print(f"Error connecting to MSSQL: {str(e)}")
         return None
+    
+def update_or_create_record(model, lookup_fields, data):
+    """
+    Update or create a record in the specified model.
+    
+    :param model: The model class to update or create the record in.
+    :param lookup_fields: A dictionary of fields to use for looking up the record.
+    :param data: A dictionary of fields to update or create the record with.
+    :return: The created or updated model instance and a boolean indicating if it was created.
+    """
+    with transaction.atomic():
+        instance, created = model.objects.update_or_create(
+            **lookup_fields,
+            defaults=data
+        )
+    return instance, created    
