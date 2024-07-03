@@ -24,7 +24,7 @@
 import csv
 from datetime import datetime
 import os
-from freppledb.input.models import Item
+from freppledb.input.models import  * # Required for the pantheon ERP connection 03.07.2024
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.db import DEFAULT_DB_ALIAS
@@ -239,10 +239,7 @@ class Command(BaseCommand):
                 self.task.save(using=self.database)
 
     def extractLocation(self):
-        """
-        Straightforward mapping JobBOSS locations to frePPLe locations.
-        Only the SHOP location is actually used in the frePPLe model.
-        """
+ 
         outfilename = os.path.join(self.destination, "location.%s" % self.ext)
         print("Start extracting locations to %s" % outfilename)
         self.cursor.execute(
@@ -252,15 +249,30 @@ class Command(BaseCommand):
                     
             """
         )
-        with open(outfilename, "w", newline="") as outfile:
-            outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
-            outcsv.writerow(["name", "description", "lastmodified"])       
-            outcsv.writerows(self.cursor.fetchall())
+        rows = self.cursor.fetchall()
+        
+        for row in rows:
+            name, description, lastmodified = row
+            
+            lookup_fields = {'name': name}
+
+            data = {
+                'name': name,
+                'description': description,
+                'lastmodified': lastmodified or now()
+            }
+            
+            item, created = update_or_create_record(Location, lookup_fields, data)
+            
+            if created:
+                print(f"Created new location: {name}")
+            else:
+                print(f"Updated existing location: {name}")
+        
+        print("Finished extracting items.")
 
     def extractCustomer(self):
-        """
-        Straightforward mapping JobBOSS customers to frePPLe customers.
-        """
+
         outfilename = os.path.join(self.destination, "customer.%s" % self.ext)
         print("Start extracting customers to %s" % outfilename)
         self.cursor.execute(
@@ -270,18 +282,32 @@ class Command(BaseCommand):
             select * from uTN_V_Frepple_CustomerData
 
 
-
             """
         )
-        with open(outfilename, "w", newline="") as outfile:
-            outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
-            outcsv.writerow(["name", "category", "lastmodified"])
-            outcsv.writerows(self.cursor.fetchall())
+
+        rows = self.cursor.fetchall()
+        
+        for row in rows:
+            name, category,lastmodified = row
+            
+            lookup_fields = {'name': name}
+            data = {
+                'name': name,
+                'category': category,
+                'lastmodified': lastmodified or now()
+            }
+            
+            item, created = update_or_create_record(Customer, lookup_fields, data)
+            
+            if created:
+                print(f"Created new customer: {name}")
+            else:
+                print(f"Updated existing customer: {name}")
+        
+        print("Finished extracting items.")
 
     def extractItem(self):
-        """
-        Map active JobBOSS jobs into frePPLe items.
-        """
+
         outfilename = os.path.join(self.destination, "item.%s" % self.ext)
         print("Start extracting items to %s" % outfilename)
         
@@ -315,9 +341,7 @@ class Command(BaseCommand):
         print("Finished extracting items.")
 
     def extractSupplier(self):
-        """
-        Map active JobBOSS vendors into frePPLe suppliers.
-        """
+
         outfilename = os.path.join(self.destination, "supplier.%s" % self.ext)
         print("Start extracting suppliers to %s" % outfilename)
         self.cursor.execute(
@@ -329,16 +353,29 @@ class Command(BaseCommand):
 
             """
         )
-        with open(outfilename, "w", newline="") as outfile:
-            outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
-            outcsv.writerow(["name", "description", "lastmodified"])
-            outcsv.writerows(self.cursor.fetchall())
+        rows = self.cursor.fetchall()
+        
+        for row in rows:
+            name, description, lastmodified = row
+            
+            lookup_fields = {'name': name}
+            data = {
+                'subcategory': name,
+                'description': description,
+                'lastmodified': lastmodified or now()
+            }
+            
+            item, created = update_or_create_record(Supplier, lookup_fields, data)
+            
+            if created:
+                print(f"Created new supplier: {name}")
+            else:
+                print(f"Updated existing supplier: {name}")
+        
+        print("Finished extracting items.")
 
     def extractResource(self):
-        """
-        Map JobBOSS work centers into frePPLe resources.
-        Only take the top-level workcenters, and skip the inactive ones.
-        """
+
         outfilename = os.path.join(self.destination, "resource.%s" % self.ext)
         print("Start extracting resources to %s" % outfilename)
         self.cursor.execute(
@@ -350,25 +387,33 @@ class Command(BaseCommand):
 
             """
         )
-        with open(outfilename, "w", newline="") as outfile:
-            outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
-            outcsv.writerow(
-                [
-                    "name",
-                    "category",
-                    "subcategory",
-                    "maximum",
-                    "location%s" % self.fk,
-                    "type",
-                    "lastmodified",
-                ]
-            )
-            outcsv.writerows(self.cursor.fetchall())
+        rows = self.cursor.fetchall()
+        
+        for row in rows:
+            name, category, subcategory, maximum, location, type, lastmodified = row
+            
+            lookup_fields = {'name': name}
+            data = {
+                'name': name,
+                'category': category,
+                'subcategory': subcategory,
+                'maximum': maximum,
+                'location': location,
+                'type': type,
+                'lastmodified': lastmodified or now()
+            }
+            
+            item, created = update_or_create_record(Resource, lookup_fields, data)
+            
+            if created:
+                print(f"Created new resource: {name}")
+            else:
+                print(f"Updated existing resource: {name}")
+        
+        print("Finished extracting items.")
 
     def extractSalesOrder(self):
-        """
-        Map JobBOSS top level jobs into frePPLe sales orders.
-        """
+
         outfilename = os.path.join(self.destination, "demand.%s" % self.ext)
         print("Start extracting demand to %s" % outfilename)
         self.cursor.execute(
@@ -381,32 +426,37 @@ class Command(BaseCommand):
             
             """
         )
-        with open(outfilename, "w", newline="") as outfile:
-            outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
-            outcsv.writerow(
-                [
-                    "name",
-                    "item%s" % self.fk,
-                    "location%s" % self.fk,
-                    "customer%s" % self.fk,
-                    "status",
-                    "due",
-                    "quantity",
-                    "minimum shipment" if self.ext == "csv" else "minshipment",
-                    "description",
-                    "category",
-                    "priority",
-                    "lastmodified",
-                ]
-            )
-            outcsv.writerows(self.cursor.fetchall())
-
+        rows = self.cursor.fetchall()
+        
+        for row in rows:
+            name, item, location, customer, status, due, quantity, minshipment, description, category, priority, lastmodified = row
+            
+            lookup_fields = {'name': name}
+            data = {
+                'name': name,
+                'item': item,
+                'location': location,
+                'customer': customer,
+                'status': status,
+                'due': due,
+                'quantity': quantity,
+                'minshipment': minshipment,
+                'description': description,
+                'category': category,
+                'priority': priority,
+                'lastmodified': lastmodified or now()
+            }
+            
+            item, created = update_or_create_record(Demand, lookup_fields, data)
+            
+            if created:
+                print(f"Created new sales order: {name}")
+            else:
+                print(f"Updated existing sales order: {name}")
+        
+        print("Finished extracting items.")
     def extractOperation(self):
-        """
-        Map JobBOSS jobs into frePPLe operations.
-        We extract a routing operation and also suboperations.
-        SQL contains an ugly trick to avoid duplicate job-sequence combinations.
-        """
+
         outfilename = os.path.join(self.destination, "operation.%s" % self.ext)
         print("Start extracting operations to %s" % outfilename)
         self.cursor.execute(
@@ -414,23 +464,35 @@ class Command(BaseCommand):
                select * from uTN_V_Frepple_OperationData 
             """
         )
-        with open(outfilename, "w", newline="") as outfile:
-            outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
-            outcsv.writerow(
-                [
-                    "name",
-                    "description",
-                    "category",
-                    "subcategory",
-                    "type",
-                    "item%s" % self.fk,
-                    "location%s" % self.fk,
-                    "duration",
-                    "duration_per",
-                    "lastmodified",
-                ]
-            )
-            outcsv.writerows(self.cursor.fetchall())
+        rows = self.cursor.fetchall()
+        
+        for row in rows:
+
+            name, description, category, subcategory, type, item, location, duration, duration_per, lastmodified = row
+            
+            lookup_fields = {'name': name}
+
+            data = {
+                'name': name,
+                'description': description,
+                'category': category,
+                'subcategory': subcategory,
+                'type': type,
+                'item': item,
+                'location': location,
+                'duration': duration,
+                'duration_per': duration_per,
+                'lastmodified': lastmodified or now()
+            }
+            
+            item, created = update_or_create_record(Operation, lookup_fields, data)
+            
+            if created:
+                print(f"Created new operation: {name}")
+            else:
+                print(f"Updated existing operation: {name}")
+        
+        print("Finished extracting items.")
 
     '''def extractSuboperation(self):
         """
@@ -453,12 +515,9 @@ class Command(BaseCommand):
                     "lastmodified",
                 ]
             )
-            outcsv.writerows(self.cursor.fetchall())'''
+            outcsv.writerows(self.cursor.fetchall()) Not needed currently '''
 
     def extractOperationResource(self):
-        """
-        Map JobBOSS joboperation workcenters into frePPLe operation-resources.
-        """
         outfilename = os.path.join(self.destination, "operationresource.%s" % self.ext)
         print("Start extracting operationresource to %s" % outfilename)
         self.cursor.execute(
@@ -466,22 +525,31 @@ class Command(BaseCommand):
                 select * from uTN_V_Frepple_OperationResourcesData
             """
         )
-        with open(outfilename, "w", newline="") as outfile:
-            outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
-            outcsv.writerow(
-                [
-                    "operation%s" % self.fk,
-                    "resource%s" % self.fk,
-                    "quantity",
-                    "lastmodified",
-                ]
-            )
-            outcsv.writerows(self.cursor.fetchall())
+        rows = self.cursor.fetchall()
+        
+        for row in rows:
+            name, resource, quantity, lastmodified = row
+            
+            lookup_fields = {}
+            data = {
+                'name': name,
+                'resource': resource,
+                'quantity': quantity,
+                'lastmodified': lastmodified or now()
+            }
+            
+            item, created = update_or_create_record(OperationResource, lookup_fields, data)
+            
+            if created:
+                print(f"Created new operation resource: {name}")
+            else:
+                print(f"Updated existing operation resource: {name}")
+        
+        print("Finished extracting items.")
+
 
     def extractOperationMaterial(self):
-        """
-        Map JobBOSS joboperation workcenters into frePPLe operation-materials.
-        """
+
         outfilename = os.path.join(self.destination, "operationmaterial.%s" % self.ext)
         print("Start extracting operationmaterial to %s" % outfilename)
         self.cursor.execute(
@@ -489,23 +557,33 @@ class Command(BaseCommand):
                 select * from uTN_V_Frepple_OperationMaterialData 
             """
         )
-        with open(outfilename, "w", newline="") as outfile:
-            outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
-            outcsv.writerow(
-                [
-                    "operation%s" % self.fk,
-                    "item%s" % self.fk,
-                    "type",
-                    "quantity",
-                    "lastmodified",
-                ]
-            )
-            outcsv.writerows(self.cursor.fetchall())
+        rows = self.cursor.fetchall()
+        
+        for row in rows:
+            operation, item, type, quantity, lastmodified = row
+            
+            lookup_fields = {}
+            data = {
+                'operation': operation,
+                'item': item,
+                'type': type,
+                'type': quantity,
+                'lastmodified': lastmodified or now()
+            }
+            
+            item, created = update_or_create_record(OperationMaterial, lookup_fields, data)
+            
+            if created:
+                print(f"Created new operation material: {operation}")
+            else:
+                print(f"Updated existing operation material: {operation}")
+        
+        print("Finished extracting items.")
+
+
 
     def extractBuffer(self):
-        """
-        Map JobBOSS operation completed into frePPLe buffer onhand.
-        """
+
         outfilename = os.path.join(self.destination, "buffer.%s" % self.ext)
         print("Start extracting buffer to %s" % outfilename)
         self.cursor.execute(
@@ -515,25 +593,34 @@ class Command(BaseCommand):
 
             """
         )
-        with open(outfilename, "w", newline="") as outfile:
-            outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
-            outcsv.writerow(
-                [
-                    "name",
-                    "item%s" % self.fk,
-                    "location%s" % self.fk,
-                    "onhand",
-                    "lastmodified",
-                ]
-            )
-            outcsv.writerows(self.cursor.fetchall())
+        rows = self.cursor.fetchall()
+        
+        for row in rows:
+            item, location, batch, category, onhand, lastmodified = row
+            
+            lookup_fields = {'item': item, 'location': location, 'batch': batch }
+            data = {
+                'item': item,
+                'location': location,
+                'batch': batch,
+                'category': category,
+                'onhand': onhand,
+                'lastmodified': lastmodified or now()
+            }
+            
+            item, created = update_or_create_record(Buffer, lookup_fields, data)
+            
+            if created:
+                print(f"Created new buffer: {item}")
+            else:
+                print(f"Updated existing buffer: {item}")
+        
+        print("Finished extracting items.")
 
 
 
     def extractCalendar(self):
-        """
-        Extract working hours calendars from the ERP system.
-        """
+
         outfilename = os.path.join(self.destination, "calendar.%s" % self.ext)
         print("Start extracting calendar to %s" % outfilename)
         self.cursor.execute(
@@ -541,15 +628,29 @@ class Command(BaseCommand):
       select * from uTN_V_Frepple_CalendarData
             """
         )
-        with open(outfilename, "w", newline="") as outfile:
-            outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
-            outcsv.writerow(["name", "lastmodified"])
-            outcsv.writerows(self.cursor.fetchall())
+        rows = self.cursor.fetchall()
+        
+        for row in rows:
+            name, default = row
+            
+            lookup_fields = {'name': name}
+            data = {
+                'name': name,
+                'default': default,
+
+            }
+            
+            item, created = update_or_create_record(Calendar, lookup_fields, data)
+            
+            if created:
+                print(f"Created new calendar: {name}")
+            else:
+                print(f"Updated existing calendar: {name}")
+        
+        print("Finished extracting items.")
 
     def extractCalendarBucket(self):
-        """
-        Extract working hours calendars from the ERP system.
-        """
+
         outfilename = os.path.join(self.destination, "calendar.%s" % self.ext)
         print("Start extracting calendar to %s" % outfilename)
         self.cursor.execute(
@@ -557,17 +658,29 @@ class Command(BaseCommand):
         select * from uTN_V_Frepple_CalendarBucketsData
             """
         )
-        with open(outfilename, "w", newline="") as outfile:
-            outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
-            outcsv.writerow(
-                [
-                    "value",
-                    "start%s" % self.fk,
-                    "end%s" % self.fk,
-                    "priority%s" % self.fk,
-                    "days",
-                    "starttime",
-                    "endtime",
-                ]
-
-            )
+        rows = self.cursor.fetchall()
+        
+        for row in rows:
+            calendar_id, value, startdate, enddate, priority, days, starttime, endtime, lastmodified = row
+            
+            lookup_fields = {}
+            data = {
+                'calendar_id': calendar_id,
+                'value': value,
+                'startdate': startdate,
+                'enddate': enddate,
+                'priority': priority,
+                'days': days,
+                'starttime': starttime,
+                'endtime': endtime,
+                'lastmodified': lastmodified or now()
+            }
+            
+            item, created = update_or_create_record(CalendarBucket, lookup_fields, data)
+            
+            if created:
+                print(f"Created new calendar bucket: {calendar_id}")
+            else:
+                print(f"Updated existing calendar bucket: {calendar_id}")
+        
+        print("Finished extracting items.")

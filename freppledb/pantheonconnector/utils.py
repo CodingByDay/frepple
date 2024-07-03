@@ -36,7 +36,7 @@ def getERPconnection(database=DEFAULT_DB_ALIAS):
 def update_or_create_record(model, lookup_fields, data):
     """
     Update or create a record in the specified model.
-    
+
     :param model: The model class to update or create the record in.
     :param lookup_fields: A dictionary of fields to use for looking up the record.
     :param data: A dictionary of fields to update or create the record with.
@@ -47,4 +47,4 @@ def update_or_create_record(model, lookup_fields, data):
             **lookup_fields,
             defaults=data
         )
-    return instance, created    
+    return instance, created
