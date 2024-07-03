@@ -164,68 +164,65 @@ class Command(BaseCommand):
 
             # Extract all files
             try:
-                '''self.extractLocation()
-                self.task.status = "6%"
+                self.extractLocation()
+                self.task.status = "?%"
                 self.task.save(using=self.database)
 
                 self.extractCustomer()
-                self.task.status = "12%"
-                self.task.save(using=self.database)'''
+                self.task.status = "?%"
+                self.task.save(using=self.database)
 
                 self.extractItem()
-                self.task.status = "18%"
+                self.task.status = "?%"
                 self.task.save(using=self.database)
 
-                '''self.extractSupplier()
-                self.task.status = "24%"
+                self.extractCalendar()
+                self.task.status = "?%"
                 self.task.save(using=self.database)
 
-                self.extractResource()
-                self.task.status = "30%"
+                self.extractCalendarBucket()
+                self.task.status = "?%"
+                self.task.save(using=self.database)
+
+
+                self.extractSupplier()
+                self.task.status = "?%"
+                self.task.save(using=self.database)
+
+                self.task.status = "?%"
+                self.task.save(using=self.database)
+                self.extractItemSupplier()
+
+
+                self.task.status = "?%"
                 self.task.save(using=self.database)
 
                 self.extractSalesOrder()
-                self.task.status = "36%"
+                self.task.status = "?%"
                 self.task.save(using=self.database)
 
                 self.extractOperation()
-                self.task.status = "42%"
+                self.task.status = "?%"
                 self.task.save(using=self.database)
 
-                # Note: the suboperation table is now deprecated.
-                # The same data can now be directly loaded in the the operation table.
-                self.extractSuboperation()
-                self.task.status = "48%"
-                self.task.save(using=self.database)
+                '''self.extractSuboperation()
+                self.task.status = "?%"
+                self.task.save(using=self.database)'''
 
                 self.extractOperationResource()
-                self.task.status = "54%"
+                self.task.status = "?%"
                 self.task.save(using=self.database)
 
                 self.extractOperationMaterial()
                 self.task.status = "60%"
                 self.task.save(using=self.database)
 
-                self.extractCalendar()
-                self.task.status = "72%"
-                self.task.save(using=self.database)
-
-                self.extractCalendarBucket()
-                self.task.status = "78%"
-                self.task.save(using=self.database)
-
+        
                 self.extractBuffer()
-                self.task.status = "84%"
+                self.task.status = "?%"
                 self.task.save(using=self.database)
 
 
-                self.extractCalendar()
-                self.task.status = "96%"
-                self.task.save(using=self.database)
-
-                self.extractCalendarBucket()
-                self.task.status = "100%"
-                self.task.save(using=self.database) '''
 
                 self.task.status = "Done"
 
@@ -240,8 +237,6 @@ class Command(BaseCommand):
 
     def extractLocation(self):
  
-        outfilename = os.path.join(self.destination, "location.%s" % self.ext)
-        print("Start extracting locations to %s" % outfilename)
         self.cursor.execute(
             """
 
@@ -252,8 +247,11 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-            name, description, lastmodified = row
-            
+           
+            name = row[0]
+            description = row[1]
+            lastmodified = row[2]
+
             lookup_fields = {'name': name}
 
             data = {
@@ -273,11 +271,8 @@ class Command(BaseCommand):
 
     def extractCustomer(self):
 
-        outfilename = os.path.join(self.destination, "customer.%s" % self.ext)
-        print("Start extracting customers to %s" % outfilename)
         self.cursor.execute(
             """
-
 
             select * from uTN_V_Frepple_CustomerData
 
@@ -288,8 +283,11 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-            name, category,lastmodified = row
             
+            name = row[0]
+            category = row[1]
+            lastmodified = row[2]
+
             lookup_fields = {'name': name}
             data = {
                 'name': name,
@@ -307,10 +305,7 @@ class Command(BaseCommand):
         print("Finished extracting items.")
 
     def extractItem(self):
-
-        outfilename = os.path.join(self.destination, "item.%s" % self.ext)
-        print("Start extracting items to %s" % outfilename)
-        
+ 
         self.cursor.execute(
             """
             SELECT *
@@ -321,7 +316,12 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-            name, subcategory, description, category, lastmodified = row
+
+            name = row[0]
+            subcategory = row[1]
+            description = row[2]
+            category = row[3]
+            lastmodified = row[4]
             
             lookup_fields = {'name': name}
             data = {
@@ -342,11 +342,8 @@ class Command(BaseCommand):
 
     def extractSupplier(self):
 
-        outfilename = os.path.join(self.destination, "supplier.%s" % self.ext)
-        print("Start extracting suppliers to %s" % outfilename)
         self.cursor.execute(
             """
-
 
             select * from uTN_V_Frepple_SupplierData 
 
@@ -356,8 +353,11 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-            name, description, lastmodified = row
-            
+
+            name = row[0]
+            description = row[1]
+            lastmodified = row[2]
+
             lookup_fields = {'name': name}
             data = {
                 'subcategory': name,
@@ -376,31 +376,53 @@ class Command(BaseCommand):
 
     def extractResource(self):
 
-        outfilename = os.path.join(self.destination, "resource.%s" % self.ext)
-        print("Start extracting resources to %s" % outfilename)
+
         self.cursor.execute(
             """
 
-
             select * from uTN_V_Frepple_ResourcesData 
-
 
             """
         )
         rows = self.cursor.fetchall()
         
         for row in rows:
-            name, category, subcategory, maximum, location, type, lastmodified = row
+
+            name = row[0]
+            category = row[1]
+            subcategory = row[2]
+            maximum = row[3]
+            location = row[4]
+            type_val = row[5]
+            lastmodified = row[6]
+            available = row[7]
             
-            lookup_fields = {'name': name}
+            lookup_fields = {'name': name }
+
+            # Fetch the Calendar object for the 'available' field
+            try:
+                available_calendar = Calendar.objects.get(name=available)
+            except Calendar.DoesNotExist:
+                print(f"Calendar '{available}' does not exist.")
+                available_calendar = None
+
+            # Fetch the Location object
+            try:
+                location_obj = Location.objects.get(name=location)
+            except Location.DoesNotExist:
+                print(f"Location '{location}' does not exist.")
+                location_obj = None
+            
+
             data = {
                 'name': name,
                 'category': category,
                 'subcategory': subcategory,
                 'maximum': maximum,
-                'location': location,
-                'type': type,
-                'lastmodified': lastmodified or now()
+                'location': location_obj,
+                'type': type_val,
+                'lastmodified': lastmodified or now(),
+                'available': available_calendar
             }
             
             item, created = update_or_create_record(Resource, lookup_fields, data)
@@ -414,8 +436,6 @@ class Command(BaseCommand):
 
     def extractSalesOrder(self):
 
-        outfilename = os.path.join(self.destination, "demand.%s" % self.ext)
-        print("Start extracting demand to %s" % outfilename)
         self.cursor.execute(
             """
 
@@ -429,8 +449,20 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-            name, item, location, customer, status, due, quantity, minshipment, description, category, priority, lastmodified = row
-            
+
+            name = row[0]
+            item = row[1]
+            location = row[2]
+            customer = row[3]
+            status = row[4]
+            due = row[5]
+            quantity = row[6]
+            minshipment = row[7]
+            description = row[8]
+            category = row[9]
+            priority = row[10]
+            lastmodified = row[11]
+
             lookup_fields = {'name': name}
             data = {
                 'name': name,
@@ -457,8 +489,6 @@ class Command(BaseCommand):
         print("Finished extracting items.")
     def extractOperation(self):
 
-        outfilename = os.path.join(self.destination, "operation.%s" % self.ext)
-        print("Start extracting operations to %s" % outfilename)
         self.cursor.execute(
             """
                select * from uTN_V_Frepple_OperationData 
@@ -468,8 +498,16 @@ class Command(BaseCommand):
         
         for row in rows:
 
-            name, description, category, subcategory, type, item, location, duration, duration_per, lastmodified = row
-            
+            name = row[0]
+            description = row[1]
+            category = row[2]
+            subcategory = row[3]
+            type_val = row[4]
+            item = row[5]
+            location = row[6]
+            duration = row[7]
+            duration_per = row[8]
+            lastmodified = row[9]
             lookup_fields = {'name': name}
 
             data = {
@@ -477,7 +515,7 @@ class Command(BaseCommand):
                 'description': description,
                 'category': category,
                 'subcategory': subcategory,
-                'type': type,
+                'type': type_val,
                 'item': item,
                 'location': location,
                 'duration': duration,
@@ -494,32 +532,31 @@ class Command(BaseCommand):
         
         print("Finished extracting items.")
 
-    '''def extractSuboperation(self):
-        """
-        Map JobBOSS joboperations into frePPLe suboperations.
-        """
-        outfilename = os.path.join(self.destination, "suboperation.%s" % self.ext)
-        print("Start extracting suboperations to %s" % outfilename)
-        self.cursor.execute(
+        ''' def extractSuboperation(self):
             """
-     
+            Map JobBOSS joboperations into frePPLe suboperations.
             """
-        )
-        with open(outfilename, "w", newline="") as outfile:
-            outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
-            outcsv.writerow(
-                [
-                    "operation%s" % self.fk,
-                    "suboperation%s" % self.fk,
-                    "priority",
-                    "lastmodified",
-                ]
+            outfilename = os.path.join(self.destination, "suboperation.%s" % self.ext)
+            print("Start extracting suboperations to %s" % outfilename)
+            self.cursor.execute(
+                """
+        
+                """
             )
-            outcsv.writerows(self.cursor.fetchall()) Not needed currently '''
+            with open(outfilename, "w", newline="") as outfile:
+                outcsv = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
+                outcsv.writerow(
+                    [
+                        "operation%s" % self.fk,
+                        "suboperation%s" % self.fk,
+                        "priority",
+                        "lastmodified",
+                    ]
+                )
+                outcsv.writerows(self.cursor.fetchall()) Not needed currently '''
 
     def extractOperationResource(self):
-        outfilename = os.path.join(self.destination, "operationresource.%s" % self.ext)
-        print("Start extracting operationresource to %s" % outfilename)
+
         self.cursor.execute(
             """
                 select * from uTN_V_Frepple_OperationResourcesData
@@ -528,7 +565,11 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-            name, resource, quantity, lastmodified = row
+
+            name = row[0]
+            resource = row[1]
+            quantity = row[2]
+            lastmodified = row[3]
             
             lookup_fields = {}
             data = {
@@ -550,8 +591,7 @@ class Command(BaseCommand):
 
     def extractOperationMaterial(self):
 
-        outfilename = os.path.join(self.destination, "operationmaterial.%s" % self.ext)
-        print("Start extracting operationmaterial to %s" % outfilename)
+
         self.cursor.execute(
             """
                 select * from uTN_V_Frepple_OperationMaterialData 
@@ -560,14 +600,19 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-            operation, item, type, quantity, lastmodified = row
+
+            operation = row[0]
+            item = row[1]
+            type_val = row[2]
+            quantity = row[3]
+            lastmodified = row[4]
             
             lookup_fields = {}
             data = {
                 'operation': operation,
                 'item': item,
-                'type': type,
-                'type': quantity,
+                'type': type_val,
+                'quantity': quantity,
                 'lastmodified': lastmodified or now()
             }
             
@@ -584,8 +629,7 @@ class Command(BaseCommand):
 
     def extractBuffer(self):
 
-        outfilename = os.path.join(self.destination, "buffer.%s" % self.ext)
-        print("Start extracting buffer to %s" % outfilename)
+
         self.cursor.execute(
             """
             
@@ -596,9 +640,16 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-            item, location, batch, category, onhand, lastmodified = row
+
+            item = row[0]
+            location = row[1]
+            batch = row[2]
+            category = row[3]
+            onhand = row[4]
+            lastmodified = row[5]
             
             lookup_fields = {'item': item, 'location': location, 'batch': batch }
+
             data = {
                 'item': item,
                 'location': location,
@@ -621,8 +672,6 @@ class Command(BaseCommand):
 
     def extractCalendar(self):
 
-        outfilename = os.path.join(self.destination, "calendar.%s" % self.ext)
-        print("Start extracting calendar to %s" % outfilename)
         self.cursor.execute(
             """
       select * from uTN_V_Frepple_CalendarData
@@ -631,7 +680,9 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-            name, default = row
+
+            name = row[0]
+            default = row[1]
             
             lookup_fields = {'name': name}
             data = {
@@ -651,8 +702,7 @@ class Command(BaseCommand):
 
     def extractCalendarBucket(self):
 
-        outfilename = os.path.join(self.destination, "calendar.%s" % self.ext)
-        print("Start extracting calendar to %s" % outfilename)
+
         self.cursor.execute(
             """
         select * from uTN_V_Frepple_CalendarBucketsData
@@ -661,7 +711,16 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-            calendar_id, value, startdate, enddate, priority, days, starttime, endtime, lastmodified = row
+
+            calendar_id = row[0]
+            value = row[1]
+            startdate = row[2]
+            enddate = row[3]
+            priority = row[4]
+            days = row[5]
+            starttime = row[6]
+            endtime = row[7]
+            lastmodified = row[8]
             
             lookup_fields = {}
             data = {
@@ -684,3 +743,36 @@ class Command(BaseCommand):
                 print(f"Updated existing calendar bucket: {calendar_id}")
         
         print("Finished extracting items.")
+
+
+
+    def extractItemSupplier(self):
+
+        self.cursor.execute(
+            """
+        select * from uTN_V_Frepple_ItemSupplierData
+            """
+        )
+        rows = self.cursor.fetchall()
+        
+        for row in rows:
+
+            supplier = row[0]
+            item = row[1]
+            
+            lookup_fields = {}
+            data = {
+                'supplier': supplier,
+                'item': item,
+
+            }
+            
+            item, created = update_or_create_record(CalendarBucket, lookup_fields, data)
+            
+            if created:
+                print(f"Created new item supplier")
+            else:
+                print(f"Updated existing item supplier")
+        
+        print("Finished extracting items.")
+        pass
