@@ -189,11 +189,12 @@ class Command(BaseCommand):
                 self.task.status = "?%"
                 self.task.save(using=self.database)
 
+                self.extractItemSupplier()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
-                self.extractItemSupplier()
+            
 
-
+                self.extractResource()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
 
@@ -214,7 +215,7 @@ class Command(BaseCommand):
                 self.task.save(using=self.database)
 
                 self.extractOperationMaterial()
-                self.task.status = "60%"
+                self.task.status = "?%"
                 self.task.save(using=self.database)
 
         
@@ -399,18 +400,14 @@ class Command(BaseCommand):
             
             lookup_fields = {'name': name }
 
-            # Fetch the Calendar object for the 'available' field
             try:
                 available_calendar = Calendar.objects.get(name=available)
             except Calendar.DoesNotExist:
-                print(f"Calendar '{available}' does not exist.")
                 available_calendar = None
 
-            # Fetch the Location object
             try:
                 location_obj = Location.objects.get(name=location)
             except Location.DoesNotExist:
-                print(f"Location '{location}' does not exist.")
                 location_obj = None
             
 
@@ -463,12 +460,28 @@ class Command(BaseCommand):
             priority = row[10]
             lastmodified = row[11]
 
+            try:
+                available_item = Item.objects.get(name=item)
+            except Item.DoesNotExist:
+                available_item = None
+
+            try:
+                available_location = Location.objects.get(name=location)
+            except Location.DoesNotExist:
+                available_location = None
+
+            try:
+                available_customer = Calendar.objects.get(name=customer)
+            except Customer.DoesNotExist:
+                available_customer = None
+
+
             lookup_fields = {'name': name}
             data = {
                 'name': name,
-                'item': item,
-                'location': location,
-                'customer': customer,
+                'item': available_item,
+                'location': available_location,
+                'customer': available_customer,
                 'status': status,
                 'due': due,
                 'quantity': quantity,
@@ -509,6 +522,15 @@ class Command(BaseCommand):
             duration_per = row[8]
             lastmodified = row[9]
             lookup_fields = {'name': name}
+            try:
+                available_item = Item.objects.get(name=item)
+            except Item.DoesNotExist:
+                available_item = None
+
+            try:
+                available_location = Location.objects.get(name=location)
+            except Location.DoesNotExist:
+                available_location = None
 
             data = {
                 'name': name,
@@ -516,8 +538,8 @@ class Command(BaseCommand):
                 'category': category,
                 'subcategory': subcategory,
                 'type': type_val,
-                'item': item,
-                'location': location,
+                'item': available_item,
+                'location': available_location,
                 'duration': duration,
                 'duration_per': duration_per,
                 'lastmodified': lastmodified or now()
@@ -557,7 +579,7 @@ class Command(BaseCommand):
 
     def extractOperationResource(self):
 
-        self.cursor.execute(
+        self.cursor.execute (
             """
                 select * from uTN_V_Frepple_OperationResourcesData
             """
@@ -571,10 +593,16 @@ class Command(BaseCommand):
             quantity = row[2]
             lastmodified = row[3]
             
-            lookup_fields = {}
+            lookup_fields = {'name': name, 'resource': resource, quantity: quantity}
+
+            try:
+                available_resource = Resource.objects.get(name=resource)
+            except resource.DoesNotExist:
+                available_resource = None
+
             data = {
                 'name': name,
-                'resource': resource,
+                'resource': available_resource,
                 'quantity': quantity,
                 'lastmodified': lastmodified or now()
             }
@@ -607,10 +635,21 @@ class Command(BaseCommand):
             quantity = row[3]
             lastmodified = row[4]
             
-            lookup_fields = {}
+            lookup_fields = {'operation': operation, 'item': item, 'type_val': type_val, 'quantity': quantity}
+
+            try:
+                available_operation = Resource.objects.get(name=operation)
+            except resource.DoesNotExist:
+                available_operation = None
+
+            try:
+                available_item = Resource.objects.get(name=item)
+            except resource.DoesNotExist:
+                available_item = None
+            
             data = {
-                'operation': operation,
-                'item': item,
+                'operation': available_operation,
+                'item': available_item,
                 'type': type_val,
                 'quantity': quantity,
                 'lastmodified': lastmodified or now()
@@ -648,11 +687,21 @@ class Command(BaseCommand):
             onhand = row[4]
             lastmodified = row[5]
             
+            try:
+                available_item = Item.objects.get(name=item)
+            except Item.DoesNotExist:
+                available_item = None
+
+            try:
+                available_location = Location.objects.get(name=location)
+            except Location.DoesNotExist:
+                available_location = None
+            
             lookup_fields = {'item': item, 'location': location, 'batch': batch }
 
             data = {
-                'item': item,
-                'location': location,
+                'item': available_item,
+                'location': available_location,
                 'batch': batch,
                 'category': category,
                 'onhand': onhand,
@@ -687,7 +736,7 @@ class Command(BaseCommand):
             lookup_fields = {'name': name}
             data = {
                 'name': name,
-                'default': default,
+                'defaultvalue': default,
 
             }
             
@@ -717,22 +766,41 @@ class Command(BaseCommand):
             startdate = row[2]
             enddate = row[3]
             priority = row[4]
-            days = row[5]
-            starttime = row[6]
-            endtime = row[7]
-            lastmodified = row[8]
+            monday = row[5]
+            tuesday = row[6]
+            wednesday = row[7]
+            thursday = row[8]
+            friday = row[9]
+            saturday = row[10]
+            sunday = row[11]
+            starttime = row[12]
+            endtime = row[13]
             
-            lookup_fields = {}
+            try:
+                available_calendar = Calendar.objects.get(name=calendar_id)
+            except Calendar.DoesNotExist:
+                available_calendar = None
+
+
+            lookup_fields = {'calendar': available_calendar, 'startdate': startdate, 'enddate': enddate, 'priority': priority}
+
+           
+
             data = {
-                'calendar_id': calendar_id,
+                'calendar': available_calendar,
                 'value': value,
                 'startdate': startdate,
                 'enddate': enddate,
                 'priority': priority,
-                'days': days,
+                'monday': monday,
+                'tuesday': tuesday,
+                'wednesday': wednesday,
+                'thursday': thursday,
+                'friday': friday,
+                'saturday': saturday,
+                'sunday': sunday,
                 'starttime': starttime,
                 'endtime': endtime,
-                'lastmodified': lastmodified or now()
             }
             
             item, created = update_or_create_record(CalendarBucket, lookup_fields, data)
@@ -759,15 +827,26 @@ class Command(BaseCommand):
 
             supplier = row[0]
             item = row[1]
-            
-            lookup_fields = {}
-            data = {
-                'supplier': supplier,
-                'item': item,
 
+            try:
+                item_available = Item.objects.get(name=item)
+            except Item.DoesNotExist:
+                item_available = None
+
+            try:
+                supplier_available = Supplier.objects.get(name=supplier)
+            except Location.DoesNotExist:
+                supplier_available = None
+
+
+            lookup_fields = {'supplier': supplier, 'item': item}
+
+            data = {
+                'supplier': item_available,
+                'item': supplier_available,
             }
             
-            item, created = update_or_create_record(CalendarBucket, lookup_fields, data)
+            item, created = update_or_create_record(ItemSupplier, lookup_fields, data)
             
             if created:
                 print(f"Created new item supplier")
