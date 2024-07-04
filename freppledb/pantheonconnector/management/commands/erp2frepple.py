@@ -20,7 +20,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
-
+ 
 import csv
 from datetime import datetime
 import os
@@ -31,41 +31,42 @@ from django.db import DEFAULT_DB_ALIAS
 from django.template import Template, RequestContext
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
-
+from django.db import transaction
+ž
 from freppledb import __version__
 from freppledb.common.models import User
 from freppledb.execute.models import Task
-
+ 
 from ...utils import getERPconnection
 from ...utils import update_or_create_record  # Import the utility function 03.07.2024 Janko Jovičić
-
-
+ 
+ 
 class Command(BaseCommand):
     help = """
       Extract a set of flat files from an ERP system.
       """
-
+ 
     # Generate .csv or .cpy files:
     #  - csv files are thoroughly validated and load slower
     #  - cpy files load much faster and rely on database level validation
     #    Loading cpy files is only available in the Enterprise Edition
     ext = "csv"
     # ext = 'cpy'
-
+ 
     # For the display in the execution screen
     title = _("Import data from %(erp)s") % {"erp": "Pantheon"}
-
+ 
     # For the display in the execution screen
     index = 2
-
+ 
     # For the display in the execution screen
-
-
+ 
+ 
     requires_system_checks = []
-
+ 
     def get_version(self):
         return __version__
-
+ 
     def add_arguments(self, parser):
         parser.add_argument("--user", help="User running the command")
         parser.add_argument(
@@ -78,12 +79,12 @@ class Command(BaseCommand):
             type=int,
             help="Task identifier (generated automatically if not provided)",
         )
-
+ 
     @staticmethod
     def getHTML(request):
         if "freppledb.pantheonconnector" in settings.INSTALLED_APPS:
             context = RequestContext(request)
-
+ 
             template = Template(
                 """
         {% load i18n %}
@@ -91,7 +92,7 @@ class Command(BaseCommand):
         <table>
           <tr>
             <td style="vertical-align:top; padding: 15px">
-
+ 
                <button  class="btn btn-primary"  type="submit" value="{% trans "launch"|capfirst %}">{% trans "launch"|capfirst %}</button>
             </td>
             <td  style="padding: 0px 15px;">{% trans "Import Pantheon data into frePPLe." %}
@@ -101,22 +102,22 @@ class Command(BaseCommand):
         </form>
           
         
-
+ 
       """
             )
             return template.render(context)
         else:
             return None
-
+ 
     def handle(self, **options):
-
+ 
         self.error_count = 0
-
+ 
         # Select the correct frePPLe scenario database
         self.database = options["database"]
         if self.database not in settings.DATABASES.keys():
             raise CommandError("No database settings known for '%s'" % self.database)
-
+ 
         # FrePPle user running this task
         if options["user"]:
             try:
@@ -129,7 +130,7 @@ class Command(BaseCommand):
                 raise CommandError("User '%s' not found" % options["user"])
         else:
             self.user = None
-
+ 
         # FrePPLe task identifier
         if options["task"]:
             try:
@@ -156,147 +157,157 @@ class Command(BaseCommand):
             )
         self.task.processid = os.getpid()
         self.task.save(using=self.database)
-
+ 
         # Set the destination folder
         self.destination = settings.DATABASES[self.database]["FILEUPLOADFOLDER"]
         if not os.access(self.destination, os.W_OK):
             raise CommandError("Can't write to folder %s " % self.destination)
-
+ 
         # Open database connection
         print("Connecting to the database")
         with getERPconnection(self.database) as erp_connection:
             self.cursor = erp_connection.cursor()
             self.fk = "_id" if self.ext == "cpy" else ""
-
+ 
             # Extract all tables
             try:
                 self.extractLocation()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
-
+ 
                 self.extractCustomer()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
-
+ 
                 self.extractItem()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
-
+ 
                 self.extractCalendar()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
-
+ 
                 self.extractCalendarBucket()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
-
-
+ 
+ 
                 self.extractSupplier()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
-
+ 
                 self.extractItemSupplier()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
             
-
+ 
                 self.extractResource()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
-
+ 
                 self.extractSalesOrder()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
-
+ 
                 self.extractOperation()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
-
+ 
                 '''self.extractSuboperation()
                 self.task.status = "?%"
                 self.task.save(using=self.database)'''
-
+ 
                 self.extractOperationResource()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
-
+ 
                 self.extractOperationMaterial()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
-
+ 
         
                 self.extractBuffer()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
-
-
-
+ 
+ 
+ 
                 self.task.status = "Done. Errors:" + self.error_count
-
+ 
             except Exception as e:
                 self.task.status = "Failed"
                 self.task.message = "Failed: %s" % e
-
+ 
             finally:
                 self.task.processid = None
                 self.task.finished = datetime.now()
                 self.task.save(using=self.database)
-
+ 
     def extractLocation(self):
  
         self.cursor.execute(
             """
-
+ 
             select * from uTN_V_Frepple_LocationData
                     
             """
         )
         rows = self.cursor.fetchall()
-        
+
+        objects_to_create = []
+        objects_to_update = []
+
         for row in rows:
             try:
                 name = row[0]
                 description = row[1]
                 lastmodified = row[2]
-
+ 
                 lookup_fields = {'name': name}
-
+ 
                 data = {
                     'name': name,
                     'description': description,
                     'lastmodified': lastmodified or now()
                 }
                 
-                item, created = update_or_create_record(Location, lookup_fields, data)
-                
-                if created:
-                    print(f"Created new location: {name}")
+                existing_object = Location.objects.filter(**lookup_fields).first()
+
+                if existing_object:
+                    update_object = Location(**data)
+                    objects_to_update.append(update_object)
                 else:
-                    print(f"Updated existing location: {name}")
+                    new_object= Location(**data)
+                    objects_to_create.append(new_object)
             except Exception as e:
                 self.error_count += 1
-
-
-
+        with transaction.atomic(using=self.database):
+            Location.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
+ 
+ 
+ 
     def extractCustomer(self):
-
+ 
         self.cursor.execute(
             """
-
+ 
             select * from uTN_V_Frepple_CustomerData
-
-
+ 
+ 
             """
         )
-
+ 
         rows = self.cursor.fetchall()
-        
+        objects_to_create = []
+        objects_to_update = []
         for row in rows:
             try:
                 name = row[0]
                 category = row[1]
                 lastmodified = row[2]
-
+ 
                 lookup_fields = {'name': name}
                 data = {
                     'name': name,
@@ -304,15 +315,21 @@ class Command(BaseCommand):
                     'lastmodified': lastmodified or now()
                 }
                 
-                item, created = update_or_create_record(Customer, lookup_fields, data)
-                
-                if created:
-                    print(f"Created new customer: {name}")
+                existing_object = Customer.objects.filter(**lookup_fields).first()
+
+                if existing_object:
+                    update_object = Customer(**data)
+                    objects_to_update.append(update_object)
                 else:
-                    print(f"Updated existing customer: {name}")
+                    new_object= Customer(**data)
+                    objects_to_create.append(new_object)
             except Exception as e:
                 self.error_count += 1
-
+        with transaction.atomic(using=self.database):
+            Customer.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
+ 
     def extractItem(self):
  
         self.cursor.execute(
@@ -323,7 +340,10 @@ class Command(BaseCommand):
         )
         
         rows = self.cursor.fetchall()
-        
+        objects_to_create = []
+        objects_to_update = []
+
+
         for row in rows:
             try:
                 name = row[0]
@@ -340,35 +360,42 @@ class Command(BaseCommand):
                     'lastmodified': lastmodified or now()
                 }
                 
-                item, created = update_or_create_record(Item, lookup_fields, data)
-                
-                if created:
-                    print(f"Created new item: {name}")
+                existing_object = Item.objects.filter(**lookup_fields).first()
+
+                if existing_object:
+                    update_object = Item(**data)
+                    objects_to_update.append(update_object)
                 else:
-                    print(f"Updated existing item: {name}")
+                    new_object= Item(**data)
+                    objects_to_create.append(new_object)
             except Exception as e:
                 self.error_count += 1
+        with transaction.atomic(using=self.database):
+            Item.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
         
-
-
+ 
+ 
     def extractSupplier(self):
-
+ 
         self.cursor.execute(
             """
-
+ 
             select * from uTN_V_Frepple_SupplierData 
-
-
+ 
+ 
             """
         )
         rows = self.cursor.fetchall()
-        
+        objects_to_create = []
+        objects_to_update = []
         for row in rows:
             try:
                 name = row[0]
                 description = row[1]
                 lastmodified = row[2]
-
+ 
                 lookup_fields = {'name': name}
                 data = {
                     'subcategory': name,
@@ -376,27 +403,34 @@ class Command(BaseCommand):
                     'lastmodified': lastmodified or now()
                 }
                 
-                item, created = update_or_create_record(Supplier, lookup_fields, data)
-                
-                if created:
-                    print(f"Created new supplier: {name}")
+                existing_object = Supplier.objects.filter(**lookup_fields).first()
+
+                if existing_object:
+                    update_object = Supplier(**data)
+                    objects_to_update.append(update_object)
                 else:
-                    print(f"Updated existing supplier: {name}")
+                    new_object= Supplier(**data)
+                    objects_to_create.append(new_object)
             except Exception as e:
                 self.error_count += 1
-
+        with transaction.atomic(using=self.database):
+            Supplier.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
+ 
     def extractResource(self):
-
-
+ 
+ 
         self.cursor.execute(
             """
-
+ 
             select * from uTN_V_Frepple_ResourcesData 
-
+ 
             """
         )
         rows = self.cursor.fetchall()
-        
+        objects_to_create = []
+        objects_to_update = []
         for row in rows:
             try:
                 name = row[0]
@@ -409,18 +443,18 @@ class Command(BaseCommand):
                 available = row[7]
                 
                 lookup_fields = {'name': name }
-
+ 
                 try:
                     available_calendar = Calendar.objects.get(name=available)
                 except Calendar.DoesNotExist:
                     available_calendar = None
-
+ 
                 try:
                     location_obj = Location.objects.get(name=location)
                 except Location.DoesNotExist:
                     location_obj = None
                 
-
+ 
                 data = {
                     'name': name,
                     'category': category,
@@ -432,29 +466,37 @@ class Command(BaseCommand):
                     'available': available_calendar
                 }
                 
-                item, created = update_or_create_record(Resource, lookup_fields, data)
-                
-                if created:
-                    print(f"Created new resource: {name}")
+                existing_object = Resource.objects.filter(**lookup_fields).first()
+
+                if existing_object:
+                    update_object = Resource(**data)
+                    objects_to_update.append(update_object)
                 else:
-                    print(f"Updated existing resource: {name}")
+                    new_object= Resource(**data)
+                    objects_to_create.append(new_object)
+
             except Exception as e:
                 self.error_count += 1
-
+        with transaction.atomic(using=self.database):
+            Resource.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
+ 
     def extractSalesOrder(self):
-
+ 
         self.cursor.execute(
             """
-
-
+ 
+ 
             select * from uTN_V_Frepple_SalesOrderData 
-
-
+ 
+ 
             
             """
         )
         rows = self.cursor.fetchall()
-        
+        objects_to_create = []
+        objects_to_update = []
         for row in rows:
             try:
                 name = row[0]
@@ -469,23 +511,23 @@ class Command(BaseCommand):
                 category = row[9]
                 priority = row[10]
                 lastmodified = row[11]
-
+ 
                 try:
                     available_item = Item.objects.get(name=item)
                 except Item.DoesNotExist:
                     available_item = None
-
+ 
                 try:
                     available_location = Location.objects.get(name=location)
                 except Location.DoesNotExist:
                     available_location = None
-
+ 
                 try:
                     available_customer = Customer.objects.get(name=customer)
                 except Customer.DoesNotExist:
                     available_customer = None
-
-
+ 
+ 
                 lookup_fields = {'name': name}
                 data = {
                     'name': name,
@@ -502,25 +544,32 @@ class Command(BaseCommand):
                     'lastmodified': lastmodified or now()
                 }
                 
-                item, created = update_or_create_record(Demand, lookup_fields, data)
-                
-                if created:
-                    print(f"Created new sales order: {name}")
+                existing_object = Demand.objects.filter(**lookup_fields).first()
+
+                if existing_object:
+                    update_object = Demand(**data)
+                    objects_to_update.append(update_object)
                 else:
-                    print(f"Updated existing sales order: {name}")
+                    new_object= Demand(**data)
+                    objects_to_create.append(new_object)
             except Exception as e:
                 self.error_count += 1
-
-
+        with transaction.atomic(using=self.database):
+            Demand.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
+ 
+ 
     def extractOperation(self):
-
+ 
         self.cursor.execute(
             """
                select * from uTN_V_Frepple_OperationData 
             """
         )
         rows = self.cursor.fetchall()
-        
+        objects_to_create = []
+        objects_to_update = []
         for row in rows:
             try:
                 name = row[0]
@@ -538,12 +587,12 @@ class Command(BaseCommand):
                     available_item = Item.objects.get(name=item)
                 except Item.DoesNotExist:
                     available_item = None
-
+ 
                 try:
                     available_location = Location.objects.get(name=location)
                 except Location.DoesNotExist:
                     available_location = None
-
+ 
                 data = {
                     'name': name,
                     'description': description,
@@ -557,18 +606,24 @@ class Command(BaseCommand):
                     'lastmodified': lastmodified or now()
                 }
                 
-                item, created = update_or_create_record(Operation, lookup_fields, data)
-                
-                if created:
-                    print(f"Created new operation: {name}")
+                existing_object = Operation.objects.filter(**lookup_fields).first()
+
+                if existing_object:
+                    update_object = Operation(**data)
+                    objects_to_update.append(update_object)
                 else:
-                    print(f"Updated existing operation: {name}")
+                    new_object= Operation(**data)
+                    objects_to_create.append(new_object)
             except Exception as e:
                 self.error_count += 1
-
-
-
-
+        with transaction.atomic(using=self.database):
+            Operation.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
+ 
+ 
+ 
+ 
         ''' def extractSuboperation(self):
             """
             Map JobBOSS joboperations into frePPLe suboperations.
@@ -591,16 +646,17 @@ class Command(BaseCommand):
                     ]
                 )
                 outcsv.writerows(self.cursor.fetchall()) Not needed currently '''
-
+ 
     def extractOperationResource(self):
-
+ 
         self.cursor.execute (
             """
                 select * from uTN_V_Frepple_OperationResourcesData
             """
         )
         rows = self.cursor.fetchall()
-        
+        objects_to_create = []
+        objects_to_update = []
         for row in rows:
             try:               
                 name = row[0]
@@ -609,12 +665,12 @@ class Command(BaseCommand):
                 lastmodified = row[3]
                 
                 lookup_fields = {'name': name, 'resource': resource, quantity: quantity}
-
+ 
                 try:
                     available_resource = Resource.objects.get(name=resource)
                 except resource.DoesNotExist:
                     available_resource = None
-
+ 
                 data = {
                     'name': name,
                     'resource': available_resource,
@@ -622,20 +678,26 @@ class Command(BaseCommand):
                     'lastmodified': lastmodified or now()
                 }
                 
-                item, created = update_or_create_record(OperationResource, lookup_fields, data)
-                
-                if created:
-                    print(f"Created new operation resource: {name}")
+                existing_object = OperationResource.objects.filter(**lookup_fields).first()
+
+                if existing_object:
+                    update_object = OperationResource(**data)
+                    objects_to_update.append(update_object)
                 else:
-                    print(f"Updated existing operation resource: {name}")
+                    new_object= OperationResource(**data)
+                    objects_to_create.append(new_object)
             except Exception as e:
                 self.error_count += 1
+        with transaction.atomic(using=self.database):
+            OperationResource.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
         
-
-
+ 
+ 
     def extractOperationMaterial(self):
-
-
+ 
+ 
         self.cursor.execute(
             """
                 select * from uTN_V_Frepple_OperationMaterialData 
@@ -643,6 +705,9 @@ class Command(BaseCommand):
         )
         rows = self.cursor.fetchall()
         
+        objects_to_create = []
+        objects_to_update = []
+
         for row in rows:
             try:
                 operation = row[0]
@@ -652,12 +717,12 @@ class Command(BaseCommand):
                 lastmodified = row[4]
                 
                 lookup_fields = {'operation': operation, 'item': item, 'type_val': type_val, 'quantity': quantity}
-
+ 
                 try:
                     available_operation = Resource.objects.get(name=operation)
                 except resource.DoesNotExist:
                     available_operation = None
-
+ 
                 try:
                     available_item = Resource.objects.get(name=item)
                 except resource.DoesNotExist:
@@ -671,28 +736,37 @@ class Command(BaseCommand):
                     'lastmodified': lastmodified or now()
                 }
                 
-                item, created = update_or_create_record(OperationMaterial, lookup_fields, data)
-                
-                if created:
-                    print(f"Created new operation material: {operation}")
+                existing_object = OperationMaterial.objects.filter(**lookup_fields).first()
+
+                if existing_object:
+                    update_object = OperationMaterial(**data)
+                    objects_to_update.append(update_object)
                 else:
-                    print(f"Updated existing operation material: {operation}")
+                    new_object= OperationMaterial(**data)
+                    objects_to_create.append(new_object)
             except Exception as e:
                 self.error_count += 1
-
-
-
+        with transaction.atomic(using=self.database):
+            OperationMaterial.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
+ 
+ 
+ 
     def extractBuffer(self):
-
-
+ 
+ 
         self.cursor.execute(
             """
             
             select * from uTN_V_Frepple_BufferData
-
+ 
             """
         )
         rows = self.cursor.fetchall()
+
+        objects_to_create = []
+        objects_to_update = []
         
         for row in rows:
             try:              
@@ -700,20 +774,20 @@ class Command(BaseCommand):
                 location = row[1]
                 batch = row[2]
                 onhand = row[3]
-
+ 
                 
                 try:
                     available_item = Item.objects.get(name=item)
                 except Item.DoesNotExist:
                     available_item = None
-
+ 
                 try:
                     available_location = Location.objects.get(name=location)
                 except Location.DoesNotExist:
                     available_location = None
                 
                 lookup_fields = {'item': item, 'location': location, 'batch': batch }
-
+ 
                 data = {
                     'item': available_item,
                     'location': available_location,
@@ -721,26 +795,34 @@ class Command(BaseCommand):
                     'onhand': onhand,
                 }
                 
-                item, created = update_or_create_record(Buffer, lookup_fields, data)
-                
-                if created:
-                    print(f"Created new buffer: {item}")
+                existing_object = Buffer.objects.filter(**lookup_fields).first()
+
+                if existing_object:
+                    update_object = Buffer(**data)
+                    objects_to_update.append(update_object)
                 else:
-                    print(f"Updated existing buffer: {item}")
+                    new_object= Buffer(**data)
+                    objects_to_create.append(new_object)
+
             except Exception as e:
                 self.error_count += 1
-
-
-
+        with transaction.atomic(using=self.database):
+            Buffer.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
+ 
+ 
+ 
     def extractCalendar(self):
-
+ 
         self.cursor.execute(
             """
       select * from uTN_V_Frepple_CalendarData
             """
         )
         rows = self.cursor.fetchall()
-        
+        objects_to_create = []
+        objects_to_update = []
         for row in rows:
             try:             
                 name = row[0]
@@ -750,28 +832,36 @@ class Command(BaseCommand):
                 data = {
                     'name': name,
                     'defaultvalue': default,
-
+ 
                 }
                 
-                item, created = update_or_create_record(Calendar, lookup_fields, data)
-                
-                if created:
-                    print(f"Created new calendar: {name}")
+                existing_object = Calendar.objects.filter(**lookup_fields).first()
+
+                if existing_object:
+                    update_object = Calendar(**data)
+                    objects_to_update.append(update_object)
                 else:
-                    print(f"Updated existing calendar: {name}")
+                    new_object= Calendar(**data)
+                    objects_to_create.append(new_object)
+
             except Exception as e:
                 self.error_count += 1
-
+        with transaction.atomic(using=self.database):
+            Calendar.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
+ 
     def extractCalendarBucket(self):
-
-
+ 
+ 
         self.cursor.execute(
             """
         select * from uTN_V_Frepple_CalendarBucketsData
             """
         )
         rows = self.cursor.fetchall()
-        
+        objects_to_create = []
+        objects_to_update = []
         for row in rows:
             try:               
                 calendar_id = row[0]
@@ -793,12 +883,12 @@ class Command(BaseCommand):
                     available_calendar = Calendar.objects.get(name=calendar_id)
                 except Calendar.DoesNotExist:
                     available_calendar = None
-
-
+ 
+ 
                 lookup_fields = {'calendar': available_calendar, 'startdate': startdate, 'enddate': enddate, 'priority': priority}
-
+ 
             
-
+ 
                 data = {
                     'calendar': available_calendar,
                     'value': value,
@@ -816,54 +906,67 @@ class Command(BaseCommand):
                     'endtime': endtime,
                 }
                 
-                item, created = update_or_create_record(CalendarBucket, lookup_fields, data)
-                
-                if created:
-                    print(f"Created new calendar bucket: {calendar_id}")
+                existing_object = CalendarBucket.objects.filter(**lookup_fields).first()
+
+                if existing_object:
+                    update_object = CalendarBucket(**data)
+                    objects_to_update.append(update_object)
                 else:
-                    print(f"Updated existing calendar bucket: {calendar_id}")
+                    new_object= CalendarBucket(**data)
+                    objects_to_create.append(new_object)
             except Exception as e:
                 self.error_count += 1
-
-
-
+        with transaction.atomic(using=self.database):
+            CalendarBucket.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
+ 
+ 
+ 
     def extractItemSupplier(self):
-
+ 
         self.cursor.execute(
             """
         select * from uTN_V_Frepple_ItemSupplierData
             """
         )
         rows = self.cursor.fetchall()
-        
+        objects_to_create = []
+        objects_to_update = []
         for row in rows:
             try:              
                 supplier = row[0]
                 item = row[1]
-
+ 
                 try:
                     item_available = Item.objects.get(name=item)
                 except Item.DoesNotExist:
                     item_available = None
-
+ 
                 try:
                     supplier_available = Supplier.objects.get(name=supplier)
                 except Location.DoesNotExist:
                     supplier_available = None
-
-
+ 
+ 
                 lookup_fields = {'supplier': supplier, 'item': item}
-
+ 
                 data = {
                     'supplier': supplier_available,
                     'item': item_available,
                 }
                 
-                item, created = update_or_create_record(ItemSupplier, lookup_fields, data)
-                
-                if created:
-                    print(f"Created new item supplier")
+                existing_object = ItemSupplier.objects.filter(**lookup_fields).first()
+
+                if existing_object:
+                    update_object = ItemSupplier(**data)
+                    objects_to_update.append(update_object)
                 else:
-                    print(f"Updated existing item supplier")
+                    new_object= ItemSupplier(**data)
+                    objects_to_create.append(new_object)
             except Exception as e:
                 self.error_count += 1
+        with transaction.atomic(using=self.database):
+            ItemSupplier.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
