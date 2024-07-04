@@ -58,6 +58,9 @@ class Command(BaseCommand):
     # For the display in the execution screen
     index = 2
 
+    # For the display in the execution screen
+
+
     requires_system_checks = []
 
     def get_version(self):
@@ -106,6 +109,9 @@ class Command(BaseCommand):
             return None
 
     def handle(self, **options):
+
+        self.error_count = 0
+
         # Select the correct frePPLe scenario database
         self.database = options["database"]
         if self.database not in settings.DATABASES.keys():
@@ -162,7 +168,7 @@ class Command(BaseCommand):
             self.cursor = erp_connection.cursor()
             self.fk = "_id" if self.ext == "cpy" else ""
 
-            # Extract all files
+            # Extract all tables
             try:
                 self.extractLocation()
                 self.task.status = "?%"
@@ -225,7 +231,7 @@ class Command(BaseCommand):
 
 
 
-                self.task.status = "Done"
+                self.task.status = "Done. Errors:" + self.error_count
 
             except Exception as e:
                 self.task.status = "Failed"
@@ -248,27 +254,29 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-           
-            name = row[0]
-            description = row[1]
-            lastmodified = row[2]
+            try:
+                name = row[0]
+                description = row[1]
+                lastmodified = row[2]
 
-            lookup_fields = {'name': name}
+                lookup_fields = {'name': name}
 
-            data = {
-                'name': name,
-                'description': description,
-                'lastmodified': lastmodified or now()
-            }
-            
-            item, created = update_or_create_record(Location, lookup_fields, data)
-            
-            if created:
-                print(f"Created new location: {name}")
-            else:
-                print(f"Updated existing location: {name}")
-        
-        print("Finished extracting items.")
+                data = {
+                    'name': name,
+                    'description': description,
+                    'lastmodified': lastmodified or now()
+                }
+                
+                item, created = update_or_create_record(Location, lookup_fields, data)
+                
+                if created:
+                    print(f"Created new location: {name}")
+                else:
+                    print(f"Updated existing location: {name}")
+            except Exception as e:
+                self.error_count += 1
+
+
 
     def extractCustomer(self):
 
@@ -284,26 +292,26 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-            
-            name = row[0]
-            category = row[1]
-            lastmodified = row[2]
+            try:
+                name = row[0]
+                category = row[1]
+                lastmodified = row[2]
 
-            lookup_fields = {'name': name}
-            data = {
-                'name': name,
-                'category': category,
-                'lastmodified': lastmodified or now()
-            }
-            
-            item, created = update_or_create_record(Customer, lookup_fields, data)
-            
-            if created:
-                print(f"Created new customer: {name}")
-            else:
-                print(f"Updated existing customer: {name}")
-        
-        print("Finished extracting items.")
+                lookup_fields = {'name': name}
+                data = {
+                    'name': name,
+                    'category': category,
+                    'lastmodified': lastmodified or now()
+                }
+                
+                item, created = update_or_create_record(Customer, lookup_fields, data)
+                
+                if created:
+                    print(f"Created new customer: {name}")
+                else:
+                    print(f"Updated existing customer: {name}")
+            except Exception as e:
+                self.error_count += 1
 
     def extractItem(self):
  
@@ -317,29 +325,31 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-
-            name = row[0]
-            subcategory = row[1]
-            description = row[2]
-            category = row[3]
-            lastmodified = row[4]
-            
-            lookup_fields = {'name': name}
-            data = {
-                'subcategory': subcategory,
-                'description': description,
-                'category': category,
-                'lastmodified': lastmodified or now()
-            }
-            
-            item, created = update_or_create_record(Item, lookup_fields, data)
-            
-            if created:
-                print(f"Created new item: {name}")
-            else:
-                print(f"Updated existing item: {name}")
+            try:
+                name = row[0]
+                subcategory = row[1]
+                description = row[2]
+                category = row[3]
+                lastmodified = row[4]
+                
+                lookup_fields = {'name': name}
+                data = {
+                    'subcategory': subcategory,
+                    'description': description,
+                    'category': category,
+                    'lastmodified': lastmodified or now()
+                }
+                
+                item, created = update_or_create_record(Item, lookup_fields, data)
+                
+                if created:
+                    print(f"Created new item: {name}")
+                else:
+                    print(f"Updated existing item: {name}")
+            except Exception as e:
+                self.error_count += 1
         
-        print("Finished extracting items.")
+
 
     def extractSupplier(self):
 
@@ -354,26 +364,26 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
+            try:
+                name = row[0]
+                description = row[1]
+                lastmodified = row[2]
 
-            name = row[0]
-            description = row[1]
-            lastmodified = row[2]
-
-            lookup_fields = {'name': name}
-            data = {
-                'subcategory': name,
-                'description': description,
-                'lastmodified': lastmodified or now()
-            }
-            
-            item, created = update_or_create_record(Supplier, lookup_fields, data)
-            
-            if created:
-                print(f"Created new supplier: {name}")
-            else:
-                print(f"Updated existing supplier: {name}")
-        
-        print("Finished extracting items.")
+                lookup_fields = {'name': name}
+                data = {
+                    'subcategory': name,
+                    'description': description,
+                    'lastmodified': lastmodified or now()
+                }
+                
+                item, created = update_or_create_record(Supplier, lookup_fields, data)
+                
+                if created:
+                    print(f"Created new supplier: {name}")
+                else:
+                    print(f"Updated existing supplier: {name}")
+            except Exception as e:
+                self.error_count += 1
 
     def extractResource(self):
 
@@ -388,48 +398,48 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-
-            name = row[0]
-            category = row[1]
-            subcategory = row[2]
-            maximum = row[3]
-            location = row[4]
-            type_val = row[5]
-            lastmodified = row[6]
-            available = row[7]
-            
-            lookup_fields = {'name': name }
-
             try:
-                available_calendar = Calendar.objects.get(name=available)
-            except Calendar.DoesNotExist:
-                available_calendar = None
+                name = row[0]
+                category = row[1]
+                subcategory = row[2]
+                maximum = row[3]
+                location = row[4]
+                type_val = row[5]
+                lastmodified = row[6]
+                available = row[7]
+                
+                lookup_fields = {'name': name }
 
-            try:
-                location_obj = Location.objects.get(name=location)
-            except Location.DoesNotExist:
-                location_obj = None
-            
+                try:
+                    available_calendar = Calendar.objects.get(name=available)
+                except Calendar.DoesNotExist:
+                    available_calendar = None
 
-            data = {
-                'name': name,
-                'category': category,
-                'subcategory': subcategory,
-                'maximum': maximum,
-                'location': location_obj,
-                'type': type_val,
-                'lastmodified': lastmodified or now(),
-                'available': available_calendar
-            }
-            
-            item, created = update_or_create_record(Resource, lookup_fields, data)
-            
-            if created:
-                print(f"Created new resource: {name}")
-            else:
-                print(f"Updated existing resource: {name}")
-        
-        print("Finished extracting items.")
+                try:
+                    location_obj = Location.objects.get(name=location)
+                except Location.DoesNotExist:
+                    location_obj = None
+                
+
+                data = {
+                    'name': name,
+                    'category': category,
+                    'subcategory': subcategory,
+                    'maximum': maximum,
+                    'location': location_obj,
+                    'type': type_val,
+                    'lastmodified': lastmodified or now(),
+                    'available': available_calendar
+                }
+                
+                item, created = update_or_create_record(Resource, lookup_fields, data)
+                
+                if created:
+                    print(f"Created new resource: {name}")
+                else:
+                    print(f"Updated existing resource: {name}")
+            except Exception as e:
+                self.error_count += 1
 
     def extractSalesOrder(self):
 
@@ -446,60 +456,62 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-
-            name = row[0]
-            item = row[1]
-            location = row[2]
-            customer = row[3]
-            status = row[4]
-            due = row[5]
-            quantity = row[6]
-            minshipment = row[7]
-            description = row[8]
-            category = row[9]
-            priority = row[10]
-            lastmodified = row[11]
-
             try:
-                available_item = Item.objects.get(name=item)
-            except Item.DoesNotExist:
-                available_item = None
+                name = row[0]
+                item = row[1]
+                location = row[2]
+                customer = row[3]
+                status = row[4]
+                due = row[5]
+                quantity = row[6]
+                minshipment = row[7]
+                description = row[8]
+                category = row[9]
+                priority = row[10]
+                lastmodified = row[11]
 
-            try:
-                available_location = Location.objects.get(name=location)
-            except Location.DoesNotExist:
-                available_location = None
+                try:
+                    available_item = Item.objects.get(name=item)
+                except Item.DoesNotExist:
+                    available_item = None
 
-            try:
-                available_customer = Calendar.objects.get(name=customer)
-            except Customer.DoesNotExist:
-                available_customer = None
+                try:
+                    available_location = Location.objects.get(name=location)
+                except Location.DoesNotExist:
+                    available_location = None
+
+                try:
+                    available_customer = Customer.objects.get(name=customer)
+                except Customer.DoesNotExist:
+                    available_customer = None
 
 
-            lookup_fields = {'name': name}
-            data = {
-                'name': name,
-                'item': available_item,
-                'location': available_location,
-                'customer': available_customer,
-                'status': status,
-                'due': due,
-                'quantity': quantity,
-                'minshipment': minshipment,
-                'description': description,
-                'category': category,
-                'priority': priority,
-                'lastmodified': lastmodified or now()
-            }
-            
-            item, created = update_or_create_record(Demand, lookup_fields, data)
-            
-            if created:
-                print(f"Created new sales order: {name}")
-            else:
-                print(f"Updated existing sales order: {name}")
-        
-        print("Finished extracting items.")
+                lookup_fields = {'name': name}
+                data = {
+                    'name': name,
+                    'item': available_item,
+                    'location': available_location,
+                    'customer': available_customer,
+                    'status': status,
+                    'due': due,
+                    'quantity': quantity,
+                    'minshipment': minshipment,
+                    'description': description,
+                    'category': category,
+                    'priority': priority,
+                    'lastmodified': lastmodified or now()
+                }
+                
+                item, created = update_or_create_record(Demand, lookup_fields, data)
+                
+                if created:
+                    print(f"Created new sales order: {name}")
+                else:
+                    print(f"Updated existing sales order: {name}")
+            except Exception as e:
+                self.error_count += 1
+
+
     def extractOperation(self):
 
         self.cursor.execute(
@@ -510,49 +522,52 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-
-            name = row[0]
-            description = row[1]
-            category = row[2]
-            subcategory = row[3]
-            type_val = row[4]
-            item = row[5]
-            location = row[6]
-            duration = row[7]
-            duration_per = row[8]
-            lastmodified = row[9]
-            lookup_fields = {'name': name}
             try:
-                available_item = Item.objects.get(name=item)
-            except Item.DoesNotExist:
-                available_item = None
+                name = row[0]
+                description = row[1]
+                category = row[2]
+                subcategory = row[3]
+                type_val = row[4]
+                item = row[5]
+                location = row[6]
+                duration = row[7]
+                duration_per = row[8]
+                lastmodified = row[9]
+                lookup_fields = {'name': name}
+                try:
+                    available_item = Item.objects.get(name=item)
+                except Item.DoesNotExist:
+                    available_item = None
 
-            try:
-                available_location = Location.objects.get(name=location)
-            except Location.DoesNotExist:
-                available_location = None
+                try:
+                    available_location = Location.objects.get(name=location)
+                except Location.DoesNotExist:
+                    available_location = None
 
-            data = {
-                'name': name,
-                'description': description,
-                'category': category,
-                'subcategory': subcategory,
-                'type': type_val,
-                'item': available_item,
-                'location': available_location,
-                'duration': duration,
-                'duration_per': duration_per,
-                'lastmodified': lastmodified or now()
-            }
-            
-            item, created = update_or_create_record(Operation, lookup_fields, data)
-            
-            if created:
-                print(f"Created new operation: {name}")
-            else:
-                print(f"Updated existing operation: {name}")
-        
-        print("Finished extracting items.")
+                data = {
+                    'name': name,
+                    'description': description,
+                    'category': category,
+                    'subcategory': subcategory,
+                    'type': type_val,
+                    'item': available_item,
+                    'location': available_location,
+                    'duration': duration,
+                    'duration_per': duration_per,
+                    'lastmodified': lastmodified or now()
+                }
+                
+                item, created = update_or_create_record(Operation, lookup_fields, data)
+                
+                if created:
+                    print(f"Created new operation: {name}")
+                else:
+                    print(f"Updated existing operation: {name}")
+            except Exception as e:
+                self.error_count += 1
+
+
+
 
         ''' def extractSuboperation(self):
             """
@@ -587,34 +602,35 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
+            try:               
+                name = row[0]
+                resource = row[1]
+                quantity = row[2]
+                lastmodified = row[3]
+                
+                lookup_fields = {'name': name, 'resource': resource, quantity: quantity}
 
-            name = row[0]
-            resource = row[1]
-            quantity = row[2]
-            lastmodified = row[3]
-            
-            lookup_fields = {'name': name, 'resource': resource, quantity: quantity}
+                try:
+                    available_resource = Resource.objects.get(name=resource)
+                except resource.DoesNotExist:
+                    available_resource = None
 
-            try:
-                available_resource = Resource.objects.get(name=resource)
-            except resource.DoesNotExist:
-                available_resource = None
-
-            data = {
-                'name': name,
-                'resource': available_resource,
-                'quantity': quantity,
-                'lastmodified': lastmodified or now()
-            }
-            
-            item, created = update_or_create_record(OperationResource, lookup_fields, data)
-            
-            if created:
-                print(f"Created new operation resource: {name}")
-            else:
-                print(f"Updated existing operation resource: {name}")
+                data = {
+                    'name': name,
+                    'resource': available_resource,
+                    'quantity': quantity,
+                    'lastmodified': lastmodified or now()
+                }
+                
+                item, created = update_or_create_record(OperationResource, lookup_fields, data)
+                
+                if created:
+                    print(f"Created new operation resource: {name}")
+                else:
+                    print(f"Updated existing operation resource: {name}")
+            except Exception as e:
+                self.error_count += 1
         
-        print("Finished extracting items.")
 
 
     def extractOperationMaterial(self):
@@ -628,41 +644,41 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
-
-            operation = row[0]
-            item = row[1]
-            type_val = row[2]
-            quantity = row[3]
-            lastmodified = row[4]
-            
-            lookup_fields = {'operation': operation, 'item': item, 'type_val': type_val, 'quantity': quantity}
-
             try:
-                available_operation = Resource.objects.get(name=operation)
-            except resource.DoesNotExist:
-                available_operation = None
+                operation = row[0]
+                item = row[1]
+                type_val = row[2]
+                quantity = row[3]
+                lastmodified = row[4]
+                
+                lookup_fields = {'operation': operation, 'item': item, 'type_val': type_val, 'quantity': quantity}
 
-            try:
-                available_item = Resource.objects.get(name=item)
-            except resource.DoesNotExist:
-                available_item = None
-            
-            data = {
-                'operation': available_operation,
-                'item': available_item,
-                'type': type_val,
-                'quantity': quantity,
-                'lastmodified': lastmodified or now()
-            }
-            
-            item, created = update_or_create_record(OperationMaterial, lookup_fields, data)
-            
-            if created:
-                print(f"Created new operation material: {operation}")
-            else:
-                print(f"Updated existing operation material: {operation}")
-        
-        print("Finished extracting items.")
+                try:
+                    available_operation = Resource.objects.get(name=operation)
+                except resource.DoesNotExist:
+                    available_operation = None
+
+                try:
+                    available_item = Resource.objects.get(name=item)
+                except resource.DoesNotExist:
+                    available_item = None
+                
+                data = {
+                    'operation': available_operation,
+                    'item': available_item,
+                    'type': type_val,
+                    'quantity': quantity,
+                    'lastmodified': lastmodified or now()
+                }
+                
+                item, created = update_or_create_record(OperationMaterial, lookup_fields, data)
+                
+                if created:
+                    print(f"Created new operation material: {operation}")
+                else:
+                    print(f"Updated existing operation material: {operation}")
+            except Exception as e:
+                self.error_count += 1
 
 
 
@@ -679,43 +695,40 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
+            try:              
+                item = row[0]
+                location = row[1]
+                batch = row[2]
+                onhand = row[3]
 
-            item = row[0]
-            location = row[1]
-            batch = row[2]
-            category = row[3]
-            onhand = row[4]
-            lastmodified = row[5]
-            
-            try:
-                available_item = Item.objects.get(name=item)
-            except Item.DoesNotExist:
-                available_item = None
+                
+                try:
+                    available_item = Item.objects.get(name=item)
+                except Item.DoesNotExist:
+                    available_item = None
 
-            try:
-                available_location = Location.objects.get(name=location)
-            except Location.DoesNotExist:
-                available_location = None
-            
-            lookup_fields = {'item': item, 'location': location, 'batch': batch }
+                try:
+                    available_location = Location.objects.get(name=location)
+                except Location.DoesNotExist:
+                    available_location = None
+                
+                lookup_fields = {'item': item, 'location': location, 'batch': batch }
 
-            data = {
-                'item': available_item,
-                'location': available_location,
-                'batch': batch,
-                'category': category,
-                'onhand': onhand,
-                'lastmodified': lastmodified or now()
-            }
-            
-            item, created = update_or_create_record(Buffer, lookup_fields, data)
-            
-            if created:
-                print(f"Created new buffer: {item}")
-            else:
-                print(f"Updated existing buffer: {item}")
-        
-        print("Finished extracting items.")
+                data = {
+                    'item': available_item,
+                    'location': available_location,
+                    'batch': batch,
+                    'onhand': onhand,
+                }
+                
+                item, created = update_or_create_record(Buffer, lookup_fields, data)
+                
+                if created:
+                    print(f"Created new buffer: {item}")
+                else:
+                    print(f"Updated existing buffer: {item}")
+            except Exception as e:
+                self.error_count += 1
 
 
 
@@ -729,25 +742,25 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
+            try:             
+                name = row[0]
+                default = row[1]
+                
+                lookup_fields = {'name': name}
+                data = {
+                    'name': name,
+                    'defaultvalue': default,
 
-            name = row[0]
-            default = row[1]
-            
-            lookup_fields = {'name': name}
-            data = {
-                'name': name,
-                'defaultvalue': default,
-
-            }
-            
-            item, created = update_or_create_record(Calendar, lookup_fields, data)
-            
-            if created:
-                print(f"Created new calendar: {name}")
-            else:
-                print(f"Updated existing calendar: {name}")
-        
-        print("Finished extracting items.")
+                }
+                
+                item, created = update_or_create_record(Calendar, lookup_fields, data)
+                
+                if created:
+                    print(f"Created new calendar: {name}")
+                else:
+                    print(f"Updated existing calendar: {name}")
+            except Exception as e:
+                self.error_count += 1
 
     def extractCalendarBucket(self):
 
@@ -760,57 +773,57 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
+            try:               
+                calendar_id = row[0]
+                value = row[1]
+                startdate = row[2]
+                enddate = row[3]
+                priority = row[4]
+                monday = row[5]
+                tuesday = row[6]
+                wednesday = row[7]
+                thursday = row[8]
+                friday = row[9]
+                saturday = row[10]
+                sunday = row[11]
+                starttime = row[12]
+                endtime = row[13]
+                
+                try:
+                    available_calendar = Calendar.objects.get(name=calendar_id)
+                except Calendar.DoesNotExist:
+                    available_calendar = None
 
-            calendar_id = row[0]
-            value = row[1]
-            startdate = row[2]
-            enddate = row[3]
-            priority = row[4]
-            monday = row[5]
-            tuesday = row[6]
-            wednesday = row[7]
-            thursday = row[8]
-            friday = row[9]
-            saturday = row[10]
-            sunday = row[11]
-            starttime = row[12]
-            endtime = row[13]
+
+                lookup_fields = {'calendar': available_calendar, 'startdate': startdate, 'enddate': enddate, 'priority': priority}
+
             
-            try:
-                available_calendar = Calendar.objects.get(name=calendar_id)
-            except Calendar.DoesNotExist:
-                available_calendar = None
 
-
-            lookup_fields = {'calendar': available_calendar, 'startdate': startdate, 'enddate': enddate, 'priority': priority}
-
-           
-
-            data = {
-                'calendar': available_calendar,
-                'value': value,
-                'startdate': startdate,
-                'enddate': enddate,
-                'priority': priority,
-                'monday': monday,
-                'tuesday': tuesday,
-                'wednesday': wednesday,
-                'thursday': thursday,
-                'friday': friday,
-                'saturday': saturday,
-                'sunday': sunday,
-                'starttime': starttime,
-                'endtime': endtime,
-            }
-            
-            item, created = update_or_create_record(CalendarBucket, lookup_fields, data)
-            
-            if created:
-                print(f"Created new calendar bucket: {calendar_id}")
-            else:
-                print(f"Updated existing calendar bucket: {calendar_id}")
-        
-        print("Finished extracting items.")
+                data = {
+                    'calendar': available_calendar,
+                    'value': value,
+                    'startdate': startdate,
+                    'enddate': enddate,
+                    'priority': priority,
+                    'monday': monday,
+                    'tuesday': tuesday,
+                    'wednesday': wednesday,
+                    'thursday': thursday,
+                    'friday': friday,
+                    'saturday': saturday,
+                    'sunday': sunday,
+                    'starttime': starttime,
+                    'endtime': endtime,
+                }
+                
+                item, created = update_or_create_record(CalendarBucket, lookup_fields, data)
+                
+                if created:
+                    print(f"Created new calendar bucket: {calendar_id}")
+                else:
+                    print(f"Updated existing calendar bucket: {calendar_id}")
+            except Exception as e:
+                self.error_count += 1
 
 
 
@@ -824,34 +837,33 @@ class Command(BaseCommand):
         rows = self.cursor.fetchall()
         
         for row in rows:
+            try:              
+                supplier = row[0]
+                item = row[1]
 
-            supplier = row[0]
-            item = row[1]
+                try:
+                    item_available = Item.objects.get(name=item)
+                except Item.DoesNotExist:
+                    item_available = None
 
-            try:
-                item_available = Item.objects.get(name=item)
-            except Item.DoesNotExist:
-                item_available = None
-
-            try:
-                supplier_available = Supplier.objects.get(name=supplier)
-            except Location.DoesNotExist:
-                supplier_available = None
+                try:
+                    supplier_available = Supplier.objects.get(name=supplier)
+                except Location.DoesNotExist:
+                    supplier_available = None
 
 
-            lookup_fields = {'supplier': supplier, 'item': item}
+                lookup_fields = {'supplier': supplier, 'item': item}
 
-            data = {
-                'supplier': item_available,
-                'item': supplier_available,
-            }
-            
-            item, created = update_or_create_record(ItemSupplier, lookup_fields, data)
-            
-            if created:
-                print(f"Created new item supplier")
-            else:
-                print(f"Updated existing item supplier")
-        
-        print("Finished extracting items.")
-        pass
+                data = {
+                    'supplier': supplier_available,
+                    'item': item_available,
+                }
+                
+                item, created = update_or_create_record(ItemSupplier, lookup_fields, data)
+                
+                if created:
+                    print(f"Created new item supplier")
+                else:
+                    print(f"Updated existing item supplier")
+            except Exception as e:
+                self.error_count += 1
