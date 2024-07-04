@@ -32,7 +32,7 @@ from django.template import Template, RequestContext
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
 from django.db import transaction
-ž
+
 from freppledb import __version__
 from freppledb.common.models import User
 from freppledb.execute.models import Task
@@ -245,6 +245,8 @@ class Command(BaseCommand):
  
     def extractLocation(self):
  
+
+        
         self.cursor.execute(
             """
  
@@ -254,8 +256,21 @@ class Command(BaseCommand):
         )
         rows = self.cursor.fetchall()
 
+        '''
+        # Fetch all existing locations once and create a lookup dictionary based on lookup fields
+        existing_locations = Location.objects.all()
+        lookup_fields = ['name']  # Specify the lookup fields here
+
+        # Create a lookup dictionary with only the specified fields
+        object_lookup = {
+            tuple(getattr(loc, field) for field in lookup_fields): loc
+            for loc in existing_locations
+                  lookup_key = tuple(data[field] for field in lookup_fields)
+                existing_location = object_lookup.get(lookup_key, None)
+                existing_object = Location.objects.filter(**lookup_fields).first()
+        }
+        '''
         objects_to_create = []
-        objects_to_update = []
 
         for row in rows:
             try:
@@ -270,21 +285,16 @@ class Command(BaseCommand):
                     'description': description,
                     'lastmodified': lastmodified or now()
                 }
-                
-                existing_object = Location.objects.filter(**lookup_fields).first()
+          
 
-                if existing_object:
-                    update_object = Location(**data)
-                    objects_to_update.append(update_object)
-                else:
-                    new_object= Location(**data)
-                    objects_to_create.append(new_object)
+                new_object= Location(**data)
+                objects_to_create.append(new_object)
+
             except Exception as e:
                 self.error_count += 1
         with transaction.atomic(using=self.database):
-            Location.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
-            for object_current in objects_to_update:
-                object_current.save()
+            Location.objects.bulk_create(objects_to_create, update_conflicts=True, batch_size=100000)
+
  
  
  
@@ -301,7 +311,6 @@ class Command(BaseCommand):
  
         rows = self.cursor.fetchall()
         objects_to_create = []
-        objects_to_update = []
         for row in rows:
             try:
                 name = row[0]
@@ -315,20 +324,15 @@ class Command(BaseCommand):
                     'lastmodified': lastmodified or now()
                 }
                 
-                existing_object = Customer.objects.filter(**lookup_fields).first()
 
-                if existing_object:
-                    update_object = Customer(**data)
-                    objects_to_update.append(update_object)
-                else:
-                    new_object= Customer(**data)
-                    objects_to_create.append(new_object)
+                new_object= Customer(**data)
+                objects_to_create.append(new_object)
+
             except Exception as e:
                 self.error_count += 1
         with transaction.atomic(using=self.database):
-            Customer.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
-            for object_current in objects_to_update:
-                object_current.save()
+            Customer.objects.bulk_create(objects_to_create, update_conflicts=True, batch_size=100000)
+
  
     def extractItem(self):
  
@@ -341,7 +345,6 @@ class Command(BaseCommand):
         
         rows = self.cursor.fetchall()
         objects_to_create = []
-        objects_to_update = []
 
 
         for row in rows:
@@ -360,21 +363,15 @@ class Command(BaseCommand):
                     'lastmodified': lastmodified or now()
                 }
                 
-                existing_object = Item.objects.filter(**lookup_fields).first()
 
-                if existing_object:
-                    update_object = Item(**data)
-                    objects_to_update.append(update_object)
-                else:
-                    new_object= Item(**data)
-                    objects_to_create.append(new_object)
+                new_object= Item(**data)
+                objects_to_create.append(new_object)
+
             except Exception as e:
                 self.error_count += 1
         with transaction.atomic(using=self.database):
             Item.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
-            for object_current in objects_to_update:
-                object_current.save()
-        
+
  
  
     def extractSupplier(self):
@@ -488,7 +485,7 @@ class Command(BaseCommand):
             """
  
  
-            select * from uTN_V_Frepple_SalesOrderData 
+            select * from uTN_V_Frepple_SalesOrderData where Status = 'open'
  
  
             
@@ -970,3 +967,4 @@ class Command(BaseCommand):
             ItemSupplier.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
             for object_current in objects_to_update:
                 object_current.save()
+
