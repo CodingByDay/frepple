@@ -171,61 +171,71 @@ class Command(BaseCommand):
  
             # Extract all tables
             try:
+                '''print("Location")
                 self.extractLocation()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
  
+                print("Customer")
                 self.extractCustomer()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
  
+                print("Item")
                 self.extractItem()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
- 
+
+                print("Calendar")
                 self.extractCalendar()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
  
+                print("Calendar bucket")
                 self.extractCalendarBucket()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
  
- 
+                print("Supplier")
                 self.extractSupplier()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
  
+                print("ItemSupplier")
                 self.extractItemSupplier()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
             
- 
+                print("Resource")
                 self.extractResource()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
  
+
+                print("Sales order")
                 self.extractSalesOrder()
                 self.task.status = "?%"
-                self.task.save(using=self.database)
+                self.task.save(using=self.database)'''
  
+                print("Operation")
                 self.extractOperation()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
  
-                '''self.extractSuboperation()
-                self.task.status = "?%"
-                self.task.save(using=self.database)'''
- 
+
+
+
+                print("Operation resource")
                 self.extractOperationResource()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
  
+                print("Operation material")
                 self.extractOperationMaterial()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
  
-        
+                print("Buffer") 
                 self.extractBuffer()
                 self.task.status = "?%"
                 self.task.save(using=self.database)
@@ -541,7 +551,7 @@ class Command(BaseCommand):
                 due = row[5]
                 quantity = row[6]
                 minshipment = row[7]
-                description = row[8]
+                description = row[8][:500]
                 category = row[9]
                 priority = row[10]
                 lastmodified = row[11]
@@ -686,12 +696,14 @@ class Command(BaseCommand):
  
         self.cursor.execute (
             """
-                select * from uTN_V_Frepple_OperationResourcesData
+                select * from uTN_V_Frepple_OperationResourcesData where Resource != ''
             """
         )
         rows = self.cursor.fetchall()
 
         resources = {resource.name: resource for resource in Resource.objects.all()}
+        operations = {operation.name: operation for operation in Operation.objects.all()}
+
 
         existing_objects = {}
         for obj in OperationResource.objects.all():
@@ -701,26 +713,27 @@ class Command(BaseCommand):
         objects_to_update = []
         for row in rows:
             try:               
-                name = row[0]
+                operation = row[0]
                 resource = row[1]
                 quantity = row[2]
                 lastmodified = row[3]
                 
-                lookup_fields = {'name': name, 'resource': resource, quantity: quantity}
+                lookup_fields = {'operation': operation, 'resource': resource, quantity: quantity}
  
                 resource_available = resources.get(resource)
- 
-                if resource_available is None:
+                operation_available = operations.get(operation)
+
+                if resource_available is None or operation_available is None:
                     continue
 
                 data = {
-                    'name': name,
+                    'operation': operation_available,
                     'resource': resource_available,
                     'quantity': quantity,
                     'lastmodified': lastmodified or now()
                 }
                 
-                existing_object = existing_objects.get((name, resource, quantity))
+                existing_object = existing_objects.get((operation, resource, quantity))
 
                 if existing_object:
                     update_object = OperationResource(**data)
