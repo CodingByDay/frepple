@@ -21,3 +21,8 @@ sudo apt-get update
 
 # Install the ODBC driver
 sudo apt-get install -y msodbcsql17
+
+
+
+
+*/2 * * * * /home/codingbyday/Desktop/Work/Development/Pantheon/Pantheon/OptiFlow/venv/bin/python3 /home/codingbyday/Desktop/Work/Development/Pantheon/Pantheon/OptiFlow/frepplectl.py erp2frepple >> /home/codingbyday/Desktop/Work/Development/Pantheon/Pantheon/OptiFlow/log.log 2>&1

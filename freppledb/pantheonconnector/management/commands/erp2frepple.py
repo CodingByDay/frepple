@@ -171,78 +171,75 @@ class Command(BaseCommand):
  
             # Extract all tables
             try:
-                '''print("Location")
+                print("Location")
                 self.extractLocation()
-                self.task.status = "?%"
+                self.task.status = "7%"
                 self.task.save(using=self.database)
  
                 print("Customer")
                 self.extractCustomer()
-                self.task.status = "?%"
+                self.task.status = "14%"
                 self.task.save(using=self.database)
  
                 print("Item")
                 self.extractItem()
-                self.task.status = "?%"
+                self.task.status = "21%"
                 self.task.save(using=self.database)
 
                 print("Calendar")
                 self.extractCalendar()
-                self.task.status = "?%"
+                self.task.status = "28%"
                 self.task.save(using=self.database)
  
                 print("Calendar bucket")
                 self.extractCalendarBucket()
-                self.task.status = "?%"
+                self.task.status = "35%"
                 self.task.save(using=self.database)
  
                 print("Supplier")
                 self.extractSupplier()
-                self.task.status = "?%"
+                self.task.status = "42%"
                 self.task.save(using=self.database)
  
                 print("ItemSupplier")
                 self.extractItemSupplier()
-                self.task.status = "?%"
+                self.task.status = "49%"
                 self.task.save(using=self.database)
             
                 print("Resource")
                 self.extractResource()
-                self.task.status = "?%"
+                self.task.status = "56%"
                 self.task.save(using=self.database)
  
 
                 print("Sales order")
                 self.extractSalesOrder()
-                self.task.status = "?%"
-                self.task.save(using=self.database)'''
+                self.task.status = "63%"
+                self.task.save(using=self.database)
  
                 print("Operation")
                 self.extractOperation()
-                self.task.status = "?%"
+                self.task.status = "70%"
                 self.task.save(using=self.database)
  
 
-
-
                 print("Operation resource")
                 self.extractOperationResource()
-                self.task.status = "?%"
+                self.task.status = "77%"
                 self.task.save(using=self.database)
  
                 print("Operation material")
                 self.extractOperationMaterial()
-                self.task.status = "?%"
+                self.task.status = "85%"
                 self.task.save(using=self.database)
  
                 print("Buffer") 
                 self.extractBuffer()
-                self.task.status = "?%"
+                self.task.status = "99%"
                 self.task.save(using=self.database)
  
- 
- 
-                self.task.status = "Done. Errors:" + self.error_count
+
+                self.task.status = "Done. Errors:" + str(self.error_count)
  
             except Exception as e:
                 self.task.status = "Failed"
@@ -258,7 +255,7 @@ class Command(BaseCommand):
         self.cursor.execute(
             """
  
-            select * from uTN_V_Frepple_LocationData
+            SELECT Name, Description, LastModified FROM uTN_V_Frepple_LocationData;
                     
             """
         )
@@ -307,10 +304,7 @@ class Command(BaseCommand):
  
         self.cursor.execute(
             """
- 
-            select * from uTN_V_Frepple_CustomerData
- 
- 
+            SELECT Name, Category, LastModified FROM uTN_V_Frepple_CustomerData;
             """
         )
  
@@ -355,8 +349,7 @@ class Command(BaseCommand):
  
         self.cursor.execute(
             """
-            SELECT *
-            FROM uTN_V_Frepple_ItemData
+            SELECT Name, Subcategory, Description, Category, timeStamp FROM uTN_V_Frepple_ItemData;
             """
         )
         
@@ -406,10 +399,7 @@ class Command(BaseCommand):
  
         self.cursor.execute(
             """
- 
-            select * from uTN_V_Frepple_SupplierData 
- 
- 
+            SELECT Name, Description, LastModified FROM uTN_V_Frepple_SupplierData; 
             """
         )
         rows = self.cursor.fetchall()
@@ -454,9 +444,7 @@ class Command(BaseCommand):
  
         self.cursor.execute(
             """
- 
-            select * from uTN_V_Frepple_ResourcesData 
- 
+            SELECT Name, Category, Subcategory, Maximum, Location, Type, LastModified, Available FROM uTN_V_Frepple_ResourcesData; 
             """
         )
         rows = self.cursor.fetchall()
@@ -521,12 +509,7 @@ class Command(BaseCommand):
  
         self.cursor.execute(
             """
- 
- 
-            select * from uTN_V_Frepple_SalesOrderData 
- 
- 
-            
+            SELECT Name, Item, Location, Customer, Status, Due, Quantity, MinShipment, Description, Category, Priority, LastModified FROM uTN_V_Frepple_SalesOrderData;            
             """
         )
         rows = self.cursor.fetchall()
@@ -601,7 +584,7 @@ class Command(BaseCommand):
  
         self.cursor.execute(
             """
-               select * from uTN_V_Frepple_OperationData 
+               SELECT Name, acDescr, Category, Subcategory, Type, Item, Location, Duration, Duration_Per, LastModified FROM uTN_V_Frepple_OperationData; 
             """
         )
         rows = self.cursor.fetchall()
@@ -696,7 +679,7 @@ class Command(BaseCommand):
  
         self.cursor.execute (
             """
-                select * from uTN_V_Frepple_OperationResourcesData where Resource != ''
+                SELECT Name, Resource, Quantity, LastModified FROM uTN_V_Frepple_OperationResourcesData;
             """
         )
         rows = self.cursor.fetchall()
@@ -755,7 +738,7 @@ class Command(BaseCommand):
  
         self.cursor.execute(
             """
-                select * from uTN_V_Frepple_OperationMaterialData 
+                SELECT Operation, Item, Type, Quantity, LastModified FROM uTN_V_Frepple_OperationMaterialData; 
             """
         )
         rows = self.cursor.fetchall()
@@ -816,7 +799,7 @@ class Command(BaseCommand):
         self.cursor.execute(
             """
             
-            select * from uTN_V_Frepple_BufferData
+            SELECT Item, Location, Batch, OnHand FROM uTN_V_Frepple_BufferData;
  
             """
         )
@@ -875,7 +858,7 @@ class Command(BaseCommand):
  
         self.cursor.execute(
             """
-      select * from uTN_V_Frepple_CalendarData
+      SELECT Name, "Default" FROM uTN_V_Frepple_CalendarData;
             """
         )
         rows = self.cursor.fetchall()
@@ -919,7 +902,7 @@ class Command(BaseCommand):
  
         self.cursor.execute(
             """
-        select * from uTN_V_Frepple_CalendarBucketsData
+           SELECT Calendar, Value, Start, "End", Priority, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday, StartTime, EndTime FROM uTN_V_Frepple_CalendarBucketsData;
             """
         )
         rows = self.cursor.fetchall()
@@ -998,7 +981,7 @@ class Command(BaseCommand):
  
         self.cursor.execute(
             """
-        select * from uTN_V_Frepple_ItemSupplierData
+        SELECT Supplier, Item FROM uTN_V_Frepple_ItemSupplierData;
             """
         )
         rows = self.cursor.fetchall()
