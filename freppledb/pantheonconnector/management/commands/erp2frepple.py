@@ -38,7 +38,7 @@ from freppledb.common.models import User
 from freppledb.execute.models import Task
  
 from ...utils import getERPconnection
-from ...utils import update_or_create_record  # Import the utility function 03.07.2024 Janko Jovičić
+from ...utils import update_or_create_record, hours_to_duration  # Import the utility function 03.07.2024 Janko Joviд█iд┤
  
  
 class Command(BaseCommand):
@@ -245,8 +245,6 @@ class Command(BaseCommand):
  
     def extractLocation(self):
  
-
-        
         self.cursor.execute(
             """
  
@@ -256,21 +254,13 @@ class Command(BaseCommand):
         )
         rows = self.cursor.fetchall()
 
-        '''
-        # Fetch all existing locations once and create a lookup dictionary based on lookup fields
-        existing_locations = Location.objects.all()
-        lookup_fields = ['name']  # Specify the lookup fields here
 
-        # Create a lookup dictionary with only the specified fields
-        object_lookup = {
-            tuple(getattr(loc, field) for field in lookup_fields): loc
-            for loc in existing_locations
-                  lookup_key = tuple(data[field] for field in lookup_fields)
-                existing_location = object_lookup.get(lookup_key, None)
-                existing_object = Location.objects.filter(**lookup_fields).first()
-        }
-        '''
+        existing_objects = {}
+        for obj in Location.objects.all():
+            existing_objects[(obj.name)] = obj
+
         objects_to_create = []
+        objects_to_update = []
 
         for row in rows:
             try:
@@ -285,16 +275,21 @@ class Command(BaseCommand):
                     'description': description,
                     'lastmodified': lastmodified or now()
                 }
-          
+                
+                existing_object = existing_objects.get((name))
 
-                new_object= Location(**data)
-                objects_to_create.append(new_object)
-
+                if existing_object:
+                    update_object = Location(**data)
+                    objects_to_update.append(update_object)
+                else:
+                    new_object= Location(**data)
+                    objects_to_create.append(new_object)
             except Exception as e:
                 self.error_count += 1
         with transaction.atomic(using=self.database):
-            Location.objects.bulk_create(objects_to_create, update_conflicts=True, batch_size=100000)
-
+            Location.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
  
  
  
@@ -310,7 +305,13 @@ class Command(BaseCommand):
         )
  
         rows = self.cursor.fetchall()
+
+        existing_objects = {}
+        for obj in Customer.objects.all():
+            existing_objects[(obj.name)] = obj
+
         objects_to_create = []
+        objects_to_update = []
         for row in rows:
             try:
                 name = row[0]
@@ -318,21 +319,27 @@ class Command(BaseCommand):
                 lastmodified = row[2]
  
                 lookup_fields = {'name': name}
+
                 data = {
                     'name': name,
                     'category': category,
                     'lastmodified': lastmodified or now()
                 }
                 
+                existing_object = existing_objects.get((name))
 
-                new_object= Customer(**data)
-                objects_to_create.append(new_object)
-
+                if existing_object:
+                    update_object = Customer(**data)
+                    objects_to_update.append(update_object)
+                else:
+                    new_object= Customer(**data)
+                    objects_to_create.append(new_object)
             except Exception as e:
                 self.error_count += 1
         with transaction.atomic(using=self.database):
-            Customer.objects.bulk_create(objects_to_create, update_conflicts=True, batch_size=100000)
-
+            Customer.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
  
     def extractItem(self):
  
@@ -344,7 +351,11 @@ class Command(BaseCommand):
         )
         
         rows = self.cursor.fetchall()
+        existing_objects = {}
+        for obj in Item.objects.all():
+            existing_objects[(obj.name)] = obj
         objects_to_create = []
+        objects_to_update = []
 
 
         for row in rows:
@@ -357,21 +368,28 @@ class Command(BaseCommand):
                 
                 lookup_fields = {'name': name}
                 data = {
+                    'name': name,
                     'subcategory': subcategory,
                     'description': description,
                     'category': category,
                     'lastmodified': lastmodified or now()
                 }
                 
+                existing_object = existing_objects.get((name))
 
-                new_object= Item(**data)
-                objects_to_create.append(new_object)
-
+                if existing_object:
+                    update_object = Item(**data)
+                    objects_to_update.append(update_object)
+                else:
+                    new_object= Item(**data)
+                    objects_to_create.append(new_object)
             except Exception as e:
                 self.error_count += 1
         with transaction.atomic(using=self.database):
             Item.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
-
+            for object_current in objects_to_update:
+                object_current.save()
+        
  
  
     def extractSupplier(self):
@@ -385,6 +403,12 @@ class Command(BaseCommand):
             """
         )
         rows = self.cursor.fetchall()
+
+        existing_objects = {}
+        for obj in Supplier.objects.all():
+            existing_objects[(obj.name)] = obj
+
+
         objects_to_create = []
         objects_to_update = []
         for row in rows:
@@ -395,12 +419,12 @@ class Command(BaseCommand):
  
                 lookup_fields = {'name': name}
                 data = {
-                    'subcategory': name,
+                    'name': name,
                     'description': description,
                     'lastmodified': lastmodified or now()
                 }
                 
-                existing_object = Supplier.objects.filter(**lookup_fields).first()
+                existing_object = existing_objects.get((name))
 
                 if existing_object:
                     update_object = Supplier(**data)
@@ -426,6 +450,14 @@ class Command(BaseCommand):
             """
         )
         rows = self.cursor.fetchall()
+
+        calendars= {calendar.name: calendar for calendar in Calendar.objects.all()}
+        locations = {location.name: location for location in Location.objects.all()}
+
+        existing_objects = {}
+        for obj in Resource.objects.all():
+            existing_objects[(obj.name)] = obj
+
         objects_to_create = []
         objects_to_update = []
         for row in rows:
@@ -441,15 +473,11 @@ class Command(BaseCommand):
                 
                 lookup_fields = {'name': name }
  
-                try:
-                    available_calendar = Calendar.objects.get(name=available)
-                except Calendar.DoesNotExist:
-                    available_calendar = None
- 
-                try:
-                    location_obj = Location.objects.get(name=location)
-                except Location.DoesNotExist:
-                    location_obj = None
+                location_available = locations.get(location)
+                calendar_available = calendars.get(available)
+
+                if location_available is None or calendar_available is None:
+                    continue
                 
  
                 data = {
@@ -457,13 +485,13 @@ class Command(BaseCommand):
                     'category': category,
                     'subcategory': subcategory,
                     'maximum': maximum,
-                    'location': location_obj,
+                    'location': location_available,
                     'type': type_val,
                     'lastmodified': lastmodified or now(),
-                    'available': available_calendar
+                    'available': calendar_available
                 }
                 
-                existing_object = Resource.objects.filter(**lookup_fields).first()
+                existing_object = existing_objects.get((name))
 
                 if existing_object:
                     update_object = Resource(**data)
@@ -485,13 +513,22 @@ class Command(BaseCommand):
             """
  
  
-            select * from uTN_V_Frepple_SalesOrderData where Status = 'open'
+            select * from uTN_V_Frepple_SalesOrderData 
  
  
             
             """
         )
         rows = self.cursor.fetchall()
+
+        items = {item.name: item for item in Item.objects.all()}
+        locations = {location.name: location for location in Location.objects.all()}
+        customers = {customer.name: customer for customer in Customer.objects.all()}
+
+        existing_objects = {}
+        for obj in Demand.objects.all():
+            existing_objects[(obj.name)] = obj
+
         objects_to_create = []
         objects_to_update = []
         for row in rows:
@@ -509,28 +546,21 @@ class Command(BaseCommand):
                 priority = row[10]
                 lastmodified = row[11]
  
-                try:
-                    available_item = Item.objects.get(name=item)
-                except Item.DoesNotExist:
-                    available_item = None
- 
-                try:
-                    available_location = Location.objects.get(name=location)
-                except Location.DoesNotExist:
-                    available_location = None
- 
-                try:
-                    available_customer = Customer.objects.get(name=customer)
-                except Customer.DoesNotExist:
-                    available_customer = None
+                item_available = items.get(item)
+                location_available = locations.get(location)
+                customer_available = customers.get(customer)
+
+
+                if item_available is None or location_available is None or customer_available is None:
+                    continue
  
  
                 lookup_fields = {'name': name}
                 data = {
                     'name': name,
-                    'item': available_item,
-                    'location': available_location,
-                    'customer': available_customer,
+                    'item': item_available,
+                    'location': location_available,
+                    'customer': customer_available,
                     'status': status,
                     'due': due,
                     'quantity': quantity,
@@ -541,7 +571,7 @@ class Command(BaseCommand):
                     'lastmodified': lastmodified or now()
                 }
                 
-                existing_object = Demand.objects.filter(**lookup_fields).first()
+                existing_object = existing_objects.get((name))
 
                 if existing_object:
                     update_object = Demand(**data)
@@ -565,6 +595,12 @@ class Command(BaseCommand):
             """
         )
         rows = self.cursor.fetchall()
+
+        items = {item.name: item for item in Item.objects.all()}
+        locations = {location.name: location for location in Location.objects.all()}
+        existing_objects = {}
+        for obj in Operation.objects.all():
+            existing_objects[(obj.name)] = obj
         objects_to_create = []
         objects_to_update = []
         for row in rows:
@@ -579,31 +615,33 @@ class Command(BaseCommand):
                 duration = row[7]
                 duration_per = row[8]
                 lastmodified = row[9]
+
+
                 lookup_fields = {'name': name}
-                try:
-                    available_item = Item.objects.get(name=item)
-                except Item.DoesNotExist:
-                    available_item = None
+                
+
+
+                item_available = items.get(item)
+                location_available = locations.get(location)
  
-                try:
-                    available_location = Location.objects.get(name=location)
-                except Location.DoesNotExist:
-                    available_location = None
- 
+
+                if item_available is None or location_available is None:
+                        continue
+                
                 data = {
                     'name': name,
                     'description': description,
                     'category': category,
                     'subcategory': subcategory,
                     'type': type_val,
-                    'item': available_item,
-                    'location': available_location,
-                    'duration': duration,
-                    'duration_per': duration_per,
+                    'item': item_available,
+                    'location': location_available,
+                    'duration': hours_to_duration(duration),
+                    'duration_per': hours_to_duration(duration_per),
                     'lastmodified': lastmodified or now()
                 }
                 
-                existing_object = Operation.objects.filter(**lookup_fields).first()
+                existing_object = existing_objects.get((name))
 
                 if existing_object:
                     update_object = Operation(**data)
@@ -652,6 +690,13 @@ class Command(BaseCommand):
             """
         )
         rows = self.cursor.fetchall()
+
+        resources = {resource.name: resource for resource in Resource.objects.all()}
+
+        existing_objects = {}
+        for obj in OperationResource.objects.all():
+            existing_objects[(obj.name, obj.resource, obj.quantity)] = obj
+
         objects_to_create = []
         objects_to_update = []
         for row in rows:
@@ -663,19 +708,19 @@ class Command(BaseCommand):
                 
                 lookup_fields = {'name': name, 'resource': resource, quantity: quantity}
  
-                try:
-                    available_resource = Resource.objects.get(name=resource)
-                except resource.DoesNotExist:
-                    available_resource = None
+                resource_available = resources.get(resource)
  
+                if resource_available is None:
+                    continue
+
                 data = {
                     'name': name,
-                    'resource': available_resource,
+                    'resource': resource_available,
                     'quantity': quantity,
                     'lastmodified': lastmodified or now()
                 }
                 
-                existing_object = OperationResource.objects.filter(**lookup_fields).first()
+                existing_object = existing_objects.get((name, resource, quantity))
 
                 if existing_object:
                     update_object = OperationResource(**data)
@@ -702,6 +747,11 @@ class Command(BaseCommand):
         )
         rows = self.cursor.fetchall()
         
+        items = {item.name: item for item in Item.objects.all()}
+        operations = {operation.name: operation for operation in Operation.objects.all()}
+        existing_objects = {}
+        for obj in OperationMaterial.objects.all():
+            existing_objects[(obj.operation, obj.item, obj.type, obj.quantity)] = obj
         objects_to_create = []
         objects_to_update = []
 
@@ -715,25 +765,22 @@ class Command(BaseCommand):
                 
                 lookup_fields = {'operation': operation, 'item': item, 'type_val': type_val, 'quantity': quantity}
  
-                try:
-                    available_operation = Resource.objects.get(name=operation)
-                except resource.DoesNotExist:
-                    available_operation = None
- 
-                try:
-                    available_item = Resource.objects.get(name=item)
-                except resource.DoesNotExist:
-                    available_item = None
+                item_available = items.get(item)
+                operation_available = operations.get(operation)
                 
+
+                if item_available is None or operation_available is None:
+                    continue
+
                 data = {
-                    'operation': available_operation,
-                    'item': available_item,
+                    'operation': operation_available,
+                    'item': item_available,
                     'type': type_val,
                     'quantity': quantity,
                     'lastmodified': lastmodified or now()
                 }
                 
-                existing_object = OperationMaterial.objects.filter(**lookup_fields).first()
+                existing_object = existing_objects.get((operation, item, type_val, quantity))
 
                 if existing_object:
                     update_object = OperationMaterial(**data)
@@ -761,7 +808,12 @@ class Command(BaseCommand):
             """
         )
         rows = self.cursor.fetchall()
-
+        
+        items = {item.name: item for item in Item.objects.all()}
+        locations = {location.name: location for location in Location.objects.all()}
+        existing_objects = {}
+        for obj in Buffer.objects.all():
+            existing_objects[(obj.item, obj.location, obj.batch)] = obj
         objects_to_create = []
         objects_to_update = []
         
@@ -773,26 +825,22 @@ class Command(BaseCommand):
                 onhand = row[3]
  
                 
-                try:
-                    available_item = Item.objects.get(name=item)
-                except Item.DoesNotExist:
-                    available_item = None
- 
-                try:
-                    available_location = Location.objects.get(name=location)
-                except Location.DoesNotExist:
-                    available_location = None
+                item_available = items.get(item)
+                location_available = locations.get(location)
+
+                if item_available is None or location_available is None:
+                    continue
                 
                 lookup_fields = {'item': item, 'location': location, 'batch': batch }
  
                 data = {
-                    'item': available_item,
-                    'location': available_location,
+                    'item': item_available,
+                    'location': location_available,
                     'batch': batch,
                     'onhand': onhand,
                 }
                 
-                existing_object = Buffer.objects.filter(**lookup_fields).first()
+                existing_object = existing_objects.get((item, location, location, batch))
 
                 if existing_object:
                     update_object = Buffer(**data)
@@ -818,6 +866,11 @@ class Command(BaseCommand):
             """
         )
         rows = self.cursor.fetchall()
+
+        existing_objects = {}
+        for obj in Calendar.objects.all():
+            existing_objects[(obj.name)] = obj
+
         objects_to_create = []
         objects_to_update = []
         for row in rows:
@@ -832,7 +885,7 @@ class Command(BaseCommand):
  
                 }
                 
-                existing_object = Calendar.objects.filter(**lookup_fields).first()
+                existing_object = existing_objects.get((name))
 
                 if existing_object:
                     update_object = Calendar(**data)
@@ -857,6 +910,14 @@ class Command(BaseCommand):
             """
         )
         rows = self.cursor.fetchall()
+        calendars = {calendar.name: calendar for calendar in Calendar.objects.all()}
+
+
+        existing_objects = {}
+        for obj in CalendarBucket.objects.all():
+            existing_objects[(obj.calendar,obj.startdate,obj.enddate,obj.priority)] = obj
+
+
         objects_to_create = []
         objects_to_update = []
         for row in rows:
@@ -876,18 +937,18 @@ class Command(BaseCommand):
                 starttime = row[12]
                 endtime = row[13]
                 
-                try:
-                    available_calendar = Calendar.objects.get(name=calendar_id)
-                except Calendar.DoesNotExist:
-                    available_calendar = None
+                calendar_available = calendars.get(calendar_id)
+
+                if calendar_available is None:
+                    continue
  
  
-                lookup_fields = {'calendar': available_calendar, 'startdate': startdate, 'enddate': enddate, 'priority': priority}
+                lookup_fields = {'calendar': calendar_id, 'startdate': startdate, 'enddate': enddate, 'priority': priority}
  
             
  
                 data = {
-                    'calendar': available_calendar,
+                    'calendar': calendar_available,
                     'value': value,
                     'startdate': startdate,
                     'enddate': enddate,
@@ -903,7 +964,7 @@ class Command(BaseCommand):
                     'endtime': endtime,
                 }
                 
-                existing_object = CalendarBucket.objects.filter(**lookup_fields).first()
+                existing_object = existing_objects.get((calendar_id, startdate, enddate, priority))
 
                 if existing_object:
                     update_object = CalendarBucket(**data)
@@ -928,6 +989,15 @@ class Command(BaseCommand):
             """
         )
         rows = self.cursor.fetchall()
+
+        # Cache all items and suppliers in memory
+        items = {item.name: item for item in Item.objects.all()}
+        suppliers = {supplier.name: supplier for supplier in Supplier.objects.all()}
+
+        existing_objects = {}
+        for obj in ItemSupplier.objects.all():
+            existing_objects[(obj.supplier,obj.item)] = obj
+
         objects_to_create = []
         objects_to_update = []
         for row in rows:
@@ -935,25 +1005,21 @@ class Command(BaseCommand):
                 supplier = row[0]
                 item = row[1]
  
-                try:
-                    item_available = Item.objects.get(name=item)
-                except Item.DoesNotExist:
-                    item_available = None
- 
-                try:
-                    supplier_available = Supplier.objects.get(name=supplier)
-                except Location.DoesNotExist:
-                    supplier_available = None
- 
+                item_available = items.get(item)
+                supplier_available = suppliers.get(supplier)
+
+                if item_available is None or supplier_available is None:
+                    continue
  
                 lookup_fields = {'supplier': supplier, 'item': item}
  
                 data = {
-                    'supplier': supplier_available,
-                    'item': item_available,
+                    'supplier_id': supplier_available,
+                    'item_id': item_available,
                 }
                 
-                existing_object = ItemSupplier.objects.filter(**lookup_fields).first()
+                existing_object = existing_objects.get((supplier, item))
+
 
                 if existing_object:
                     update_object = ItemSupplier(**data)
@@ -967,4 +1033,3 @@ class Command(BaseCommand):
             ItemSupplier.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
             for object_current in objects_to_update:
                 object_current.save()
-

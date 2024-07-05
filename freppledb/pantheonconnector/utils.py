@@ -1,6 +1,7 @@
 import pyodbc
 from django.db import DEFAULT_DB_ALIAS
 from django.db import transaction
+import datetime
 
 
 
@@ -51,3 +52,15 @@ def update_or_create_record(model, lookup_fields, data):
 
 
 
+def hours_to_duration(hours):
+    # Convert hours to days and remaining hours
+    days = hours // 24
+    remaining_hours = hours % 24
+
+    # Create a timedelta object with days and remaining hours
+    duration = datetime.timedelta(days=days, hours=remaining_hours)
+
+    # Format the timedelta into a string with days and hours
+    duration_str = f"{duration.days} days {duration.seconds // 3600:02}:{(duration.seconds % 3600) // 60:02}:{duration.seconds % 60:02}.{duration.microseconds // 1000:03}"
+
+    return duration_str
