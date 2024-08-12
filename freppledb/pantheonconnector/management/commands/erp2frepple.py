@@ -234,9 +234,9 @@ class Command(BaseCommand):
                 self.task.save(using=self.database)
  
                 print("Buffer") 
-                # self.extractBuffer()
-                # self.task.status = "99%"
-                # self.task.save(using=self.database)
+                self.extractBuffer()
+                self.task.status = "99%"
+                self.task.save(using=self.database)
  
 
                 self.task.status = "Done. Errors:" + str(self.error_count)
