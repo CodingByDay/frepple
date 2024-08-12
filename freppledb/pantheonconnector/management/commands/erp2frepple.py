@@ -234,9 +234,9 @@ class Command(BaseCommand):
                 self.task.save(using=self.database)
  
                 print("Buffer") 
-                self.extractBuffer()
-                self.task.status = "99%"
-                self.task.save(using=self.database)
+                # self.extractBuffer()
+                # self.task.status = "99%"
+                # self.task.save(using=self.database)
  
 
                 self.task.status = "Done. Errors:" + str(self.error_count)
@@ -418,6 +418,7 @@ class Command(BaseCommand):
                 lastmodified = row[2]
  
                 lookup_fields = {'name': name}
+
                 data = {
                     'name': name,
                     'description': description,
@@ -546,9 +547,12 @@ class Command(BaseCommand):
 
                 if item_available is None or location_available is None or customer_available is None:
                     continue
- 
- 
+
+
                 lookup_fields = {'name': name}
+
+
+
                 data = {
                     'name': name,
                     'item': item_available,
@@ -584,7 +588,7 @@ class Command(BaseCommand):
  
         self.cursor.execute(
             """
-               SELECT Name, acDescr, Category, Subcategory, Type, Item, Location, Duration, Duration_Per, LastModified FROM uTN_V_Frepple_OperationData; 
+               SELECT Name, acDescr, Category, Subcategory, Type, Item, Location, Duration, "Duration Per Unit", LastModified FROM uTN_V_Frepple_OperationData;
             """
         )
         rows = self.cursor.fetchall()
@@ -604,7 +608,7 @@ class Command(BaseCommand):
                 subcategory = row[3]
                 type_val = row[4]
                 item = row[5]
-                location = row[6]
+                location = "factory" # For now, just for testing purposes.
                 duration = row[7]
                 duration_per = row[8]
                 lastmodified = row[9]
@@ -612,7 +616,6 @@ class Command(BaseCommand):
 
                 lookup_fields = {'name': name}
                 
-
 
                 item_available = items.get(item)
                 location_available = locations.get(location)
@@ -645,7 +648,7 @@ class Command(BaseCommand):
             except Exception as e:
                 self.error_count += 1
         with transaction.atomic(using=self.database):
-            Operation.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            Operation.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=1000)
             for object_current in objects_to_update:
                 object_current.save()
  
