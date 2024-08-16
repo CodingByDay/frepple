@@ -233,7 +233,7 @@ INSTALLED_APPS = (
     "freppledb.editor",
         #  Add any project specific apps here
         # "freppledb.odoo",
-    "freppledb.pantheonconnectdor",
+    "freppledb.pantheonconnector",
     "freppledb.wizard",
     "freppledb.input",
     "freppledb.forecast",
