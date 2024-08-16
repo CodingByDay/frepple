@@ -34,7 +34,7 @@ from django.utils.timezone import now
 from django.db import transaction
 
 from freppledb import __version__
-from freppledb.common.models import User
+from freppledb.common.models import User, Parameter
 from freppledb.execute.models import Task
  
 from ...utils import getERPconnection
@@ -235,6 +235,10 @@ class Command(BaseCommand):
  
                 print("Buffer") 
                 self.extractBuffer()
+                self.extractParameters()
+                self.extractItemDistribution()
+
+                
                 self.task.status = "99%"
                 self.task.save(using=self.database)
  
@@ -1030,5 +1034,163 @@ class Command(BaseCommand):
                 self.error_count += 1
         with transaction.atomic(using=self.database):
             ItemSupplier.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
+
+
+
+    def extractParameters(self):
+ 
+        self.cursor.execute(
+            """
+        SELECT Name, Value, Description FROM uTN_V_Frepple_ParametersData;
+            """
+        )
+
+        rows = self.cursor.fetchall()
+
+
+        existing_objects = {}
+        for obj in Parameter.objects.all():
+            existing_objects[(obj.name,obj.value,obj.description)] = obj
+
+        objects_to_create = []
+        objects_to_update = []
+
+        for row in rows:
+            try:              
+                name = row[0]
+                value = row[1]
+                description = row[2]
+
+                lookup_fields = {'supplier': supplier, 'item': item}
+ 
+                data = {
+                    'name': name,
+                    'value': value,
+                    'description': description,
+                }
+                
+                existing_object = existing_objects.get((name, value, description))
+
+
+                if existing_object:
+                    update_object = Parameter(**data)
+                    objects_to_update.append(update_object)
+                else:
+                    new_object= Parameter(**data)
+                    objects_to_create.append(new_object)
+            except Exception as e:
+                self.error_count += 1
+        with transaction.atomic(using=self.database):
+            Parameter.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
+            for object_current in objects_to_update:
+                object_current.save()
+
+
+
+
+    def extractItemDistribution(self):
+
+        self.cursor.execute(
+            """
+        SELECT Item, Origin, Destination, Cost, LeadTime, SizeMinimum, SizeMultiple, SizeMaximum, BatchWindow, EffectiveStart, EffectiveEnd, Priority, Resource, ResourceQty, Fence FROM uTN_V_Frepple_ItemDistribution;
+            """
+        )
+
+        rows = self.cursor.fetchall()
+
+        items = {item.name: item for item in Item.objects.all()}
+        locations = {location.name: location for location in Location.objects.all()}
+        # resources = {resource.name: resource for resource in Resource.objects.all()}
+
+        existing_objects = {}
+        for obj in ItemDistribution.objects.all():
+            existing_objects[(obj.item,obj.origin,obj.location, obj.cost,
+                              obj.leadtime, obj.sizeminimum, sizemaximum, batchwindow,
+                              obj.effectivestart, obj.effective_end, obj.priority,
+                              obj.resource, obj.resource_qty, obj.fence)] = obj
+
+
+        objects_to_create = []
+        objects_to_update = []
+
+        for row in rows:
+            try:       
+                item = row[0]
+                origin = row[1]
+                destination = row[2]
+                cost = row[3]
+                leadtime = row[4]
+                sizeminimum = row[5]
+                sizemultiple = row[6]
+                sizemaximum = row[7]
+                batchwindow = row[8]
+                effectivestart = row[9]
+                effectiveend = row[10]
+                priority = row[11]
+                resource = row[12]
+                resourceQty = row[13]
+                fence = row[14]
+
+                lookup_fields = {'supplier': supplier, 'item': item}
+
+                item_available = items.get(item)
+                location_available_origin = locations.get(origin)
+                location_available_destination = locations.get(destination)
+
+                if item_available is None or location_available_origin is None:
+                    continue
+
+                if destination == "":
+                    data = {
+                    'item': item_available,
+                    'origin': location_available_origin,
+                    'location': location_available_destination,
+                    'cost': cost,
+                    'leadtime': hours_to_duration(leadtime),
+                    'sizeminimum': sizeminimum,
+                    'sizemultiple': sizemultiple,
+                    'sizemaximum': sizemaximum,
+                    'batchwindow': hours_to_duration(batchwindow),
+                    'effective_start': effectivestart,
+                    'effective_end': effectiveend,
+                    'priority': priority,
+                    'resource_qty': resourceQty,
+                    'fence': hours_to_duration(fence),
+                }
+                else:
+                    data = {
+                    'item': item_available,
+                    'origin': location_available_origin,
+                    'location': location_available_destination,
+                    'cost': cost,
+                    'leadtime': hours_to_duration(leadtime),
+                    'sizeminimum': sizeminimum,
+                    'sizemultiple': sizemultiple,
+                    'sizemaximum': sizemaximum,
+                    'batchwindow': hours_to_duration(batchwindow),
+                    'effective_start': effectivestart,
+                    'effective_end': effectiveend,
+                    'priority': priority,
+                    'resource_qty': resourceQty,
+                    'fence': hours_to_duration(fence),
+                }
+              
+                
+                existing_object = existing_objects.get((item, origin, cost, leadtime, 
+                                                        sizeminimum, sizemultiple, sizemaximum, batchwindow, effectivestart, 
+                                                        effectiveend, priority, resourceQty, fence))
+
+                if existing_object:
+                    update_object = ItemDistribution(**data)
+                    objects_to_update.append(update_object)
+                else:
+                    new_object = ItemDistribution(**data)
+                    objects_to_create.append(new_object)
+            except Exception as e:
+                self.error_count += 1
+        with transaction.atomic(using=self.database):
+            ItemDistribution.objects.bulk_create(objects_to_create, ignore_conflicts=True, batch_size=100000)
             for object_current in objects_to_update:
                 object_current.save()
